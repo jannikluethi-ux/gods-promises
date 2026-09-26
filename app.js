@@ -55,9 +55,28 @@
         "jealous",
       ];
 
+  const OT_BOOKS = new Set([
+    "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
+    "Joshua", "Judges", "Ruth",
+    "1 Samuel", "2 Samuel", "1 Kings", "2 Kings",
+    "1 Chronicles", "2 Chronicles", "Ezra", "Nehemiah", "Esther",
+    "Job", "Psalms", "Proverbs", "Ecclesiastes", "Song of Solomon",
+    "Isaiah", "Jeremiah", "Lamentations", "Ezekiel", "Daniel",
+    "Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah",
+    "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi",
+  ]);
+  const NT_BOOKS = new Set([
+    "Matthew", "Mark", "Luke", "John", "Acts",
+    "Romans", "1 Corinthians", "2 Corinthians", "Galatians", "Ephesians",
+    "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians",
+    "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", "James",
+    "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation",
+  ]);
+
   const el = {
     search: document.getElementById("search"),
     clear: document.getElementById("clear-search"),
+    testament: document.getElementById("testament-filter"),
     book: document.getElementById("book-filter"),
     theme: document.getElementById("theme-filter"),
     feeling: document.getElementById("feeling-filter"),
@@ -70,10 +89,17 @@
   /** @type {object[]} */
   let lastFiltered = [];
 
-  function booksInOrder() {
+  function testamentOf(book) {
+    if (OT_BOOKS.has(book)) return "OT";
+    if (NT_BOOKS.has(book)) return "NT";
+    return "";
+  }
+
+  function booksInOrder(testament) {
     const seen = new Set();
     const order = [];
     for (const p of promises) {
+      if (testament && testamentOf(p.book) !== testament) continue;
       if (!seen.has(p.book)) {
         seen.add(p.book);
         order.push(p.book);
@@ -151,8 +177,9 @@
    * - Across types: AND
    * - Text tokens: all must appear in the haystack
    */
-  function matches(item, tokens, book, theme, feeling) {
+  function matches(item, tokens, testament, book, theme, feeling) {
     const { p, hay } = item;
+    if (testament && testamentOf(p.book) !== testament) return false;
     if (book && p.book !== book) return false;
     if (theme && !(p.themes || []).includes(theme)) return false;
     if (feeling && !(p.feelings || []).includes(feeling)) return false;
@@ -218,17 +245,22 @@
     if (!preserveLimit) resetVisibleLimit();
 
     const tokens = tokensFromQuery(el.search.value);
+    const testament = el.testament.value;
     const book = el.book.value;
     const theme = el.theme.value;
     const feeling = el.feeling.value;
     const filtered = indexed
-      .filter((item) => matches(item, tokens, book, theme, feeling))
+      .filter((item) =>
+        matches(item, tokens, testament, book, theme, feeling)
+      )
       .map((item) => item.p);
     lastFiltered = filtered;
 
     const n = filtered.length;
     const shown = Math.min(visibleLimit, n);
     const notes = [];
+    if (testament === "OT") notes.push("Old Testament");
+    if (testament === "NT") notes.push("New Testament");
     if (feeling) notes.push(`feeling: ${feeling}`);
     if (theme) notes.push(`theme: ${theme}`);
     if (book) notes.push(`book: ${book}`);
@@ -241,7 +273,7 @@
         : `<strong>${n}</strong> promise${n === 1 ? "" : "s"}${rangeStr}${noteStr}`;
 
     el.clear.disabled =
-      !el.search.value && !book && !theme && !feeling;
+      !el.search.value && !testament && !book && !theme && !feeling;
 
     if (n === 0) {
       el.results.innerHTML = `
@@ -276,17 +308,30 @@
     select.innerHTML = opts.join("");
   }
 
+  function refreshBookOptions(preserveValue) {
+    const testament = el.testament.value;
+    const previous = preserveValue ? el.book.value : "";
+    fillSelect(el.book, "All books", booksInOrder(testament || ""));
+    if (previous && [...el.book.options].some((o) => o.value === previous)) {
+      el.book.value = previous;
+    } else {
+      el.book.value = "";
+    }
+  }
+
   function initFilters() {
     fillSelect(el.feeling, "All feelings", feelingUniverse());
     fillSelect(el.theme, "All themes", themeUniverse());
-    fillSelect(el.book, "All books", booksInOrder());
+    refreshBookOptions(false);
   }
 
   function clearAll() {
     el.search.value = "";
+    el.testament.value = "";
     el.book.value = "";
     el.theme.value = "";
     el.feeling.value = "";
+    refreshBookOptions(false);
     render();
     el.search.focus();
   }
@@ -303,6 +348,10 @@
     }
   });
   el.clear.addEventListener("click", clearAll);
+  el.testament.addEventListener("change", () => {
+    refreshBookOptions(true);
+    render();
+  });
   el.book.addEventListener("change", render);
   el.theme.addEventListener("change", render);
   el.feeling.addEventListener("change", render);
