@@ -185,20 +185,55 @@ a {
 }
 
 .filters-dropdowns {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem 1rem;
 }
 
-@media (max-width: 900px) {
-  .filters-dropdowns {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.filter-block-testament {
+  grid-column: 1 / -1;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 720px) {
   .filters-dropdowns {
     grid-template-columns: 1fr;
   }
+}
+
+.testament-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.testament-btn {
+  appearance: none;
+  flex: 1 1 auto;
+  min-width: 7.5rem;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.testament-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+
+.testament-btn[aria-pressed="true"] {
+  background: var(--chip-active);
+  color: var(--chip-active-text);
+  border-color: var(--chip-active);
+}
+
+.testament-btn:focus-visible {
+  outline-offset: 3px;
 }
 
 .filter-block h2 {
@@ -220,8 +255,7 @@ a {
 
 #book-filter,
 #feeling-filter,
-#theme-filter,
-#testament-filter {
+#theme-filter {
   width: 100%;
   min-width: 0;
   padding: 0.5rem 0.75rem;

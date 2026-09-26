@@ -76,13 +76,16 @@
   const el = {
     search: document.getElementById("search"),
     clear: document.getElementById("clear-search"),
-    testament: document.getElementById("testament-filter"),
+    testamentGroup: document.getElementById("testament-options"),
     book: document.getElementById("book-filter"),
     theme: document.getElementById("theme-filter"),
     feeling: document.getElementById("feeling-filter"),
     count: document.getElementById("result-count"),
     results: document.getElementById("results"),
   };
+
+  /** @type {""|"OT"|"NT"} */
+  let activeTestament = "";
 
   const PAGE_SIZE = 48;
   let visibleLimit = PAGE_SIZE;
@@ -245,7 +248,7 @@
     if (!preserveLimit) resetVisibleLimit();
 
     const tokens = tokensFromQuery(el.search.value);
-    const testament = el.testament.value;
+    const testament = activeTestament;
     const book = el.book.value;
     const theme = el.theme.value;
     const feeling = el.feeling.value;
@@ -273,7 +276,7 @@
         : `<strong>${n}</strong> promise${n === 1 ? "" : "s"}${rangeStr}${noteStr}`;
 
     el.clear.disabled =
-      !el.search.value && !testament && !book && !theme && !feeling;
+      !el.search.value && !activeTestament && !book && !theme && !feeling;
 
     if (n === 0) {
       el.results.innerHTML = `
@@ -308,10 +311,27 @@
     select.innerHTML = opts.join("");
   }
 
+  function syncTestamentButtons() {
+    if (!el.testamentGroup) return;
+    el.testamentGroup.querySelectorAll(".testament-btn").forEach((btn) => {
+      const val = btn.dataset.testament || "";
+      btn.setAttribute(
+        "aria-pressed",
+        val === activeTestament ? "true" : "false"
+      );
+    });
+  }
+
+  function setTestament(value) {
+    activeTestament = value || "";
+    syncTestamentButtons();
+    refreshBookOptions(true);
+    render();
+  }
+
   function refreshBookOptions(preserveValue) {
-    const testament = el.testament.value;
     const previous = preserveValue ? el.book.value : "";
-    fillSelect(el.book, "All books", booksInOrder(testament || ""));
+    fillSelect(el.book, "All books", booksInOrder(activeTestament || ""));
     if (previous && [...el.book.options].some((o) => o.value === previous)) {
       el.book.value = previous;
     } else {
@@ -327,7 +347,8 @@
 
   function clearAll() {
     el.search.value = "";
-    el.testament.value = "";
+    activeTestament = "";
+    syncTestamentButtons();
     el.book.value = "";
     el.theme.value = "";
     el.feeling.value = "";
@@ -348,10 +369,13 @@
     }
   });
   el.clear.addEventListener("click", clearAll);
-  el.testament.addEventListener("change", () => {
-    refreshBookOptions(true);
-    render();
-  });
+  if (el.testamentGroup) {
+    el.testamentGroup.addEventListener("click", (e) => {
+      const btn = e.target.closest(".testament-btn");
+      if (!btn) return;
+      setTestament(btn.dataset.testament || "");
+    });
+  }
   el.book.addEventListener("change", render);
   el.theme.addEventListener("change", render);
   el.feeling.addEventListener("change", render);
@@ -376,5 +400,6 @@
   });
 
   initFilters();
+  syncTestamentButtons();
   render();
 })();
