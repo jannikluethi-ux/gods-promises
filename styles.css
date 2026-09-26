@@ -244,6 +244,34 @@ a {
   outline-offset: 3px;
 }
 
+
+.filter-hint {
+  margin: -0.15rem 0 0.45rem;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+}
+
+.chip-feeling {
+  background: #e8efe9;
+  color: #2f4a3f;
+}
+
+.chip-feeling:hover {
+  border-color: #8aab9a;
+  color: var(--ink);
+}
+
+.chip-feeling[aria-pressed="true"] {
+  background: var(--chip-active);
+  color: var(--chip-active-text);
+  border-color: var(--chip-active);
+}
+
+.tag-feeling {
+  color: #2f4a3f;
+  background: #e8efe9;
+}
+
 .results-meta {
   display: flex;
   flex-wrap: wrap;

@@ -34,17 +34,42 @@
     "wisdom",
   ];
 
+  /** Core feeling chips — always shown, even if sparse in data */
+  const FEATURED_FEELINGS = Array.isArray(data.feelingsVocabulary)
+    ? data.feelingsVocabulary
+    : [
+        "angry",
+        "anxious",
+        "afraid",
+        "lonely",
+        "sad",
+        "guilty",
+        "hopeless",
+        "weary",
+        "happy",
+        "grateful",
+        "peaceful",
+        "hopeful",
+        "loved",
+        "confused",
+        "bitter",
+        "jealous",
+      ];
+
   const el = {
     search: document.getElementById("search"),
     clear: document.getElementById("clear-search"),
     book: document.getElementById("book-filter"),
     themes: document.getElementById("theme-chips"),
+    feelings: document.getElementById("feeling-chips"),
     count: document.getElementById("result-count"),
     results: document.getElementById("results"),
   };
 
   /** @type {Set<string>} */
   const activeThemes = new Set();
+  /** @type {Set<string>} */
+  const activeFeelings = new Set();
 
   function booksInOrder() {
     const seen = new Set();
@@ -88,6 +113,7 @@
         p.text,
         p.context,
         ...(p.themes || []),
+        ...(p.feelings || []),
         ...(p.searchTerms || []),
       ].join(" ")
     );
@@ -102,7 +128,15 @@
       .filter(Boolean);
   }
 
-  function matches(item, tokens, book, themes) {
+  /**
+   * Filter logic:
+   * - Book: exact match when set
+   * - Themes: AND (promise must include every selected theme)
+   * - Feelings: OR (promise must include at least one selected feeling)
+   * - Across types (book × themes × feelings × text): AND
+   * - Text tokens: all must appear in the haystack
+   */
+  function matches(item, tokens, book, themes, feelings) {
     const { p, hay } = item;
     if (book && p.book !== book) return false;
     if (themes.size) {
@@ -110,6 +144,17 @@
       for (const t of themes) {
         if (!set.has(t)) return false;
       }
+    }
+    if (feelings.size) {
+      const set = new Set(p.feelings || []);
+      let any = false;
+      for (const f of feelings) {
+        if (set.has(f)) {
+          any = true;
+          break;
+        }
+      }
+      if (!any) return false;
     }
     for (const tok of tokens) {
       if (!hay.includes(tok)) return false;
@@ -126,14 +171,32 @@
   }
 
   function renderCard(p) {
-    const tags = (p.themes || [])
+    const themeTags = (p.themes || [])
       .map(
         (t) =>
           `<li><button type="button" class="tag" data-theme="${escapeHtml(
             t
-          )}" title="Filter by ${escapeHtml(t)}">${escapeHtml(t)}</button></li>`
+          )}" title="Filter by theme ${escapeHtml(t)}">${escapeHtml(
+            t
+          )}</button></li>`
       )
       .join("");
+
+    const feelingTags = (p.feelings || [])
+      .map(
+        (f) =>
+          `<li><button type="button" class="tag tag-feeling" data-feeling="${escapeHtml(
+            f
+          )}" title="Filter by feeling ${escapeHtml(f)}">${escapeHtml(
+            f
+          )}</button></li>`
+      )
+      .join("");
+
+    const tagsBlock =
+      feelingTags || themeTags
+        ? `<ul class="card-tags" aria-label="Feelings and themes">${feelingTags}${themeTags}</ul>`
+        : "";
 
     return `
       <li class="card" data-id="${escapeHtml(p.id)}">
@@ -141,7 +204,7 @@
         <p class="card-promise">${escapeHtml(p.promise)}</p>
         <blockquote class="card-text">${escapeHtml(p.text)}</blockquote>
         <p class="card-context">${escapeHtml(p.context)}</p>
-        <ul class="card-tags" aria-label="Themes">${tags}</ul>
+        ${tagsBlock}
       </li>
     `;
   }
@@ -150,26 +213,36 @@
     const tokens = tokensFromQuery(el.search.value);
     const book = el.book.value;
     const filtered = indexed
-      .filter((item) => matches(item, tokens, book, activeThemes))
+      .filter((item) =>
+        matches(item, tokens, book, activeThemes, activeFeelings)
+      )
       .map((item) => item.p);
 
     const n = filtered.length;
-    const themeNote =
-      activeThemes.size > 0
-        ? ` · themes: ${[...activeThemes].join(", ")}`
-        : "";
+    const notes = [];
+    if (activeFeelings.size > 0) {
+      notes.push(`feelings: ${[...activeFeelings].join(", ")}`);
+    }
+    if (activeThemes.size > 0) {
+      notes.push(`themes: ${[...activeThemes].join(", ")}`);
+    }
+    const noteStr = notes.length ? ` · ${notes.join(" · ")}` : "";
     el.count.innerHTML =
       n === 0
-        ? `<strong>No matches</strong>${themeNote}`
-        : `<strong>${n}</strong> promise${n === 1 ? "" : "s"}${themeNote}`;
+        ? `<strong>No matches</strong>${noteStr}`
+        : `<strong>${n}</strong> promise${n === 1 ? "" : "s"}${noteStr}`;
 
-    el.clear.disabled = !el.search.value && !book && activeThemes.size === 0;
+    el.clear.disabled =
+      !el.search.value &&
+      !book &&
+      activeThemes.size === 0 &&
+      activeFeelings.size === 0;
 
     if (n === 0) {
       el.results.innerHTML = `
         <div class="empty" role="status">
           <h2>No promises found</h2>
-          <p>Try a broader word, clear a theme chip, or choose “All books”.</p>
+          <p>Try a feeling like lonely or anxious, clear a chip, or choose “All books”.</p>
         </div>`;
       return;
     }
@@ -198,15 +271,34 @@
       .join("");
   }
 
+  function initFeelings() {
+    if (!el.feelings) return;
+    el.feelings.innerHTML = FEATURED_FEELINGS.map((f) => {
+      return `<button type="button" class="chip chip-feeling" data-feeling="${escapeHtml(
+        f
+      )}" aria-pressed="false">${escapeHtml(f)}</button>`;
+    }).join("");
+  }
+
+  function syncChipPressed(container, attr, activeSet) {
+    if (!container) return;
+    container.querySelectorAll(".chip").forEach((btn) => {
+      const key = btn.dataset[attr];
+      btn.setAttribute("aria-pressed", activeSet.has(key) ? "true" : "false");
+    });
+  }
+
   function toggleTheme(theme) {
     if (activeThemes.has(theme)) activeThemes.delete(theme);
     else activeThemes.add(theme);
-    el.themes.querySelectorAll(".chip").forEach((btn) => {
-      btn.setAttribute(
-        "aria-pressed",
-        activeThemes.has(btn.dataset.theme) ? "true" : "false"
-      );
-    });
+    syncChipPressed(el.themes, "theme", activeThemes);
+    render();
+  }
+
+  function toggleFeeling(feeling) {
+    if (activeFeelings.has(feeling)) activeFeelings.delete(feeling);
+    else activeFeelings.add(feeling);
+    syncChipPressed(el.feelings, "feeling", activeFeelings);
     render();
   }
 
@@ -214,9 +306,9 @@
     el.search.value = "";
     el.book.value = "";
     activeThemes.clear();
-    el.themes.querySelectorAll(".chip").forEach((btn) => {
-      btn.setAttribute("aria-pressed", "false");
-    });
+    activeFeelings.clear();
+    syncChipPressed(el.themes, "theme", activeThemes);
+    syncChipPressed(el.feelings, "feeling", activeFeelings);
     render();
     el.search.focus();
   }
@@ -242,15 +334,32 @@
     toggleTheme(btn.dataset.theme);
   });
 
+  if (el.feelings) {
+    el.feelings.addEventListener("click", (e) => {
+      const btn = e.target.closest(".chip");
+      if (!btn) return;
+      toggleFeeling(btn.dataset.feeling);
+    });
+  }
+
   el.results.addEventListener("click", (e) => {
+    const feelingTag = e.target.closest(".tag-feeling");
+    if (feelingTag) {
+      const feeling = feelingTag.dataset.feeling;
+      if (!activeFeelings.has(feeling)) toggleFeeling(feeling);
+      else render();
+      return;
+    }
     const tag = e.target.closest(".tag");
     if (!tag) return;
     const theme = tag.dataset.theme;
+    if (!theme) return;
     if (!activeThemes.has(theme)) toggleTheme(theme);
     else render();
   });
 
   initBooks();
+  initFeelings();
   initThemes();
   render();
 })();

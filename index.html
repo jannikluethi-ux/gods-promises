@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Search God’s promises from Genesis through Revelation by need, theme, keyword, or Bible book."
+      content="Search God’s promises from Genesis through Revelation by how you feel, theme, keyword, or Bible book."
     />
     <title>God’s Promises — Searchable</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -23,7 +23,7 @@
       <p class="eyebrow">From Genesis to Revelation</p>
       <h1>God’s Promises</h1>
       <p class="lede">
-        Search divine promises by need, theme, keyword, or book. Start with a rich
+        Search divine promises by how you feel, by theme, keyword, or book. Start with a rich
         Genesis seed and a light sampling across the canon—built to grow book by book.
       </p>
     </header>
@@ -36,7 +36,7 @@
             id="search"
             type="search"
             name="q"
-            placeholder="Try covenant, fear, offspring, presence, new…"
+            placeholder="Try how you feel: lonely, angry, anxious…"
             autocomplete="off"
             spellcheck="false"
             enterkeyhint="search"
@@ -55,6 +55,17 @@
                 <option value="">All books</option>
               </select>
             </div>
+          </div>
+
+          <div class="filter-block">
+            <h2 id="feeling-heading">Feelings</h2>
+            <p class="filter-hint">How are you feeling? Select one or more.</p>
+            <div
+              id="feeling-chips"
+              class="chips chips-feelings"
+              role="group"
+              aria-labelledby="feeling-heading"
+            ></div>
           </div>
 
           <div class="filter-block">
