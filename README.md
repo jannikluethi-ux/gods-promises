@@ -1,6 +1,6 @@
 # God’s Promises — searchable web tool
 
-A calm, offline-friendly single-page app for exploring God’s promises from Genesis through Revelation. Built for Carlos with a strong **Genesis** seed set and a light sampling of later books so search feels useful immediately.
+A calm, offline-friendly single-page app for exploring **God’s promises** from Genesis through Revelation. Built for Carlos with a **comprehensive, curated catalog** (1186 promise units) anchored in the public-domain **World English Bible (WEB)**.
 
 People often arrive by **how they feel** (lonely, angry, anxious…), not only by theological themes—so every promise carries pastoral `feelings` tags alongside themes.
 
@@ -8,12 +8,13 @@ People often arrive by **how they feel** (lonely, angry, anxious…), not only b
 
 **Easiest (works with double-click / `file://`):**
 
-1. Open `/workspace/gods-promises/index.html` in a browser  
-   (or from this folder: open `index.html`).
+1. Open `index.html` in a browser.
 
 Data is embedded in `promises-data.js`, so no server is required.
 
 **Live site:** https://jannikluethi-ux.github.io/gods-promises/
+
+> **Hard-cache note:** GitHub Pages (and browsers) may cache `promises-data.js`. If the count looks old after a deploy, do a hard refresh (Ctrl/Cmd+Shift+R) or open the site in a private window.
 
 **Optional local server:**
 
@@ -27,14 +28,92 @@ Then visit `http://localhost:8080/`.
 ## How to search
 
 - Type in the search box — filters live across reference, paraphrase, Scripture text, **feelings**, themes, and extra keywords (including feeling synonyms like *abandoned*, *grief*, *worried*).
-- Click **feeling chips** to refine (multi-select; **OR** within feelings — a promise matches if it has any selected feeling).
-- Click **theme chips** to refine (multi-select; **AND** within themes — a promise must include every selected theme).
+- Click **feeling chips** to refine (multi-select; **OR** within feelings).
+- Click **theme chips** to refine (multi-select; **AND** within themes).
 - Use the **book** dropdown to limit to one book.
-- **Across** filter types (feelings × themes × book × text), results must satisfy **all** active constraints.
+- Across filter types, results must satisfy **all** active constraints.
+- Results paginate (**Show more**) so large catalogs stay responsive.
 - Click a feeling or theme tag on a result card to apply that filter.
 - **Clear** resets search, book, feelings, and themes.
 
 Try: `lonely`, `angry`, `anxious`, `guilty`, `weary`, or themes like `covenant`, `presence`.
+
+## Catalog size & methodology
+
+**Current count:** 1186 unique promise entries (WEB text).
+
+Different ministries count “promises” differently—some aim near ~3000 by including every blessing, inferred assurance, or command-with-benefit. **This catalog prioritizes clear divine promissory statements** (God speaking commitment, covenant, assurance) and closely related sworn assurances attributed as God’s word, plus NT declarations of God’s sure commitment in Christ. Quality and accurate citation over padding. **Verse `text` is never invented**—only WEB.
+
+### Coverage by book
+
+| Book | Entries |
+|------|--------:|
+| Psalms | 201 |
+| Isaiah | 102 |
+| John | 70 |
+| Matthew | 51 |
+| Luke | 50 |
+| Proverbs | 48 |
+| Deuteronomy | 46 |
+| Jeremiah | 41 |
+| Romans | 37 |
+| Revelation | 34 |
+| Genesis | 33 |
+| Hebrews | 29 |
+| Exodus | 25 |
+| Ezekiel | 25 |
+| 2 Corinthians | 22 |
+| Zechariah | 21 |
+| Ephesians | 20 |
+| 1 John | 19 |
+| Mark | 19 |
+| 1 Corinthians | 18 |
+| Job | 18 |
+| Daniel | 17 |
+| 1 Peter | 15 |
+| Acts | 12 |
+| Colossians | 11 |
+| James | 11 |
+| Galatians | 10 |
+| Hosea | 10 |
+| Joshua | 10 |
+| Micah | 10 |
+| Numbers | 10 |
+| Joel | 9 |
+| Philippians | 9 |
+| 2 Timothy | 8 |
+| 1 Thessalonians | 7 |
+| 2 Chronicles | 7 |
+| Malachi | 7 |
+| 1 Samuel | 6 |
+| 1 Timothy | 6 |
+| 2 Samuel | 6 |
+| Zephaniah | 6 |
+| 2 Thessalonians | 5 |
+| Haggai | 5 |
+| Jonah | 5 |
+| Leviticus | 5 |
+| Nehemiah | 5 |
+| 1 Chronicles | 4 |
+| 1 Kings | 4 |
+| 2 Peter | 4 |
+| Amos | 4 |
+| Ecclesiastes | 4 |
+| Habakkuk | 4 |
+| Lamentations | 4 |
+| 2 Kings | 3 |
+| Jude | 3 |
+| Titus | 3 |
+| Ezra | 2 |
+| Obadiah | 2 |
+| 2 John | 1 |
+| 3 John | 1 |
+| Nahum | 1 |
+| Philemon | 1 |
+
+### Still thinner (next passes)
+
+Historicals beyond Davidic covenant threads, Mark (vs Matthew/Luke/John), some wisdom books, and denser harvest of the Twelve’s judgment-adjacent comfort oracles remain growth areas. Prefer distinct promise units over splitting redundant adjacent verses.
 
 ## Files
 
@@ -42,34 +121,25 @@ Try: `lonely`, `angry`, `anxious`, `guilty`, `weary`, or themes like `covenant`,
 |------|------|
 | `index.html` | UI shell |
 | `styles.css` | Layout and calm typography |
-| `app.js` | Search / filter logic |
+| `app.js` | Search / filter / pagination |
 | `promises-data.js` | Embedded data (loaded by the page) |
-| `promises.json` | Same data as structured JSON — **edit here, then regenerate** |
+| `promises.json` | Same data as structured JSON — **edit via catalog, then regenerate** |
+| `scripts/catalog/` | Book-by-book curated metadata |
+| `scripts/build_promises.py` | Fills WEB text from `web_index.json`, writes JSON + JS |
+| `scripts/web_index.json` | Parsed engwebp verse index |
 
 ## Extending the data
 
-1. Add entries to `promises.json` using the existing schema (`id`, `reference`, `book`, `chapter`, `verseStart`, `verseEnd`, `promise`, `text`, `context`, `themes`, `feelings`, `searchTerms`).
+1. Add entries under `scripts/catalog/` using `e(...)` from `_entry.py`.
 2. Prefer genuine divine promises (spoken by God or clearly God’s commitment).
-3. Use **World English Bible (WEB)** or another public-domain text for `text`; keep `promise` as a short plain-language paraphrase.
-4. Give each promise **1–4 honest `feelings`** from the vocabulary in `feelingsVocabulary` (e.g. `lonely`, `angry`, `sad`, `anxious`, `guilty`, `weary`, `loved`). Put synonyms in `searchTerms`.
-5. Regenerate the embedded file:
+3. Scripture `text` is filled automatically from WEB (engwebp).
+4. Give each promise **1–4 honest `feelings`** from `feelingsVocabulary`. Put synonyms / life situations in `searchTerms`.
+5. Regenerate:
 
 ```bash
-python3 -c "
-import json
-from pathlib import Path
-p = Path('promises.json')
-meta = json.loads(p.read_text())
-Path('promises-data.js').write_text(
-    '/* Auto-generated from promises.json — World English Bible (public domain) */\\n'
-    + 'window.GODS_PROMISES_DATA = ' + json.dumps(meta, ensure_ascii=False, indent=2) + ';\\n'
-)
-print('Updated promises-data.js')
-"
+python3 scripts/build_promises.py
 ```
-
-Suggested next books to fill systematically: **Exodus** (more deliverance/presence), **Deuteronomy**, **Psalms** (wider comfort set), **Isaiah**, **Jeremiah**, **Gospels**, **Epistles**, then complete **Revelation**.
 
 ## Translation note
 
-Scripture quotations use the **World English Bible (WEB)**, which is public domain. Do not invent verse text. Paraphrases in the `promise` field are original summaries for discovery and clarity.
+Scripture quotations use the **World English Bible (WEB)**, public domain. Do not invent verse text. Paraphrases in the `promise` field are original summaries for discovery and clarity.

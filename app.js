@@ -71,6 +71,11 @@
   /** @type {Set<string>} */
   const activeFeelings = new Set();
 
+  const PAGE_SIZE = 48;
+  let visibleLimit = PAGE_SIZE;
+  /** @type {object[]} */
+  let lastFiltered = [];
+
   function booksInOrder() {
     const seen = new Set();
     const order = [];
@@ -209,7 +214,14 @@
     `;
   }
 
-  function render() {
+  function resetVisibleLimit() {
+    visibleLimit = PAGE_SIZE;
+  }
+
+  function render(opts) {
+    const preserveLimit = opts && opts.preserveLimit;
+    if (!preserveLimit) resetVisibleLimit();
+
     const tokens = tokensFromQuery(el.search.value);
     const book = el.book.value;
     const filtered = indexed
@@ -217,8 +229,10 @@
         matches(item, tokens, book, activeThemes, activeFeelings)
       )
       .map((item) => item.p);
+    lastFiltered = filtered;
 
     const n = filtered.length;
+    const shown = Math.min(visibleLimit, n);
     const notes = [];
     if (activeFeelings.size > 0) {
       notes.push(`feelings: ${[...activeFeelings].join(", ")}`);
@@ -227,10 +241,16 @@
       notes.push(`themes: ${[...activeThemes].join(", ")}`);
     }
     const noteStr = notes.length ? ` · ${notes.join(" · ")}` : "";
+    const rangeStr =
+      n > PAGE_SIZE && shown < n
+        ? ` · showing <strong>${shown}</strong>`
+        : shown < n
+          ? ` · showing <strong>${shown}</strong>`
+          : "";
     el.count.innerHTML =
       n === 0
         ? `<strong>No matches</strong>${noteStr}`
-        : `<strong>${n}</strong> promise${n === 1 ? "" : "s"}${noteStr}`;
+        : `<strong>${n}</strong> promise${n === 1 ? "" : "s"}${rangeStr}${noteStr}`;
 
     el.clear.disabled =
       !el.search.value &&
@@ -247,9 +267,18 @@
       return;
     }
 
-    el.results.innerHTML = `<ul class="results">${filtered
-      .map(renderCard)
-      .join("")}</ul>`;
+    const slice = filtered.slice(0, shown);
+    const moreBtn =
+      shown < n
+        ? `<div class="load-more-wrap">
+            <button type="button" class="load-more" id="load-more">
+              Show more (${n - shown} remaining)
+            </button>
+          </div>`
+        : "";
+
+    el.results.innerHTML =
+      `<ul class="results">${slice.map(renderCard).join("")}</ul>` + moreBtn;
   }
 
   function initBooks() {
@@ -343,6 +372,12 @@
   }
 
   el.results.addEventListener("click", (e) => {
+    const more = e.target.closest("#load-more, .load-more");
+    if (more) {
+      visibleLimit += PAGE_SIZE;
+      render({ preserveLimit: true });
+      return;
+    }
     const feelingTag = e.target.closest(".tag-feeling");
     if (feelingTag) {
       const feeling = feelingTag.dataset.feeling;

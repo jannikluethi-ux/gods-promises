@@ -1,0 +1,15 @@
+"""Joshua — presence, land, no word failed"""
+from catalog._entry import e
+
+ENTRIES = [
+    e('Joshua', 1, 3, 5, 'Every place the sole of your foot treads I have given you. No man will be able to stand before you; as I was with Moses, so I will be with you. I will not fail you nor forsake you.', 'Commission of Joshua.', ['land', 'presence', 'faithfulness', 'courage'], ['afraid', 'anxious', 'hopeful'], ['foot', 'stand', 'Moses', 'fail', 'forsake']),
+    e('Joshua', 1, 6, 7, 'Be strong and courageous; you will cause this people to inherit the land. Only be strong and very courageous to observe the law.', 'Strength for inheritance.', ['courage', 'land', 'wisdom'], ['afraid', 'hopeful'], ['strong', 'courageous', 'inherit', 'law']),
+    e('Joshua', 1, 8, 9, 'This book of the law shall not depart from your mouth; then you will make your way prosperous. Haven’t I commanded you? Be strong and courageous. Don’t be afraid; the LORD your God is with you wherever you go.', 'Wherever you go.', ['courage', 'presence', 'wisdom', 'fear', 'guidance'], ['afraid', 'anxious', 'confused', 'hopeful'], ['law', 'prosperous', 'afraid', 'wherever']),
+    e('Joshua', 3, 7, 7, 'Today I will begin to magnify you in the sight of all Israel, that they may know that as I was with Moses, so I will be with you.', 'Magnified with presence.', ['presence', 'calling', 'faithfulness'], ['afraid', 'hopeful'], ['magnify', 'Moses', 'with you']),
+    e('Joshua', 6, 2, 2, 'See, I have given Jericho into your hand, with its king and mighty men of valor.', 'Jericho given.', ['victory', 'land', 'promise'], ['afraid', 'hopeful'], ['Jericho', 'given', 'hand']),
+    e('Joshua', 10, 8, 8, 'Don’t fear them, for I have delivered them into your hands. Not a man of them will stand before you.', 'Southern campaign.', ['fear', 'victory', 'deliverance'], ['afraid', 'hopeful'], ['fear', 'delivered', 'stand']),
+    e('Joshua', 14, 9, 9, 'Moses swore: Surely the land your foot has trodden will be an inheritance to you and children forever, because you followed the LORD fully.', 'Caleb’s remembered promise.', ['land', 'faithfulness', 'offspring'], ['weary', 'hopeful', 'grateful'], ['foot', 'inheritance', 'followed fully']),
+    e('Joshua', 21, 43, 45, 'The LORD gave Israel all the land he swore; he gave rest all around; not a man stood; not one word failed of all the LORD’s good promises—all came to pass.', 'None failed.', ['land', 'rest', 'promise', 'faithfulness'], ['anxious', 'hopeful', 'grateful'], ['rest', 'failed', 'good promises', 'came to pass']),
+    e('Joshua', 23, 10, 11, 'One man of you shall chase a thousand; for the LORD your God is he who fights for you as he spoke. Take diligent heed to love the LORD your God.', 'God fights; love him.', ['victory', 'love', 'faithfulness'], ['afraid', 'hopeful'], ['chase', 'fights', 'love']),
+    e('Joshua', 23, 14, 14, 'Not one thing has failed of all the good things the LORD your God spoke; all have come to pass, and not one thing has failed.', 'Joshua’s farewell fidelity claim.', ['faithfulness', 'promise'], ['anxious', 'hopeful', 'grateful'], ['failed', 'good things', 'come to pass']),
+]

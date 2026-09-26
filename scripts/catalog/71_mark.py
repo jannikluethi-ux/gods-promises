@@ -1,0 +1,24 @@
+"""Mark — selected assurances"""
+from catalog._entry import e
+
+ENTRIES = [
+    e('Mark', 1, 14, 15, 'The time is fulfilled, and God’s Kingdom is at hand! Repent, and believe in the Good News.', 'Jesus’ opening proclamation.', ['kingdom', 'repentance', 'hope', 'salvation'], ['hopeless', 'hopeful'], ['time', 'kingdom', 'repent', 'believe', 'Good News']),
+    e('Mark', 2, 5, 5, 'Son, your sins are forgiven you.', 'Paralytic.', ['forgiveness', 'salvation'], ['guilty', 'hopeful'], ['sins', 'forgiven', 'son']),
+    e('Mark', 2, 17, 17, 'I came not to call the righteous, but sinners.', 'Eating with sinners.', ['salvation', 'mercy', 'calling'], ['guilty', 'ashamed', 'hopeful'], ['call', 'sinners', 'righteous']),
+    e('Mark', 4, 39, 40, 'He awoke and rebuked wind: Peace! Be still! Why are you so afraid? How is it that you have no faith?', 'Storm stilled.', ['peace', 'fear', 'authority'], ['afraid', 'anxious', 'peaceful', 'hopeful'], ['Peace', 'still', 'afraid', 'faith', 'storm']),
+    e('Mark', 5, 34, 34, 'Daughter, your faith has made you well. Go in peace, and be cured of your disease.', 'Bleeding woman.', ['healing', 'peace', 'faithfulness'], ['afraid', 'ashamed', 'hopeful', 'peaceful'], ['faith', 'well', 'peace', 'disease']),
+    e('Mark', 5, 36, 36, 'Don’t be afraid, only believe.', 'Jairus’ daughter.', ['fear', 'hope', 'faithfulness'], ['afraid', 'sad', 'hopeful'], ['afraid', 'believe', 'only']),
+    e('Mark', 6, 50, 50, 'Immediately he spoke: Cheer up! It is I! Don’t be afraid.', 'On the water.', ['fear', 'presence', 'courage'], ['afraid', 'hopeful'], ['cheer', 'afraid', 'It is I']),
+    e('Mark', 8, 34, 35, 'Deny yourself, take up cross, follow me. Whoever loses life for my sake and Good News’ will save it.', 'Cross discipleship.', ['calling', 'salvation', 'life'], ['afraid', 'hopeful'], ['deny', 'cross', 'lose', 'save']),
+    e('Mark', 9, 23, 23, 'If you can believe, all things are possible to him who believes.', 'Epileptic boy’s father.', ['hope', 'faithfulness', 'providence'], ['hopeless', 'doubt', 'hopeful'], ['possible', 'believe', 'all things']),
+    e('Mark', 10, 14, 15, 'Allow the little children to come to me; for God’s Kingdom belongs to such as these. Whoever doesn’t receive Kingdom as little child will not enter.', 'Children.', ['kingdom', 'humility', 'love'], ['lonely', 'loved', 'hopeful'], ['children', 'kingdom', 'receive']),
+    e('Mark', 10, 27, 27, 'With men it is impossible, but not with God, for all things are possible with God.', 'Rich young man aftermath.', ['hope', 'providence'], ['hopeless', 'hopeful'], ['impossible', 'possible', 'God']),
+    e('Mark', 10, 29, 30, 'No one who has left house or family or lands for my sake and Good News’ but he will receive one hundred times now and in age to come eternal life.', 'Hundredfold.', ['reward', 'eternal-life', 'provision'], ['sad', 'weary', 'hopeful'], ['left', 'hundred', 'eternal life']),
+    e('Mark', 10, 45, 45, 'Son of Man came not to be served but to serve, and to give his life as a ransom for many.', 'Ransom.', ['salvation', 'humility', 'love'], ['guilty', 'weary', 'hopeful', 'loved'], ['serve', 'ransom', 'many']),
+    e('Mark', 11, 24, 24, 'Whoever says to mountain and doesn’t doubt but believes what he says happens—he will have whatever he says. Therefore all things you ask, believe you receive, and you will have them.', 'Believe you receive.', ['prayer', 'faithfulness', 'hope'], ['doubt', 'anxious', 'hopeful'], ['mountain', 'believe', 'ask', 'receive']),
+    e('Mark', 13, 11, 11, 'Don’t be anxious beforehand what you will say; whatever given in that hour, say—for it is not you who speak, but the Holy Spirit.', 'Spirit in persecution.', ['spirit', 'courage', 'fear', 'guidance'], ['afraid', 'anxious', 'hopeful'], ['anxious', 'hour', 'Holy Spirit', 'speak']),
+    e('Mark', 13, 13, 13, 'You will be hated by all for my name’s sake, but he who endures to the end will be saved.', 'Endure to end.', ['salvation', 'endurance', 'courage'], ['afraid', 'weary', 'hopeful'], ['hated', 'endures', 'saved']),
+    e('Mark', 13, 26, 27, 'Then they will see Son of Man coming in clouds with great power and glory; he will send angels gather elect from four winds.', 'Coming; gather elect.', ['hope', 'kingdom', 'salvation'], ['afraid', 'hopeful'], ['coming', 'clouds', 'gather', 'elect']),
+    e('Mark', 13, 31, 31, 'Heaven and earth will pass away, but my words will not pass away.', 'Words remain.', ['faithfulness', 'promise'], ['anxious', 'hopeful'], ['words', 'pass away']),
+    e('Mark', 16, 6, 7, 'Don’t be amazed. You seek Jesus the Nazarene who has been crucified. He has risen. He is not here. Go tell disciples and Peter he goes before you to Galilee; there you will see him.', 'Risen; tell Peter.', ['resurrection', 'hope', 'forgiveness'], ['afraid', 'sad', 'guilty', 'hopeful', 'happy'], ['risen', 'Peter', 'Galilee', 'see']),
+]

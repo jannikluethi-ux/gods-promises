@@ -438,3 +438,30 @@ a {
     transition: none !important;
   }
 }
+
+.load-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 1.25rem 0 2rem;
+}
+
+.load-more {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.7rem 1.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--accent);
+  cursor: pointer;
+  box-shadow: var(--card-shadow);
+}
+
+.load-more:hover {
+  background: var(--accent-wash);
+}
+
+.load-more:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}

@@ -1,0 +1,15 @@
+"""Numbers — blessing, guidance, God’s unlying word"""
+from catalog._entry import e
+
+ENTRIES = [
+    e('Numbers', 6, 24, 26, 'The LORD bless you and keep you; the LORD make his face to shine on you and be gracious to you; the LORD lift up his face toward you and give you peace.', 'Aaronic blessing.', ['blessing', 'peace', 'presence', 'mercy'], ['anxious', 'afraid', 'peaceful', 'loved', 'hopeful'], ['bless', 'keep', 'face shine', 'gracious', 'peace']),
+    e('Numbers', 10, 33, 34, 'The ark went before them to seek out a resting place; the cloud of the LORD was over them by day when they set forward.', 'Guidance to rest.', ['guidance', 'presence', 'rest'], ['anxious', 'weary', 'hopeful'], ['ark', 'resting place', 'cloud']),
+    e('Numbers', 14, 17, 19, 'Let the Lord’s power be great as you spoken: The LORD is slow to anger, abundant in loving kindness, forgiving iniquity—pardon please according to your great loving kindness.', 'Moses intercedes with God’s character.', ['mercy', 'forgiveness', 'prayer'], ['guilty', 'afraid', 'hopeful'], ['slow to anger', 'pardon', 'loving kindness']),
+    e('Numbers', 14, 20, 21, 'I have pardoned according to your word; but as surely as I live, all the earth will be filled with the LORD’s glory.', 'Pardon granted.', ['forgiveness', 'glory', 'nations'], ['guilty', 'hopeful'], ['pardoned', 'glory', 'earth']),
+    e('Numbers', 15, 40, 41, 'Remember and do my commandments and be holy to your God. I am the LORD your God who brought you out of Egypt to be your God.', 'Tassels purpose.', ['holiness', 'identity', 'deliverance'], ['confused', 'hopeful'], ['remember', 'holy', 'brought out']),
+    e('Numbers', 21, 8, 9, 'Make a fiery serpent and set it on a standard; everyone bitten who looks will live.', 'Bronze serpent (Jesus cites).', ['healing', 'salvation', 'hope'], ['afraid', 'hopeless', 'hopeful'], ['serpent', 'look', 'live', 'bitten']),
+    e('Numbers', 23, 19, 20, 'God is not a man, that he should lie, nor son of man, that he should repent. Has he said, and won’t he do it? Behold, I have received a blessing; he has blessed, and I can’t reverse it.', 'Balaam’s oracle on God’s fidelity.', ['faithfulness', 'blessing', 'promise'], ['afraid', 'hopeful'], ['lie', 'repent', 'blessed', 'reverse']),
+    e('Numbers', 23, 21, 21, 'He has not seen iniquity in Jacob; the LORD his God is with him. The shout of a king is among them.', 'Presence and kingship.', ['presence', 'identity', 'kingdom'], ['guilty', 'hopeful', 'loved'], ['iniquity', 'with him', 'king']),
+    e('Numbers', 24, 5, 7, 'How goodly are your tents, Jacob! Water will flow from his buckets; his seed will be in many waters; his king higher than Agag; his kingdom exalted.', 'Blessing vision.', ['blessing', 'kingdom', 'offspring', 'provision'], ['hopeful', 'happy'], ['tents', 'water', 'seed', 'kingdom']),
+    e('Numbers', 24, 17, 17, 'I see him, but not now; a star out of Jacob, a scepter out of Israel will rise.', 'Star and scepter.', ['hope', 'kingdom', 'promise'], ['hopeful'], ['star', 'scepter', 'Jacob']),
+]

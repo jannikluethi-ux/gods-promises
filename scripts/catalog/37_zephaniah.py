@@ -1,0 +1,11 @@
+"""Zephaniah promises"""
+from catalog._entry import e
+
+ENTRIES = [
+    e('Zephaniah', 3, 9, 10, 'Then I will purify peoples’ lips that all may call on LORD’s name and serve shoulder to shoulder; from beyond rivers of Ethiopia my worshipers will bring offering.', 'Purified call.', ['nations', 'holiness', 'worship', 'hope'], ['hopeful'], ['purify', 'call', 'serve', 'Ethiopia']),
+    e('Zephaniah', 3, 11, 12, 'You will not be put to shame for deeds; I will remove proud; I will leave among you a meek and humble people, and they will take refuge in the LORD’s name.', 'Humble remnant refuge.', ['humility', 'protection', 'hope'], ['ashamed', 'hopeful'], ['shame', 'humble', 'refuge', 'name']),
+    e('Zephaniah', 3, 13, 13, 'The remnant of Israel won’t do iniquity nor speak lies; for they will feed and lie down, and no one will make them afraid.', 'Feed, lie down, unafraid.', ['peace', 'provision', 'fear', 'holiness'], ['afraid', 'peaceful', 'hopeful'], ['remnant', 'feed', 'lie down', 'afraid']),
+    e('Zephaniah', 3, 14, 15, 'Sing, daughter Zion; the LORD has taken away judgments, cast out enemy; the King of Israel, the LORD, is in your midst; you will not be afraid of evil any more.', 'King in midst; unafraid.', ['presence', 'fear', 'joy', 'salvation'], ['afraid', 'sad', 'hopeful', 'happy'], ['sing', 'judgments', 'midst', 'afraid', 'King']),
+    e('Zephaniah', 3, 16, 17, 'Don’t be afraid, Zion; don’t let hands fall. The LORD your God is in your midst, a mighty one who will save. He will rejoice over you with joy; he will calm you in his love; he will rejoice over you with singing.', 'God rejoices over you with singing.', ['presence', 'love', 'salvation', 'joy', 'fear'], ['afraid', 'lonely', 'unloved', 'loved', 'hopeful', 'happy'], ['afraid', 'midst', 'save', 'rejoice', 'singing', 'love']),
+    e('Zephaniah', 3, 19, 20, 'I will deal with oppressors; I will save lame and gather outcast; I will change shame to praise; I will bring you in and gather; I will make you a name and praise among all peoples when I reverse captivity before your eyes.', 'Outcast gathered; shame to praise.', ['restoration', 'compassion', 'nations', 'hope'], ['ashamed', 'lonely', 'hopeless', 'hopeful'], ['lame', 'outcast', 'shame', 'praise', 'captivity']),
+]
