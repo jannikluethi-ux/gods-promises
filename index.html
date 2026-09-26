@@ -14,17 +14,22 @@
       href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:ital,wght@0,500;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=17c0f86" />
+    <link rel="stylesheet" href="styles.css?v=auth-fav-1" />
   </head>
   <body>
     <a class="skip-link" href="#results">Skip to results</a>
 
     <header class="site-header">
+      <div class="header-bar">
+        <a class="brand-link" href="index.html">God’s Promises</a>
+        <nav class="site-nav js-auth-nav" aria-label="Account"></nav>
+      </div>
       <p class="eyebrow">From Genesis to Revelation</p>
       <h1>God’s Promises</h1>
       <p class="lede">
         Search a growing, comprehensive catalog of God’s promises—from Genesis to Revelation—
         by how you feel, by theme, keyword, or book. Built for honest, verse-anchored discovery.
+        Tap the <strong>cross</strong> to save favorites after you sign in.
       </p>
     </header>
 
@@ -115,7 +120,12 @@
       <p>Made for Carlos · Extend via <code>promises.json</code></p>
     </footer>
 
-    <script src="promises-data.js?v=17c0f86"></script>
-    <script src="app.js?v=17c0f86"></script>
+    <script src="promises-data.js?v=auth-fav-1"></script>
+    <script src="js/config.js?v=auth-fav-1"></script>
+    <script src="js/subscription.js?v=auth-fav-1"></script>
+    <script src="js/auth.js?v=auth-fav-1"></script>
+    <script src="js/favorites.js?v=auth-fav-1"></script>
+    <script src="js/ui-shared.js?v=auth-fav-1"></script>
+    <script src="app.js?v=auth-fav-1"></script>
   </body>
 </html>

@@ -28,9 +28,8 @@ Then visit `http://localhost:8080/`.
 ## How to search
 
 - Type in the search box — filters live across reference, paraphrase, Scripture text, **feelings**, themes, and extra keywords (including feeling synonyms like *abandoned*, *grief*, *worried*).
-- Click **feeling chips** to refine (multi-select; **OR** within feelings).
-- Click **theme chips** to refine (multi-select; **AND** within themes).
-- Use the **book** dropdown to limit to one book.
+- Use the **Feeling**, **Theme**, and **Book** dropdowns (and **Testament** buttons) to refine.
+- Tap the **cross** on a result card to save a personal favorite (sign in required).
 - Across filter types, results must satisfy **all** active constraints.
 - Results paginate (**Show more**) so large catalogs stay responsive.
 - Click a feeling or theme tag on a result card to apply that filter.
@@ -115,13 +114,44 @@ Different ministries count “promises” differently—some aim near ~3000 by i
 
 Historicals beyond Davidic covenant threads, Mark (vs Matthew/Luke/John), some wisdom books, and denser harvest of the Twelve’s judgment-adjacent comfort oracles remain growth areas. Prefer distinct promise units over splitting redundant adjacent verses.
 
+## Accounts & favorites
+
+Browse/search stays **open to everyone** (no login required).
+
+- **Sign up / sign in:** `login.html` — email + password. Auth is **local for now** (`localStorage` + Web Crypto salted PBKDF2 hashes). Plaintext passwords are never stored.
+- **Personal page:** `me.html` — welcome + **your favorited promises** (primary content).
+- **Favorite control:** a Christian **cross** icon on each promise card (catalog + personal page). Outline = not saved; filled/emphasized = saved. Accessible `aria-pressed` with “Save favorite” / “Remove favorite”.
+- If you tap the cross while signed out, you’re sent to sign in.
+
+### Subscription seam (no payments yet)
+
+Config lives in `js/config.js`:
+
+```js
+subscriptionRequired: false  // flip to true later
+supabaseUrl: ""
+supabaseAnonKey: ""
+```
+
+- `js/subscription.js` exposes `canAccessFavorites(user)` and `canAccessApp(user)`.
+- While `subscriptionRequired` is `false`, both always allow access.
+- When you set it to `true`, access requires `user.subscriptionStatus === "active"` (field already on the local user profile).
+- Later: plug **Supabase Auth** into `js/auth.js` (same API: `signUp`, `signIn`, `signOut`, `getCurrentUser`, `onAuthChange`), remote favorites into `js/favorites.js` (`toggle`, `list`, `isFavorite`), and **Stripe** (or similar) to set `subscriptionStatus`.
+
 ## Files
 
 | File | Role |
 |------|------|
-| `index.html` | UI shell |
+| `index.html` | Catalog search UI |
+| `login.html` | Sign in / create account |
+| `me.html` | Personal favorites landing |
 | `styles.css` | Layout and calm typography |
-| `app.js` | Search / filter / pagination |
+| `app.js` | Search / filter / pagination + favorite buttons |
+| `js/config.js` | App name, `subscriptionRequired`, Supabase placeholders |
+| `js/subscription.js` | Access checks for favorites / personal area |
+| `js/auth.js` | Local auth (API ready for Supabase swap) |
+| `js/favorites.js` | Per-user favorite IDs (API ready for remote table) |
+| `js/ui-shared.js` | Cross icon, cards, auth nav helpers |
 | `promises-data.js` | Embedded data (loaded by the page) |
 | `promises.json` | Same data as structured JSON — **edit via catalog, then regenerate** |
 | `scripts/catalog/` | Book-by-book curated metadata |

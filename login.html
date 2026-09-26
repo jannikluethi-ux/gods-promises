@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Sign in or create an account for God’s Promises favorites." />
+    <title>Sign in — God’s Promises</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:ital,wght@0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=auth-fav-1" />
+  </head>
+  <body>
+    <a class="skip-link" href="#auth-main">Skip to form</a>
+
+    <header class="site-header site-header--compact">
+      <div class="header-bar">
+        <a class="brand-link" href="index.html">God’s Promises</a>
+        <nav class="site-nav js-auth-nav" aria-label="Account"></nav>
+      </div>
+      <p class="eyebrow">Your account</p>
+      <h1>Sign in</h1>
+      <p class="lede">
+        Create an account to save favorites with the cross on any promise. Browse stays open to everyone.
+      </p>
+    </header>
+
+    <main class="wrap wrap-narrow" id="auth-main">
+      <div class="auth-card" id="auth-panel">
+        <div class="auth-tabs" role="tablist" aria-label="Account forms">
+          <button type="button" class="auth-tab" role="tab" id="tab-signin" aria-selected="true" aria-controls="form-signin">
+            Sign in
+          </button>
+          <button type="button" class="auth-tab" role="tab" id="tab-signup" aria-selected="false" aria-controls="form-signup">
+            Create account
+          </button>
+        </div>
+
+        <p class="auth-status" id="auth-status" role="status" hidden></p>
+
+        <form id="form-signin" class="auth-form" autocomplete="on">
+          <label for="signin-email">Email</label>
+          <input id="signin-email" name="email" type="email" required autocomplete="username" />
+
+          <label for="signin-password">Password</label>
+          <input id="signin-password" name="password" type="password" required autocomplete="current-password" minlength="8" />
+
+          <button type="submit" class="btn-primary">Sign in</button>
+        </form>
+
+        <form id="form-signup" class="auth-form" autocomplete="on" hidden>
+          <label for="signup-name">Display name <span class="optional">(optional)</span></label>
+          <input id="signup-name" name="displayName" type="text" autocomplete="name" maxlength="80" />
+
+          <label for="signup-email">Email</label>
+          <input id="signup-email" name="email" type="email" required autocomplete="username" />
+
+          <label for="signup-password">Password</label>
+          <input id="signup-password" name="password" type="password" required autocomplete="new-password" minlength="8" />
+          <p class="field-hint">At least 8 characters. Stored only as a salted hash on this device for now.</p>
+
+          <button type="submit" class="btn-primary">Create account</button>
+        </form>
+
+        <p class="auth-footnote">
+          Accounts are stored locally in your browser for now (not a cloud account yet).
+          <a href="index.html">Back to search</a>
+        </p>
+      </div>
+
+      <div class="auth-card" id="signed-in-panel" hidden>
+        <h2 class="auth-welcome" id="signed-in-welcome">You’re signed in</h2>
+        <p class="auth-footnote" id="signed-in-email"></p>
+        <div class="auth-actions">
+          <a class="btn-primary" href="me.html">Go to my favorites</a>
+          <button type="button" class="btn-secondary" id="signout-btn">Sign out</button>
+        </div>
+        <p class="auth-footnote"><a href="index.html">Back to search</a></p>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <p>Scripture text: World English Bible (WEB), public domain.</p>
+    </footer>
+
+    <script src="js/config.js?v=auth-fav-1"></script>
+    <script src="js/subscription.js?v=auth-fav-1"></script>
+    <script src="js/auth.js?v=auth-fav-1"></script>
+    <script src="js/favorites.js?v=auth-fav-1"></script>
+    <script src="js/ui-shared.js?v=auth-fav-1"></script>
+    <script src="js/login-page.js?v=auth-fav-1"></script>
+  </body>
+</html>

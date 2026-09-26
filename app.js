@@ -8,6 +8,9 @@
     return;
   }
 
+  const UI = window.GodsPromisesUI;
+  if (UI && UI.initAuthNav) UI.initAuthNav();
+
   const promises = data.promises;
   const FEATURED_THEMES = [
     "covenant",
@@ -138,7 +141,6 @@
     const rest = [...counts.keys()]
       .filter((f) => !FEATURED_FEELINGS.includes(f))
       .sort((a, b) => a.localeCompare(b));
-    // Always show core feelings even if sparse
     const core = FEATURED_FEELINGS.slice();
     const extras = rest.filter((f) => !core.includes(f));
     return [...core, ...extras];
@@ -174,12 +176,6 @@
       .filter(Boolean);
   }
 
-  /**
-   * Filter logic (dropdowns are single-select, like Book):
-   * - Book / Theme / Feeling: exact when set
-   * - Across types: AND
-   * - Text tokens: all must appear in the haystack
-   */
   function matches(item, tokens, testament, book, theme, feeling) {
     const { p, hay } = item;
     if (testament && testamentOf(p.book) !== testament) return false;
@@ -193,48 +189,25 @@
   }
 
   function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+    return UI && UI.escapeHtml
+      ? UI.escapeHtml(str)
+      : String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
   }
 
   function renderCard(p) {
-    const themeTags = (p.themes || [])
-      .map(
-        (t) =>
-          `<li><button type="button" class="tag" data-theme="${escapeHtml(
-            t
-          )}" title="Filter by theme ${escapeHtml(t)}">${escapeHtml(
-            t
-          )}</button></li>`
-      )
-      .join("");
-
-    const feelingTags = (p.feelings || [])
-      .map(
-        (f) =>
-          `<li><button type="button" class="tag tag-feeling" data-feeling="${escapeHtml(
-            f
-          )}" title="Filter by feeling ${escapeHtml(f)}">${escapeHtml(
-            f
-          )}</button></li>`
-      )
-      .join("");
-
-    const tagsBlock =
-      feelingTags || themeTags
-        ? `<ul class="card-tags" aria-label="Feelings and themes">${feelingTags}${themeTags}</ul>`
-        : "";
-
+    if (UI && UI.renderPromiseCard) {
+      return UI.renderPromiseCard(p, { interactiveTags: true });
+    }
     return `
       <li class="card" data-id="${escapeHtml(p.id)}">
         <h3 class="card-ref">${escapeHtml(p.reference)}</h3>
         <p class="card-promise">${escapeHtml(p.promise)}</p>
         <blockquote class="card-text">${escapeHtml(p.text)}</blockquote>
         <p class="card-context">${escapeHtml(p.context)}</p>
-        ${tagsBlock}
       </li>
     `;
   }
@@ -387,6 +360,7 @@
       render({ preserveLimit: true });
       return;
     }
+    if (e.target.closest(".favorite-btn")) return;
     const feelingTag = e.target.closest(".tag-feeling");
     if (feelingTag) {
       el.feeling.value = feelingTag.dataset.feeling || "";
@@ -398,6 +372,15 @@
     el.theme.value = tag.dataset.theme;
     render();
   });
+
+  if (UI && UI.bindFavoriteClicks) {
+    UI.bindFavoriteClicks(el.results);
+  }
+
+  const auth = window.GodsPromisesAuth;
+  if (auth && auth.onAuthChange) {
+    auth.onAuthChange(() => render({ preserveLimit: true }));
+  }
 
   initFilters();
   syncTestamentButtons();
