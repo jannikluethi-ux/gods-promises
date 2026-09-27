@@ -988,3 +988,173 @@ a {
     height: 2.75rem;
   }
 }
+
+
+/* —— Smart guided search —— */
+.smart-guide {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem 0.85rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.smart-guide[hidden] {
+  display: none;
+}
+
+.smart-guide-inner {
+  padding-right: 1.5rem;
+}
+
+.smart-guide-dismiss {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--ink-faint);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.smart-guide-dismiss:hover {
+  color: var(--ink);
+  background: var(--bg-soft);
+}
+
+.smart-guide-question {
+  margin: 0 0 0.65rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.smart-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+}
+
+.smart-chip {
+  appearance: none;
+  padding: 0.4rem 0.75rem;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.smart-chip:hover {
+  color: var(--ink);
+  border-color: var(--border-strong);
+  background: var(--accent-wash);
+}
+
+.smart-chip:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.smart-freetext-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: stretch;
+  margin-bottom: 0.45rem;
+}
+
+.smart-freetext {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.7rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.smart-freetext::placeholder {
+  color: var(--ink-faint);
+}
+
+.smart-freetext:focus {
+  border-color: var(--focus);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.smart-apply {
+  padding: 0 0.85rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--chip-active-text);
+  background: var(--chip-active);
+  border: 1px solid var(--chip-active);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.smart-apply:hover {
+  filter: brightness(1.08);
+}
+
+.smart-guide-actions {
+  margin: 0;
+}
+
+.smart-skip,
+.smart-clear-guide {
+  appearance: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.smart-skip:hover,
+.smart-clear-guide:hover {
+  color: var(--accent);
+}
+
+.smart-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.15rem 0.25rem 0.15rem 0;
+}
+
+.smart-status-text {
+  font-size: 0.9rem;
+  color: var(--feeling-ink);
+}
+
+.smart-guide--status {
+  padding: 0.65rem 1rem;
+  background: var(--feeling-bg);
+  border-color: var(--feeling-border);
+}

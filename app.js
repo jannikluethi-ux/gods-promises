@@ -11,6 +11,7 @@
   const UI = window.GodsPromisesUI;
   if (UI && UI.initAuthNav) UI.initAuthNav();
 
+  const Smart = window.GodsPromisesSmartSearch;
   const promises = data.promises;
   const FEATURED_THEMES = [
     "covenant",
@@ -88,6 +89,7 @@
     filtersToggle: document.getElementById("filters-toggle"),
     filtersPanel: document.getElementById("filters-panel"),
     filtersBadge: document.getElementById("filters-badge"),
+    smartGuide: document.getElementById("smart-guide"),
   };
 
   const FILTERS_STORAGE_KEY = "gods-promises-filters-open";
@@ -99,6 +101,26 @@
   let visibleLimit = PAGE_SIZE;
   /** @type {object[]} */
   let lastFiltered = [];
+
+  /**
+   * Smart-guide session state.
+   * @type {{
+   *   queryKey: string,
+   *   detection: object|null,
+   *   clarification: object|null,
+   *   dismissed: boolean,
+   *   softFeelingSet: boolean,
+   *   previousFeeling: string
+   * }}
+   */
+  let smartState = {
+    queryKey: "",
+    detection: null,
+    clarification: null,
+    dismissed: false,
+    softFeelingSet: false,
+    previousFeeling: "",
+  };
 
   function testamentOf(book) {
     if (OT_BOOKS.has(book)) return "OT";
@@ -181,12 +203,64 @@
       .filter(Boolean);
   }
 
-  function matches(item, tokens, testament, book, theme, feeling) {
+  function queryKey(q) {
+    return normalize(q).trim().replace(/\s+/g, " ");
+  }
+
+  function knownThemesList() {
+    return themeUniverse().map((t) => normalize(t));
+  }
+
+  function knownFeelingsList() {
+    return feelingUniverse().map((f) => normalize(f));
+  }
+
+  function currentPlan() {
+    if (!Smart) return null;
+    const q = el.search.value;
+    if (!q.trim()) return null;
+    // Use smart plan when we have intent/clarification OR always for stopword stripping
+    const clarification =
+      smartState.clarification &&
+      smartState.queryKey === queryKey(q)
+        ? smartState.clarification
+        : null;
+    const detection = Smart.detectIntent(q, {
+      knownThemes: knownThemesList(),
+      knownFeelings: knownFeelingsList(),
+    });
+    if (!detection && !clarification) {
+      // Still strip stopwords for plain queries like "I am stressed" leftovers
+      const content = Smart.stripStopwords(Smart.tokenize(q));
+      if (content.length !== tokensFromQuery(q).length) {
+        return {
+          intent: null,
+          orGroups: [],
+          andTokens: content,
+          softFeelings: [],
+          boostThemes: [],
+          boostFeelings: [],
+          boostTerms: [],
+          statusLabel: "",
+          contentTokens: content,
+        };
+      }
+      return null;
+    }
+    return Smart.buildSearchPlan(q, clarification);
+  }
+
+  function matches(item, tokens, testament, book, theme, feeling, plan) {
     const { p, hay } = item;
     if (testament && testamentOf(p.book) !== testament) return false;
     if (book && p.book !== book) return false;
     if (theme && !(p.themes || []).includes(theme)) return false;
     if (feeling && !(p.feelings || []).includes(feeling)) return false;
+
+    if (plan && Smart && (plan.orGroups.length || plan.andTokens.length)) {
+      return Smart.matchesPlan(hay, plan);
+    }
+
     for (const tok of tokens) {
       if (!hay.includes(tok)) return false;
     }
@@ -221,20 +295,154 @@
     visibleLimit = PAGE_SIZE;
   }
 
+  function softSetFeelingFromPlan(plan) {
+    if (!plan || !plan.softFeelings || !plan.softFeelings.length) return;
+    if (!el.feeling) return;
+    // Don't overwrite an explicit Feeling dropdown the user already chose
+    // unless we previously soft-set it from the smart flow.
+    if (el.feeling.value && !smartState.softFeelingSet) return;
+
+    const available = [...el.feeling.options].map((o) => o.value);
+    const pick = plan.softFeelings.find((f) => available.includes(f));
+    if (!pick) return;
+
+    if (!smartState.softFeelingSet) {
+      smartState.previousFeeling = el.feeling.value;
+    }
+    el.feeling.value = pick;
+    smartState.softFeelingSet = true;
+  }
+
+  function clearSoftFeeling() {
+    if (!smartState.softFeelingSet) return;
+    if (el.feeling) {
+      el.feeling.value = smartState.previousFeeling || "";
+    }
+    smartState.softFeelingSet = false;
+    smartState.previousFeeling = "";
+  }
+
+  function updateSmartGuide() {
+    if (!el.smartGuide || !Smart) return;
+
+    const q = el.search.value;
+    const key = queryKey(q);
+
+    // Reset session when query changes meaningfully
+    if (key !== smartState.queryKey) {
+      const hadClarification = !!smartState.clarification;
+      smartState.queryKey = key;
+      smartState.clarification = null;
+      smartState.dismissed = false;
+      smartState.detection = null;
+      if (hadClarification || smartState.softFeelingSet) {
+        clearSoftFeeling();
+      }
+    }
+
+    if (smartState.clarification) {
+      // Show status line only
+      const plan = Smart.buildSearchPlan(q, smartState.clarification);
+      el.smartGuide.hidden = false;
+      el.smartGuide.innerHTML = Smart.renderStatusHtml(plan, escapeHtml);
+      el.smartGuide.classList.add("smart-guide--status");
+      el.smartGuide.classList.remove("smart-guide--ask");
+      return;
+    }
+
+    if (smartState.dismissed || !key) {
+      el.smartGuide.hidden = true;
+      el.smartGuide.innerHTML = "";
+      el.smartGuide.classList.remove("smart-guide--ask", "smart-guide--status");
+      return;
+    }
+
+    const detection = Smart.detectIntent(q, {
+      knownThemes: knownThemesList(),
+      knownFeelings: knownFeelingsList(),
+    });
+    smartState.detection = detection;
+
+    if (!detection) {
+      el.smartGuide.hidden = true;
+      el.smartGuide.innerHTML = "";
+      el.smartGuide.classList.remove("smart-guide--ask", "smart-guide--status");
+      return;
+    }
+
+    el.smartGuide.hidden = false;
+    el.smartGuide.classList.add("smart-guide--ask");
+    el.smartGuide.classList.remove("smart-guide--status");
+    el.smartGuide.innerHTML = Smart.renderGuideHtml(detection, escapeHtml);
+  }
+
+  function applyClarification(clarification) {
+    smartState.clarification = clarification;
+    smartState.dismissed = false;
+    const plan = Smart
+      ? Smart.buildSearchPlan(el.search.value, clarification)
+      : null;
+    softSetFeelingFromPlan(plan);
+    updateSmartGuide();
+    render();
+  }
+
+  function clearGuideKeepQuery() {
+    smartState.clarification = null;
+    smartState.dismissed = true;
+    smartState.detection = null;
+    clearSoftFeeling();
+    updateSmartGuide();
+    render();
+  }
+
+  function resetSmartFully() {
+    smartState = {
+      queryKey: "",
+      detection: null,
+      clarification: null,
+      dismissed: false,
+      softFeelingSet: false,
+      previousFeeling: "",
+    };
+    if (el.smartGuide) {
+      el.smartGuide.hidden = true;
+      el.smartGuide.innerHTML = "";
+    }
+  }
+
   function render(opts) {
     const preserveLimit = opts && opts.preserveLimit;
     if (!preserveLimit) resetVisibleLimit();
 
-    const tokens = tokensFromQuery(el.search.value);
+    updateSmartGuide();
+
+    const plan = currentPlan();
+    const rawTokens = tokensFromQuery(el.search.value);
+    // Prefer smart plan tokens (stopwords stripped); else legacy AND tokens
+    const tokens = plan
+      ? [] // plan handles matching
+      : rawTokens;
     const testament = activeTestament;
     const book = el.book.value;
     const theme = el.theme.value;
     const feeling = el.feeling.value;
-    const filtered = indexed
-      .filter((item) =>
-        matches(item, tokens, testament, book, theme, feeling)
-      )
-      .map((item) => item.p);
+
+    let filteredItems = indexed.filter((item) =>
+      matches(item, tokens, testament, book, theme, feeling, plan)
+    );
+
+    if (plan && Smart) {
+      filteredItems = filteredItems
+        .map((item) => ({
+          item,
+          score: Smart.scorePromise(item.p, plan),
+        }))
+        .sort((a, b) => b.score - a.score || 0)
+        .map((x) => x.item);
+    }
+
+    const filtered = filteredItems.map((item) => item.p);
     lastFiltered = filtered;
 
     const n = filtered.length;
@@ -384,9 +592,108 @@
     el.book.value = "";
     el.theme.value = "";
     el.feeling.value = "";
+    resetSmartFully();
     refreshBookOptions(false);
     render();
     el.search.focus();
+  }
+
+  function initSmartGuide() {
+    if (!el.smartGuide || !Smart) return;
+
+    el.smartGuide.addEventListener("click", (e) => {
+      const dismiss = e.target.closest("#smart-guide-dismiss");
+      if (dismiss) {
+        smartState.dismissed = true;
+        updateSmartGuide();
+        return;
+      }
+
+      const clearGuide = e.target.closest("#smart-clear-guide");
+      if (clearGuide) {
+        clearGuideKeepQuery();
+        return;
+      }
+
+      const skip = e.target.closest("#smart-skip");
+      if (skip) {
+        const det = smartState.detection;
+        applyClarification({
+          intentId: det ? det.intentId : "",
+          optionId: null,
+          option: null,
+          freeText: "",
+          skipped: true,
+        });
+        return;
+      }
+
+      const applyBtn = e.target.closest("#smart-apply");
+      if (applyBtn) {
+        const input = el.smartGuide.querySelector("#smart-freetext");
+        const text = input ? input.value.trim() : "";
+        const det = smartState.detection;
+        if (!det) return;
+        // Prefer "other" option when free-texting, else base intent
+        const otherOpt =
+          Smart.getOption(det.intentId, "other") ||
+          (det.followUp.options && det.followUp.options[0]) ||
+          null;
+        applyClarification({
+          intentId: det.intentId,
+          optionId: otherOpt ? otherOpt.id : "other",
+          option: otherOpt,
+          freeText: text,
+          skipped: false,
+        });
+        return;
+      }
+
+      const chip = e.target.closest(".smart-chip");
+      if (chip) {
+        const det = smartState.detection;
+        if (!det) return;
+        const optionId = chip.dataset.optionId;
+        const option = Smart.getOption(det.intentId, optionId);
+        if (!option) return;
+
+        if (option.openText) {
+          const input = el.smartGuide.querySelector("#smart-freetext");
+          if (input) {
+            input.focus();
+            // If they already typed something, apply with this option
+            if (input.value.trim()) {
+              applyClarification({
+                intentId: det.intentId,
+                optionId: option.id,
+                option: option,
+                freeText: input.value.trim(),
+                skipped: false,
+              });
+            }
+            // else leave guide open for typing
+          }
+          return;
+        }
+
+        applyClarification({
+          intentId: det.intentId,
+          optionId: option.id,
+          option: option,
+          freeText: "",
+          skipped: false,
+        });
+      }
+    });
+
+    el.smartGuide.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      if (e.target && e.target.id === "smart-freetext") {
+        e.preventDefault();
+        const applyBtn = el.smartGuide.querySelector("#smart-apply");
+        if (applyBtn) applyBtn.click();
+      }
+    });
   }
 
   let debounce;
@@ -397,6 +704,7 @@
   el.search.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       el.search.value = "";
+      resetSmartFully();
       render();
     }
   });
@@ -410,7 +718,12 @@
   }
   el.book.addEventListener("change", render);
   el.theme.addEventListener("change", render);
-  el.feeling.addEventListener("change", render);
+  el.feeling.addEventListener("change", () => {
+    // User explicitly changed feeling — no longer a soft-set
+    smartState.softFeelingSet = false;
+    smartState.previousFeeling = "";
+    render();
+  });
 
   el.results.addEventListener("click", (e) => {
     const more = e.target.closest("#load-more, .load-more");
@@ -423,6 +736,7 @@
     const feelingTag = e.target.closest(".tag-feeling");
     if (feelingTag) {
       el.feeling.value = feelingTag.dataset.feeling || "";
+      smartState.softFeelingSet = false;
       render();
       return;
     }
@@ -443,6 +757,7 @@
 
   initFiltersToggle();
   initFilters();
+  initSmartGuide();
   syncTestamentButtons();
   render();
 })();
