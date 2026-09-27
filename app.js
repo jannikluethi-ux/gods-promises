@@ -12,6 +12,7 @@
   if (UI && UI.initAuthNav) UI.initAuthNav();
 
   const Smart = window.GodsPromisesSmartSearch;
+  const Relevance = window.GodsPromisesRelevance;
   const promises = data.promises;
   const FEATURED_THEMES = [
     "covenant",
@@ -101,6 +102,7 @@
   let visibleLimit = PAGE_SIZE;
   /** @type {object[]} */
   let lastFiltered = [];
+  let lastRankedMeta = null;
 
   /**
    * Smart-guide session state.
@@ -277,13 +279,25 @@
           .replace(/"/g, "&quot;");
   }
 
-  function renderCard(p) {
+  function renderCard(p, meta) {
+    const relevanceLabel = meta && meta.relevanceLabel;
     if (UI && UI.renderPromiseCard) {
-      return UI.renderPromiseCard(p, { interactiveTags: true });
+      return UI.renderPromiseCard(p, {
+        interactiveTags: true,
+        relevanceLabel: relevanceLabel || "",
+      });
     }
+    const badge = relevanceLabel
+      ? `<span class="relevance-badge">${escapeHtml(relevanceLabel)}</span>`
+      : "";
     return `
-      <li class="card" data-id="${escapeHtml(p.id)}">
-        <h3 class="card-ref">${escapeHtml(p.reference)}</h3>
+      <li class="card${relevanceLabel ? " card--relevant" : ""}" data-id="${escapeHtml(p.id)}">
+        <div class="card-top">
+          <div class="card-ref-wrap">
+            <h3 class="card-ref">${escapeHtml(p.reference)}</h3>
+            ${badge}
+          </div>
+        </div>
         <p class="card-promise">${escapeHtml(p.promise)}</p>
         <blockquote class="card-text">${escapeHtml(p.text)}</blockquote>
         <p class="card-context">${escapeHtml(p.context)}</p>
@@ -432,18 +446,30 @@
       matches(item, tokens, testament, book, theme, feeling, plan)
     );
 
-    if (plan && Smart) {
-      filteredItems = filteredItems
-        .map((item) => ({
-          item,
-          score: Smart.scorePromise(item.p, plan),
-        }))
-        .sort((a, b) => b.score - a.score || 0)
-        .map((x) => x.item);
+    const filterCtx = {
+      feeling: feeling || "",
+      theme: theme || "",
+    };
+
+    let rankedMeta = null;
+    if (plan && (Relevance || Smart)) {
+      if (Relevance && Relevance.rankItems) {
+        rankedMeta = Relevance.rankItems(filteredItems, plan, filterCtx);
+        filteredItems = rankedMeta.map((x) => x.item);
+      } else {
+        filteredItems = filteredItems
+          .map((item) => ({
+            item,
+            score: Smart.scorePromise(item.p, plan),
+          }))
+          .sort((a, b) => b.score - a.score || 0)
+          .map((x) => x.item);
+      }
     }
 
     const filtered = filteredItems.map((item) => item.p);
     lastFiltered = filtered;
+    lastRankedMeta = rankedMeta;
 
     const n = filtered.length;
     const shown = Math.min(visibleLimit, n);
@@ -485,7 +511,18 @@
         : "";
 
     el.results.innerHTML =
-      `<ul class="results">${slice.map(renderCard).join("")}</ul>` + moreBtn;
+      `<ul class="results">${slice
+        .map((p, i) => {
+          const meta =
+            lastRankedMeta && lastRankedMeta[i]
+              ? {
+                  relevanceLabel: lastRankedMeta[i].relevanceLabel || "",
+                  score: lastRankedMeta[i].score,
+                }
+              : null;
+          return renderCard(p, meta);
+        })
+        .join("")}</ul>` + moreBtn;
   }
 
   function fillSelect(select, emptyLabel, values) {

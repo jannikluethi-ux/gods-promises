@@ -120,7 +120,7 @@ window.GODS_PROMISES_DATA = {
       "1 Corinthians": 18,
       "2 Corinthians": 22,
       "Galatians": 10,
-      "Ephesians": 20,
+      "Ephesians": 21,
       "Philippians": 9,
       "Colossians": 11,
       "1 Thessalonians": 7,
@@ -130,7 +130,7 @@ window.GODS_PROMISES_DATA = {
       "Titus": 3,
       "Philemon": 1,
       "Hebrews": 29,
-      "James": 11,
+      "James": 12,
       "1 Peter": 15,
       "2 Peter": 4,
       "1 John": 19,
@@ -139,7 +139,7 @@ window.GODS_PROMISES_DATA = {
       "Jude": 3,
       "Revelation": 34
     },
-    "total": 1186
+    "total": 1188
   },
   "promises": [
     {
@@ -51103,6 +51103,47 @@ window.GODS_PROMISES_DATA = {
       ]
     },
     {
+      "id": "eph-4-26-27",
+      "reference": "Ephesians 4:26–27",
+      "book": "Ephesians",
+      "chapter": 4,
+      "verseStart": 26,
+      "verseEnd": 27,
+      "promise": "“Be angry, and don’t sin.” Don’t let the sun go down on your wrath, and don’t give place to the devil.",
+      "text": "“Be angry, and don’t sin.” Don’t let the sun go down on your wrath, and don’t give place to the devil.",
+      "context": "Be angry without sin; do not give the devil a foothold.",
+      "themes": [
+        "holiness",
+        "protection",
+        "wisdom"
+      ],
+      "searchTerms": [
+        "anger",
+        "wrath",
+        "sun",
+        "devil",
+        "foothold",
+        "self-control",
+        "rage",
+        "furious",
+        "mad",
+        "resentful",
+        "irritated",
+        "angry",
+        "bitterness",
+        "resentment",
+        "hurt",
+        "offense",
+        "unforgiving",
+        "hard heart",
+        "bitter"
+      ],
+      "feelings": [
+        "angry",
+        "bitter"
+      ]
+    },
+    {
       "id": "eph-4-32",
       "reference": "Ephesians 4:32",
       "book": "Ephesians",
@@ -55588,6 +55629,48 @@ window.GODS_PROMISES_DATA = {
         "anxious",
         "grateful",
         "hopeful"
+      ]
+    },
+    {
+      "id": "jas-1-19-20",
+      "reference": "James 1:19–20",
+      "book": "James",
+      "chapter": 1,
+      "verseStart": 19,
+      "verseEnd": 20,
+      "promise": "So, then, my beloved brothers, let every man be swift to hear, slow to speak, and slow to anger; for the anger of man doesn’t produce the righteousness of God.",
+      "text": "So, then, my beloved brothers, let every man be swift to hear, slow to speak, and slow to anger; for the anger of man doesn’t produce the righteousness of God.",
+      "context": "Swift to hear, slow to speak and anger.",
+      "themes": [
+        "wisdom",
+        "holiness",
+        "peace"
+      ],
+      "searchTerms": [
+        "swift",
+        "hear",
+        "slow",
+        "speak",
+        "anger",
+        "righteousness",
+        "rage",
+        "furious",
+        "mad",
+        "resentful",
+        "wrath",
+        "irritated",
+        "angry",
+        "bitterness",
+        "resentment",
+        "hurt",
+        "offense",
+        "unforgiving",
+        "hard heart",
+        "bitter"
+      ],
+      "feelings": [
+        "angry",
+        "bitter"
       ]
     },
     {

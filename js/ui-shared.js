@@ -56,6 +56,7 @@
     const interactiveTags = !opts || opts.interactiveTags !== false;
     const favs = global.GodsPromisesFavorites;
     const isFav = favs && favs.isFavorite ? favs.isFavorite(p.id) : false;
+    const relevanceLabel = opts && opts.relevanceLabel;
 
     const themeTags = (p.themes || [])
       .map((t) => {
@@ -90,10 +91,17 @@
         ? `<ul class="card-tags" aria-label="Feelings and themes">${feelingTags}${themeTags}</ul>`
         : "";
 
+    const badge = relevanceLabel
+      ? `<span class="relevance-badge" title="Ranked highly for your search">${escapeHtml(relevanceLabel)}</span>`
+      : "";
+
     return `
-      <li class="card" data-id="${escapeHtml(p.id)}">
+      <li class="card${relevanceLabel ? " card--relevant" : ""}" data-id="${escapeHtml(p.id)}">
         <div class="card-top">
-          <h3 class="card-ref">${escapeHtml(p.reference)}</h3>
+          <div class="card-ref-wrap">
+            <h3 class="card-ref">${escapeHtml(p.reference)}</h3>
+            ${badge}
+          </div>
           ${favoriteButtonHtml(p.id, isFav)}
         </div>
         <p class="card-promise">${escapeHtml(p.promise)}</p>

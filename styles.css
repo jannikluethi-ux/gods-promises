@@ -722,6 +722,44 @@ a {
   min-width: 0;
 }
 
+.card-ref-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-ref-wrap .card-ref {
+  margin: 0;
+}
+
+.relevance-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent, #c9a86a);
+  background: rgba(201, 168, 106, 0.12);
+  border: 1px solid rgba(201, 168, 106, 0.28);
+  white-space: nowrap;
+}
+
+.card--relevant {
+  border-color: rgba(201, 168, 106, 0.35);
+}
+
+.card-top .card-ref-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+
 .favorite-btn {
   flex-shrink: 0;
   display: inline-flex;
