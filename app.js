@@ -85,7 +85,12 @@
     feeling: document.getElementById("feeling-filter"),
     count: document.getElementById("result-count"),
     results: document.getElementById("results"),
+    filtersToggle: document.getElementById("filters-toggle"),
+    filtersPanel: document.getElementById("filters-panel"),
+    filtersBadge: document.getElementById("filters-badge"),
   };
+
+  const FILTERS_STORAGE_KEY = "gods-promises-filters-open";
 
   /** @type {""|"OT"|"NT"} */
   let activeTestament = "";
@@ -250,6 +255,7 @@
 
     el.clear.disabled =
       !el.search.value && !activeTestament && !book && !theme && !feeling;
+    updateFiltersBadge();
 
     if (n === 0) {
       el.results.innerHTML = `
@@ -310,6 +316,59 @@
     } else {
       el.book.value = "";
     }
+  }
+
+  function activeFilterCount() {
+    let n = 0;
+    if (activeTestament) n += 1;
+    if (el.feeling && el.feeling.value) n += 1;
+    if (el.theme && el.theme.value) n += 1;
+    if (el.book && el.book.value) n += 1;
+    return n;
+  }
+
+  function updateFiltersBadge() {
+    if (!el.filtersBadge) return;
+    const n = activeFilterCount();
+    if (n > 0) {
+      el.filtersBadge.textContent = String(n);
+      el.filtersBadge.hidden = false;
+      el.filtersBadge.setAttribute(
+        "aria-label",
+        n === 1 ? "1 filter active" : n + " filters active"
+      );
+    } else {
+      el.filtersBadge.textContent = "";
+      el.filtersBadge.hidden = true;
+      el.filtersBadge.removeAttribute("aria-label");
+    }
+  }
+
+  function setFiltersOpen(open) {
+    if (!el.filtersToggle || !el.filtersPanel) return;
+    el.filtersToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    el.filtersPanel.hidden = !open;
+    try {
+      sessionStorage.setItem(FILTERS_STORAGE_KEY, open ? "1" : "0");
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function initFiltersToggle() {
+    if (!el.filtersToggle || !el.filtersPanel) return;
+    let open = false;
+    try {
+      open = sessionStorage.getItem(FILTERS_STORAGE_KEY) === "1";
+    } catch (e) {
+      open = false;
+    }
+    setFiltersOpen(open);
+    el.filtersToggle.addEventListener("click", () => {
+      const next =
+        el.filtersToggle.getAttribute("aria-expanded") !== "true";
+      setFiltersOpen(next);
+    });
   }
 
   function initFilters() {
@@ -382,6 +441,7 @@
     auth.onAuthChange(() => render({ preserveLimit: true }));
   }
 
+  initFiltersToggle();
   initFilters();
   syncTestamentButtons();
   render();
