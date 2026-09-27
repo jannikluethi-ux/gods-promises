@@ -765,36 +765,80 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  margin: -0.25rem -0.35rem 0 0;
-  padding: 0;
-  color: var(--ink-faint);
-  background: transparent;
-  border: 1.5px solid transparent;
+  gap: 0.4rem;
+  min-height: 2.55rem;
+  margin: -0.15rem 0 0 0;
+  padding: 0.4rem 0.75rem 0.4rem 0.55rem;
+  color: var(--accent-soft);
+  background: rgba(196, 165, 116, 0.1);
+  border: 1.5px solid rgba(196, 165, 116, 0.55);
   border-radius: 999px;
   cursor: pointer;
-  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 4px 14px rgba(0, 0, 0, 0.18);
+  transition:
+    color 0.14s ease,
+    background 0.14s ease,
+    border-color 0.14s ease,
+    box-shadow 0.14s ease,
+    transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .favorite-btn:hover {
-  color: var(--accent);
-  background: var(--accent-wash);
-  border-color: var(--border);
+  color: #f0d9a8;
+  background: rgba(196, 165, 116, 0.22);
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 0 1px rgba(196, 165, 116, 0.25), 0 6px 18px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
+}
+
+.favorite-btn:active {
+  transform: translateY(0);
 }
 
 .favorite-btn[aria-pressed="true"] {
-  color: var(--feeling-ink);
-  background: var(--feeling-bg);
-  border-color: var(--feeling-border);
+  color: #102018;
+  background: linear-gradient(180deg, #b7d4c4 0%, #8fbea6 100%);
+  border-color: #9fcbb3;
+  box-shadow: 0 0 0 2px rgba(143, 190, 166, 0.35), 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+.favorite-btn[aria-pressed="true"]:hover {
+  color: #0c1812;
+  filter: brightness(1.05);
 }
 
 .favorite-btn:focus-visible {
-  outline-offset: 2px;
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.favorite-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.favorite-btn[aria-pressed="true"] .favorite-btn-icon {
+  background: rgba(16, 32, 24, 0.18);
+}
+
+.favorite-btn-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
 }
 
 .cross-icon {
   display: block;
+  pointer-events: none;
 }
 
 .wrap-narrow {
@@ -1022,8 +1066,12 @@ a {
   }
 
   .favorite-btn {
-    width: 2.75rem;
-    height: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0.45rem 0.85rem 0.45rem 0.6rem;
+  }
+
+  .favorite-btn-label {
+    font-size: 0.88rem;
   }
 }
 

@@ -17,17 +17,19 @@
    * @param {boolean} filled
    */
   function crossIconSvg(filled) {
+    // Bold Latin cross — reads as a clear tap target, not decoration
     if (filled) {
       return (
-        '<svg class="cross-icon cross-icon--filled" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">' +
-        '<path fill="currentColor" d="M10 2h4v6h6v4h-6v10h-4V12H4V8h6V2z"/>' +
+        '<svg class="cross-icon cross-icon--filled" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">' +
+        '<path fill="currentColor" d="M9.5 2.5h5v5.5H21v5h-6.5V21.5h-5V13H3v-5h6.5V2.5z"/>' +
         "</svg>"
       );
     }
     return (
-      '<svg class="cross-icon cross-icon--outline" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">' +
-      '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" ' +
-      'd="M10 3h4v5h6v4h-6v9h-4v-9H4V8h6V3z"/>' +
+      '<svg class="cross-icon cross-icon--outline" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">' +
+      '<path fill="currentColor" fill-opacity="0.22" d="M9.5 2.5h5v5.5H21v5h-6.5V21.5h-5V13H3v-5h6.5V2.5z"/>' +
+      '<path fill="none" stroke="currentColor" stroke-width="2.25" stroke-linejoin="round" ' +
+      'd="M9.5 2.5h5v5.5H21v5h-6.5V21.5h-5V13H3v-5h6.5V2.5z"/>' +
       "</svg>"
     );
   }
@@ -39,11 +41,13 @@
   function favoriteButtonHtml(promiseId, isFav) {
     const pressed = isFav ? "true" : "false";
     const label = isFav ? "Remove favorite" : "Save favorite";
+    const short = isFav ? "Saved" : "Save";
     return (
       `<button type="button" class="favorite-btn" data-favorite-id="${escapeHtml(
         promiseId
       )}" aria-pressed="${pressed}" aria-label="${label}" title="${label}">` +
-      crossIconSvg(!!isFav) +
+      `<span class="favorite-btn-icon">${crossIconSvg(!!isFav)}</span>` +
+      `<span class="favorite-btn-label">${short}</span>` +
       `</button>`
     );
   }
@@ -159,7 +163,9 @@
         const label = pressed ? "Remove favorite" : "Save favorite";
         btn.setAttribute("aria-label", label);
         btn.title = label;
-        btn.innerHTML = crossIconSvg(pressed);
+        btn.innerHTML =
+          `<span class="favorite-btn-icon">${crossIconSvg(pressed)}</span>` +
+          `<span class="favorite-btn-label">${pressed ? "Saved" : "Save"}</span>`;
         if (opts && typeof opts.onChange === "function") opts.onChange(id, pressed);
       } catch (err) {
         if (err && err.code === "AUTH_REQUIRED") {
