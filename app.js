@@ -100,9 +100,13 @@
 
   const PAGE_SIZE = 48;
   let visibleLimit = PAGE_SIZE;
+  /** Index into lastFiltered for the one-at-a-time reading card. */
+  let currentIndex = 0;
   /** @type {object[]} */
   let lastFiltered = [];
   let lastRankedMeta = null;
+  /** @type {{ destroy: () => void }|null} */
+  let deckBinding = null;
 
   /**
    * Smart-guide session state.
@@ -309,6 +313,103 @@
     visibleLimit = PAGE_SIZE;
   }
 
+  function resetDeckIndex() {
+    currentIndex = 0;
+  }
+
+  function ensureSliceForIndex(index) {
+    const n = lastFiltered.length;
+    while (index >= visibleLimit && visibleLimit < n) {
+      visibleLimit = Math.min(visibleLimit + PAGE_SIZE, n);
+    }
+  }
+
+  function destroyDeckBinding() {
+    if (deckBinding && typeof deckBinding.destroy === "function") {
+      deckBinding.destroy();
+    }
+    deckBinding = null;
+  }
+
+  function goToIndex(index) {
+    const n = lastFiltered.length;
+    if (n === 0) return;
+    const next = Math.max(0, Math.min(index, n - 1));
+    ensureSliceForIndex(next);
+    // Approaching end of loaded slice — grow quietly
+    if (next >= visibleLimit - 4 && visibleLimit < n) {
+      visibleLimit = Math.min(visibleLimit + PAGE_SIZE, n);
+    }
+    currentIndex = next;
+    paintReadingDeck();
+  }
+
+  function goPrev() {
+    goToIndex(currentIndex - 1);
+  }
+
+  function goNext() {
+    goToIndex(currentIndex + 1);
+  }
+
+  function paintReadingDeck() {
+    const n = lastFiltered.length;
+    if (n === 0) return;
+
+    if (currentIndex >= n) currentIndex = n - 1;
+    if (currentIndex < 0) currentIndex = 0;
+    ensureSliceForIndex(currentIndex);
+
+    const p = lastFiltered[currentIndex];
+    const meta =
+      lastRankedMeta && lastRankedMeta[currentIndex]
+        ? {
+            relevanceLabel: lastRankedMeta[currentIndex].relevanceLabel || "",
+            score: lastRankedMeta[currentIndex].score,
+          }
+        : null;
+
+    // Mark the single card as a reading card via class on the list item
+    let cardHtml = renderCard(p, meta);
+    cardHtml = cardHtml.replace(
+      'class="card',
+      'class="card card--reading'
+    );
+
+    const positionLabel = currentIndex + 1 + " of " + n;
+    const html =
+      UI && UI.readingDeckHtml
+        ? UI.readingDeckHtml({
+            positionLabel,
+            cardHtml,
+            canPrev: currentIndex > 0,
+            canNext: currentIndex < n - 1,
+          })
+        : `<ul class="results results--single">${cardHtml}</ul>` +
+          `<p class="reading-position">${positionLabel}</p>`;
+
+    destroyDeckBinding();
+    el.results.innerHTML = html;
+    el.results.classList.add("results-host--reading");
+    document.body.classList.add("reading-active");
+
+    if (UI && UI.bindReadingDeck) {
+      deckBinding = UI.bindReadingDeck(el.results, {
+        onPrev: goPrev,
+        onNext: goNext,
+        isTypingTarget(target) {
+          if (!target || !target.tagName) return false;
+          const tag = target.tagName.toLowerCase();
+          if (tag === "input" || tag === "textarea" || tag === "select") return true;
+          if (target.closest && target.closest("#search, .smart-guide, .filters")) {
+            return true;
+          }
+          return !!target.isContentEditable;
+        },
+      });
+    }
+  }
+
   function softSetFeelingFromPlan(plan) {
     if (!plan || !plan.softFeelings || !plan.softFeelings.length) return;
     if (!el.feeling) return;
@@ -427,7 +528,9 @@
 
   function render(opts) {
     const preserveLimit = opts && opts.preserveLimit;
+    const preserveIndex = opts && opts.preserveIndex;
     if (!preserveLimit) resetVisibleLimit();
+    if (!preserveIndex && !preserveLimit) resetDeckIndex();
 
     updateSmartGuide();
 
@@ -472,7 +575,9 @@
     lastRankedMeta = rankedMeta;
 
     const n = filtered.length;
-    const shown = Math.min(visibleLimit, n);
+    if (currentIndex >= n) currentIndex = Math.max(0, n - 1);
+    ensureSliceForIndex(currentIndex);
+
     const notes = [];
     if (testament === "OT") notes.push("Old Testament");
     if (testament === "NT") notes.push("New Testament");
@@ -480,18 +585,19 @@
     if (theme) notes.push(`theme: ${theme}`);
     if (book) notes.push(`book: ${book}`);
     const noteStr = notes.length ? ` · ${notes.join(" · ")}` : "";
-    const rangeStr =
-      shown < n ? ` · showing <strong>${shown}</strong>` : "";
     el.count.innerHTML =
       n === 0
         ? `<strong>No matches</strong>${noteStr}`
-        : `<strong>${n}</strong> promise${n === 1 ? "" : "s"}${rangeStr}${noteStr}`;
+        : `<strong>${n}</strong> promise${n === 1 ? "" : "s"}${noteStr}`;
 
     el.clear.disabled =
       !el.search.value && !activeTestament && !book && !theme && !feeling;
     updateFiltersBadge();
 
     if (n === 0) {
+      destroyDeckBinding();
+      el.results.classList.remove("results-host--reading");
+      document.body.classList.remove("reading-active");
       el.results.innerHTML = `
         <div class="empty" role="status">
           <h2>No promises found</h2>
@@ -500,29 +606,7 @@
       return;
     }
 
-    const slice = filtered.slice(0, shown);
-    const moreBtn =
-      shown < n
-        ? `<div class="load-more-wrap">
-            <button type="button" class="load-more" id="load-more">
-              Show more (${n - shown} remaining)
-            </button>
-          </div>`
-        : "";
-
-    el.results.innerHTML =
-      `<ul class="results">${slice
-        .map((p, i) => {
-          const meta =
-            lastRankedMeta && lastRankedMeta[i]
-              ? {
-                  relevanceLabel: lastRankedMeta[i].relevanceLabel || "",
-                  score: lastRankedMeta[i].score,
-                }
-              : null;
-          return renderCard(p, meta);
-        })
-        .join("")}</ul>` + moreBtn;
+    paintReadingDeck();
   }
 
   function fillSelect(select, emptyLabel, values) {
@@ -763,13 +847,8 @@
   });
 
   el.results.addEventListener("click", (e) => {
-    const more = e.target.closest("#load-more, .load-more");
-    if (more) {
-      visibleLimit += PAGE_SIZE;
-      render({ preserveLimit: true });
-      return;
-    }
     if (e.target.closest(".favorite-btn")) return;
+    if (e.target.closest(".reading-nav")) return;
     const feelingTag = e.target.closest(".tag-feeling");
     if (feelingTag) {
       el.feeling.value = feelingTag.dataset.feeling || "";
@@ -789,7 +868,9 @@
 
   const auth = window.GodsPromisesAuth;
   if (auth && auth.onAuthChange) {
-    auth.onAuthChange(() => render({ preserveLimit: true }));
+    auth.onAuthChange(() =>
+      render({ preserveLimit: true, preserveIndex: true })
+    );
   }
 
   initFiltersToggle();

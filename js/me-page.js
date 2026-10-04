@@ -24,8 +24,61 @@
     for (const p of data.promises) byId.set(p.id, p);
   }
 
+  /** @type {object[]} */
+  let items = [];
+  let currentIndex = 0;
+  /** @type {{ destroy: () => void }|null} */
+  let deckBinding = null;
+
   function redirectLogin() {
     location.href = UI && UI.loginUrl ? UI.loginUrl("me.html") : "login.html?next=me.html";
+  }
+
+  function destroyDeckBinding() {
+    if (deckBinding && typeof deckBinding.destroy === "function") {
+      deckBinding.destroy();
+    }
+    deckBinding = null;
+  }
+
+  function goToIndex(index) {
+    const n = items.length;
+    if (n === 0) return;
+    currentIndex = Math.max(0, Math.min(index, n - 1));
+    paintDeck();
+  }
+
+  function paintDeck() {
+    const n = items.length;
+    if (n === 0) return;
+    if (currentIndex >= n) currentIndex = n - 1;
+    if (currentIndex < 0) currentIndex = 0;
+
+    const p = items[currentIndex];
+    let cardHtml = UI.renderPromiseCard(p, { interactiveTags: false });
+    cardHtml = cardHtml.replace('class="card', 'class="card card--reading');
+
+    const positionLabel = currentIndex + 1 + " of " + n;
+    destroyDeckBinding();
+    el.favorites.innerHTML = UI.readingDeckHtml({
+      positionLabel,
+      cardHtml,
+      canPrev: currentIndex > 0,
+      canNext: currentIndex < n - 1,
+    });
+    el.favorites.classList.add("results-host--reading");
+    document.body.classList.add("reading-active");
+
+    if (UI.bindReadingDeck) {
+      deckBinding = UI.bindReadingDeck(el.favorites, {
+        onPrev: function () {
+          goToIndex(currentIndex - 1);
+        },
+        onNext: function () {
+          goToIndex(currentIndex + 1);
+        },
+      });
+    }
   }
 
   function render() {
@@ -39,6 +92,9 @@
     const canFav = !sub || sub.canAccessFavorites(user);
 
     if (!canApp || !canFav) {
+      destroyDeckBinding();
+      el.favorites.classList.remove("results-host--reading");
+      document.body.classList.remove("reading-active");
       el.upgrade.hidden = false;
       el.toolbar.hidden = true;
       el.favorites.innerHTML = "";
@@ -58,7 +114,11 @@
     el.lede.textContent = "Promises you’ve marked with the cross. Tap the cross again to remove.";
 
     const ids = favs.list();
-    const items = ids.map((id) => byId.get(id)).filter(Boolean);
+    const previousId =
+      items[currentIndex] && items[currentIndex].id
+        ? items[currentIndex].id
+        : null;
+    items = ids.map((id) => byId.get(id)).filter(Boolean);
     // Preserve saved order (list() order)
     const n = items.length;
     el.count.innerHTML =
@@ -67,6 +127,9 @@
         : `<strong>${n}</strong> favorite${n === 1 ? "" : "s"}`;
 
     if (n === 0) {
+      destroyDeckBinding();
+      el.favorites.classList.remove("results-host--reading");
+      document.body.classList.remove("reading-active");
       el.favorites.innerHTML = `
         <div class="empty" role="status">
           <h2>No favorites yet</h2>
@@ -78,9 +141,14 @@
       return;
     }
 
-    el.favorites.innerHTML = `<ul class="results">${items
-      .map((p) => UI.renderPromiseCard(p, { interactiveTags: false }))
-      .join("")}</ul>`;
+    if (previousId) {
+      const keep = items.findIndex((p) => p.id === previousId);
+      currentIndex = keep >= 0 ? keep : Math.min(currentIndex, n - 1);
+    } else {
+      currentIndex = Math.min(currentIndex, n - 1);
+    }
+
+    paintDeck();
   }
 
   el.signout.addEventListener("click", async () => {

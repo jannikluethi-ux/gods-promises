@@ -212,6 +212,156 @@
     }
   }
 
+
+  /**
+   * Bind pointer swipe, quiet prev/next buttons, and arrow keys for a reading deck.
+   * Gestures that start on favorite/tag/controls do not navigate.
+   * @param {HTMLElement} root
+   * @param {{
+   *   onPrev: () => void,
+   *   onNext: () => void,
+   *   isTypingTarget?: (el: EventTarget|null) => boolean,
+   *   threshold?: number
+   * }} opts
+   * @returns {{ destroy: () => void }}
+   */
+  function bindReadingDeck(root, opts) {
+    if (!root || !opts) return { destroy: function () {} };
+    const onPrev = opts.onPrev;
+    const onNext = opts.onNext;
+    const threshold = typeof opts.threshold === "number" ? opts.threshold : 48;
+    const ignoreSel =
+      ".favorite-btn, .tag, .reading-nav, button, a, input, select, textarea, label";
+    const isTypingTarget =
+      opts.isTypingTarget ||
+      function (el) {
+        if (!el || !el.tagName) return false;
+        const tag = el.tagName.toLowerCase();
+        if (tag === "input" || tag === "textarea" || tag === "select") return true;
+        return !!el.isContentEditable;
+      };
+
+    let tracking = false;
+    let ignored = false;
+    let startX = 0;
+    let startY = 0;
+    let pointerId = null;
+
+    function onPointerDown(e) {
+      if (e.button != null && e.button !== 0) return;
+      if (e.target && e.target.closest && e.target.closest(ignoreSel)) {
+        ignored = true;
+        tracking = false;
+        return;
+      }
+      ignored = false;
+      tracking = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      pointerId = e.pointerId;
+      try {
+        root.setPointerCapture(e.pointerId);
+      } catch (err) {
+        /* ignore */
+      }
+      root.classList.add("is-dragging");
+    }
+
+    function onPointerUp(e) {
+      if (!tracking || ignored) {
+        tracking = false;
+        ignored = false;
+        root.classList.remove("is-dragging");
+        return;
+      }
+      if (pointerId != null && e.pointerId !== pointerId) return;
+      tracking = false;
+      root.classList.remove("is-dragging");
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.abs(dx) < threshold || Math.abs(dx) < Math.abs(dy) * 1.15) {
+        return;
+      }
+      if (dx < 0) onNext();
+      else onPrev();
+    }
+
+    function onPointerCancel() {
+      tracking = false;
+      ignored = false;
+      root.classList.remove("is-dragging");
+    }
+
+    function onClickNav(e) {
+      const prev = e.target.closest(".reading-nav--prev");
+      if (prev) {
+        e.preventDefault();
+        onPrev();
+        return;
+      }
+      const next = e.target.closest(".reading-nav--next");
+      if (next) {
+        e.preventDefault();
+        onNext();
+      }
+    }
+
+    function onKeyDown(e) {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (isTypingTarget(e.target)) return;
+      const active = document.activeElement;
+      const inDeck = !active || active === document.body || active === document.documentElement || root.contains(active);
+      if (!inDeck) return;
+      e.preventDefault();
+      if (e.key === "ArrowLeft") onPrev();
+      else onNext();
+    }
+
+    root.addEventListener("pointerdown", onPointerDown);
+    root.addEventListener("pointerup", onPointerUp);
+    root.addEventListener("pointercancel", onPointerCancel);
+    root.addEventListener("click", onClickNav);
+    document.addEventListener("keydown", onKeyDown);
+
+    return {
+      destroy: function () {
+        root.removeEventListener("pointerdown", onPointerDown);
+        root.removeEventListener("pointerup", onPointerUp);
+        root.removeEventListener("pointercancel", onPointerCancel);
+        root.removeEventListener("click", onClickNav);
+        document.removeEventListener("keydown", onKeyDown);
+      },
+    };
+  }
+
+  /**
+   * Shell HTML for one-at-a-time reading UI.
+   * @param {{ positionLabel: string, cardHtml: string, canPrev: boolean, canNext: boolean, listClass?: string }} opts
+   */
+  function readingDeckHtml(opts) {
+    const pos = escapeHtml(opts.positionLabel || "");
+    const listClass = opts.listClass || "results results--single";
+    const prevDisabled = opts.canPrev ? "" : " disabled";
+    const nextDisabled = opts.canNext ? "" : " disabled";
+    return (
+      `<div class="reading-stage">` +
+      `<div class="reading-chrome">` +
+      `<button type="button" class="reading-nav reading-nav--prev" aria-label="Previous promise"${prevDisabled}>` +
+      `<span aria-hidden="true">‹</span><span class="reading-nav-label">Prev</span>` +
+      `</button>` +
+      `<p class="reading-position" aria-live="polite">${pos}</p>` +
+      `<button type="button" class="reading-nav reading-nav--next" aria-label="Next promise"${nextDisabled}>` +
+      `<span class="reading-nav-label">Next</span><span aria-hidden="true">›</span>` +
+      `</button>` +
+      `</div>` +
+      `<div class="reading-viewport" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Promise reading cards">` +
+      `<ul class="${listClass}">${opts.cardHtml || ""}</ul>` +
+      `</div>` +
+      `<p class="reading-hint">Swipe or use arrows</p>` +
+      `</div>`
+    );
+  }
+
   global.GodsPromisesUI = {
     escapeHtml,
     crossIconSvg,
@@ -221,5 +371,7 @@
     refreshAuthNav,
     initAuthNav,
     loginUrl,
+    bindReadingDeck,
+    readingDeckHtml,
   };
 })(typeof window !== "undefined" ? window : globalThis);
