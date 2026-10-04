@@ -821,24 +821,27 @@
   }
 
   /**
-   * Bring the scripture card into the main viewport (below the sticky bar).
-   * A second pass covers mobile keyboards that resize the screen after blur.
+   * Bring the scripture card into the main viewport, just below the sticky bar.
+   * The deck is one card. Scroll that card — not the reading stage, whose top
+   * is often already on screen, so a phone never leaves the search bar.
+   * Call only after render() has inserted the card.
    */
   function revealScripture() {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const coarse = window.matchMedia("(pointer: coarse)").matches;
     const behavior = reduce ? "auto" : "smooth";
     const run = () => {
+      if (!el.results) return;
       const target =
-        el.results.querySelector(".reading-stage") ||
-        el.results.querySelector(".empty") ||
-        el.results;
-      if (!target) return;
+        el.results.querySelector(".card--reading") ||
+        el.results.querySelector(".empty");
+      if (!target || !target.isConnected) return;
       target.scrollIntoView({ behavior: behavior, block: "start" });
     };
-    requestAnimationFrame(run);
-    // Phones resize after the keyboard dismisses; align again once that settles.
-    if (coarse) window.setTimeout(run, 320);
+    // Two frames so layout includes the card render() just inserted.
+    requestAnimationFrame(() => requestAnimationFrame(run));
+    // Phones restore scroll onto the focused field when the keyboard closes.
+    if (coarse) window.setTimeout(run, 480);
   }
 
   function pulseSearchButton() {
@@ -855,6 +858,7 @@
     pulseSearchButton();
     if (el.search && document.activeElement === el.search) el.search.blur();
     render();
+    // Card (or empty state) is in the DOM now; scroll after that.
     revealScripture();
   }
 
@@ -864,6 +868,13 @@
     debounce = setTimeout(render, 80);
   });
   el.search.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      // Own the Enter path so iOS search fields still reveal the card.
+      // preventDefault keeps the form submit from running this twice.
+      e.preventDefault();
+      submitSearch();
+      return;
+    }
     if (e.key === "Escape") {
       el.search.value = "";
       resetSmartFully();

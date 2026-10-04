@@ -717,8 +717,10 @@ body.reading-active {
 
 #results,
 .reading-stage,
+.card--reading,
 .empty {
-  scroll-margin-top: 4.5rem;
+  /* Clears the sticky header so the card sits just below it. */
+  scroll-margin-top: 5rem;
 }
 
 .reading-stage {
