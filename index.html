@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Outfit:wght@300;400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=wixstyle-1" />
+    <link rel="stylesheet" href="styles.css?v=search-focus-1" />
   </head>
   <body class="page-home">
     <a class="skip-link" href="#results">Skip to results</a>
@@ -30,7 +30,7 @@
       <section class="search-panel" aria-label="Search and filters">
         <p class="hero-wordmark" aria-hidden="true">God’s Promises</p>
         <label class="search-label sr-only" for="search">Search promises</label>
-        <div class="search-row">
+        <form class="search-row" id="search-form" role="search">
           <input
             id="search"
             type="search"
@@ -41,12 +41,11 @@
             enterkeyhint="search"
             autofocus
           />
+          <button type="submit" class="search-submit" id="search-submit">Search</button>
           <button type="button" class="clear-btn" id="clear-search" disabled aria-label="Clear search and filters">
             Clear
           </button>
-        </div>
-
-        <div id="smart-guide" class="smart-guide" hidden aria-live="polite"></div>
+        </form>
 
         <div class="filters-toggle-row">
           <button
@@ -121,6 +120,8 @@
       </div>
 
       <section id="results" aria-label="Search results"></section>
+
+      <div id="smart-guide" class="smart-guide" hidden aria-live="polite"></div>
     </main>
 
     <footer class="site-footer">
@@ -139,6 +140,6 @@
     <script src="js/ui-shared.js?v=wixstyle-1"></script>
     <script src="js/smart-search.js?v=wixstyle-1"></script>
     <script src="js/relevance.js?v=wixstyle-1"></script>
-    <script src="app.js?v=wixstyle-1"></script>
+    <script src="app.js?v=search-focus-1"></script>
   </body>
 </html>

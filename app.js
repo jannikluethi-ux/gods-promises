@@ -80,6 +80,8 @@
 
   const el = {
     search: document.getElementById("search"),
+    searchForm: document.getElementById("search-form"),
+    searchSubmit: document.getElementById("search-submit"),
     clear: document.getElementById("clear-search"),
     testamentGroup: document.getElementById("testament-options"),
     book: document.getElementById("book-filter"),
@@ -500,6 +502,7 @@
     softSetFeelingFromPlan(plan);
     updateSmartGuide();
     render();
+    revealScripture();
   }
 
   function clearGuideKeepQuery() {
@@ -817,6 +820,44 @@
     });
   }
 
+  /**
+   * Bring the scripture card into the main viewport (below the sticky bar).
+   * A second pass covers mobile keyboards that resize the screen after blur.
+   */
+  function revealScripture() {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const behavior = reduce ? "auto" : "smooth";
+    const run = () => {
+      const target =
+        el.results.querySelector(".reading-stage") ||
+        el.results.querySelector(".empty") ||
+        el.results;
+      if (!target) return;
+      target.scrollIntoView({ behavior: behavior, block: "start" });
+    };
+    requestAnimationFrame(run);
+    // Phones resize after the keyboard dismisses; align again once that settles.
+    if (coarse) window.setTimeout(run, 320);
+  }
+
+  function pulseSearchButton() {
+    const btn = el.searchSubmit;
+    if (!btn) return;
+    btn.classList.remove("is-pressed");
+    void btn.offsetWidth;
+    btn.classList.add("is-pressed");
+    window.setTimeout(() => btn.classList.remove("is-pressed"), 220);
+  }
+
+  function submitSearch() {
+    clearTimeout(debounce);
+    pulseSearchButton();
+    if (el.search && document.activeElement === el.search) el.search.blur();
+    render();
+    revealScripture();
+  }
+
   let debounce;
   el.search.addEventListener("input", () => {
     clearTimeout(debounce);
@@ -829,6 +870,12 @@
       render();
     }
   });
+  if (el.searchForm) {
+    el.searchForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      submitSearch();
+    });
+  }
   el.clear.addEventListener("click", clearAll);
   if (el.testamentGroup) {
     el.testamentGroup.addEventListener("click", (e) => {
