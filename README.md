@@ -28,12 +28,12 @@ Then visit `http://localhost:8080/`.
 ## How to search
 
 - Type in the search box — filters live across reference, paraphrase, Scripture text, **feelings**, themes, and extra keywords (including feeling synonyms like *abandoned*, *grief*, *worried*).
-- Use the **Feeling**, **Theme**, and **Book** dropdowns (and **Testament** buttons) to refine.
+- Open the filters icon in the search bar for the **Feeling**, **Theme**, and **Book** dropdowns (and **Testament** buttons).
 - Tap the **cross** on a result card to save a personal favorite (sign in required).
 - Across filter types, results must satisfy **all** active constraints.
 - Results paginate (**Show more**) so large catalogs stay responsive.
 - Click a feeling or theme tag on a result card to apply that filter.
-- **Clear** resets search, book, feelings, and themes.
+- With an empty search and no filters, the page shows one **daily verse**, which changes at midnight Zurich time (Europe/Zurich). Press **Esc** in the search box to return to it.
 
 Try: `lonely`, `angry`, `anxious`, `guilty`, `weary`, or themes like `covenant`, `presence`.
 

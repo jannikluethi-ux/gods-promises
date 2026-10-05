@@ -327,136 +327,145 @@ a:hover {
   color: var(--ink-faint);
 }
 
-.search-row {
+.search-row,
+.search-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   align-items: center;
-  text-align: left;
+  gap: 0.25rem;
   margin: 0;
+  padding: 0.3rem 0.35rem 0.3rem 0.4rem;
+  text-align: left;
+  background: var(--field);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-soft);
+  transition: border-color var(--ease), box-shadow var(--ease), background var(--ease);
+}
+
+.search-bar:focus-within {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(22, 24, 29, 0.16);
+  box-shadow: var(--shadow-soft), 0 0 0 3px rgba(22, 24, 29, 0.07);
 }
 
 #search {
-  flex: 1 1 12rem;
+  flex: 1 1 auto;
   min-width: 0;
-  min-height: 3.35rem;
-  padding: 0.95rem 1.25rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.5rem 0.55rem 0.95rem;
   font: inherit;
   font-size: 0.98rem;
   font-weight: 400;
   color: var(--ink);
-  background: var(--field);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: var(--radius-field);
-  box-shadow: var(--shadow-soft);
-  transition: border-color var(--ease), box-shadow var(--ease);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-pill);
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+#search::-webkit-search-cancel-button,
+#search::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
 }
 
 #search::placeholder {
   color: var(--ink-faint);
   font-weight: 400;
+  opacity: 0.85;
 }
 
 #search:focus {
-  border-color: rgba(22, 24, 29, 0.22);
-  box-shadow: var(--shadow-soft), 0 0 0 3px var(--focus-ring);
   outline: none;
+  box-shadow: none;
 }
 
+.search-bar-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  margin-left: auto;
+}
+
+/* Soft, in-bar controls: present but in the background. */
 .search-submit {
   flex: 0 0 auto;
-  min-height: 3.35rem;
-  padding: 0 1.2rem;
+  min-height: 2.6rem;
+  padding: 0 1rem;
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 500;
-  letter-spacing: 0.02em;
-  color: #f7f8f6;
-  background: var(--ink);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  background: transparent;
   border: none;
   border-radius: var(--radius-pill);
   cursor: pointer;
-  box-shadow: var(--shadow-soft);
+  box-shadow: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  transition: transform 0.12s ease, filter 0.12s ease;
+  transition: color var(--ease), background var(--ease), transform 0.12s ease;
 }
 
 .search-submit:hover {
-  filter: brightness(1.12);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .search-submit:active,
 .search-submit.is-pressed {
-  transform: translateY(1px) scale(0.98);
-  filter: brightness(1.2);
+  transform: scale(0.97);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.85);
 }
 
-.clear-btn {
-  padding: 0 0.35rem;
-  min-height: 2.75rem;
+/* —— Filters —— */
+
+.filters-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0;
   font: inherit;
-  font-weight: 500;
-  font-size: 0.68rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--ink-faint);
   background: transparent;
   border: none;
   border-radius: var(--radius-pill);
   cursor: pointer;
-}
-
-.clear-btn:hover:not(:disabled) {
-  color: var(--ink);
-}
-
-.clear-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-/* —— Filters —— */
-
-.filters-toggle-row {
-  display: flex;
-  justify-content: center;
-  margin-top: 1.1rem;
-}
-
-.filters-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.45rem 0.15rem;
-  min-height: 2.5rem;
-  font: inherit;
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  background: transparent;
-  border: none;
-  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease), background var(--ease);
 }
 
 .filters-toggle:hover,
 .filters-toggle[aria-expanded="true"] {
   color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.filters-toggle-icon {
+  display: block;
 }
 
 .filters-toggle-badge {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.15rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.15rem;
-  height: 1.15rem;
-  padding: 0 0.3rem;
-  font-size: 0.62rem;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  font-size: 0.58rem;
   font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
+  line-height: 1;
   color: var(--ink);
   background: var(--butter);
   border-radius: var(--radius-pill);
@@ -464,22 +473,6 @@ a:hover {
 
 .filters-toggle-badge[hidden] {
   display: none;
-}
-
-.filters-toggle-chevron {
-  display: inline-block;
-  width: 0.35rem;
-  height: 0.35rem;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(45deg);
-  margin-top: -0.15rem;
-  transition: transform 0.2s ease;
-}
-
-.filters-toggle[aria-expanded="true"] .filters-toggle-chevron {
-  transform: rotate(-135deg);
-  margin-top: 0.12rem;
 }
 
 .filters {
@@ -691,6 +684,44 @@ a:hover {
   letter-spacing: 0;
   text-transform: none;
   font-size: 0.92rem;
+}
+
+.is-landing .results-meta {
+  display: none;
+}
+
+.is-landing .results-host--reading {
+  margin-top: 2.25rem;
+}
+
+.reading-stage--daily {
+  padding-top: 0;
+}
+
+.daily-label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.2rem 0.65rem;
+  margin: 0 0 1rem;
+  font-size: 0.64rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.daily-date {
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 0.78rem;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.card--daily {
+  min-height: 0;
 }
 
 .results {
@@ -1486,12 +1517,19 @@ body.reading-active {
   }
 
   #search {
-    min-height: 3.1rem;
+    min-height: 2.6rem;
     font-size: 0.95rem;
+    padding-left: 0.8rem;
   }
 
   .search-submit {
-    min-height: 3.1rem;
+    min-height: 2.5rem;
+    padding: 0 0.75rem;
+  }
+
+  .filters-toggle {
+    width: 2.4rem;
+    height: 2.4rem;
   }
 }
 

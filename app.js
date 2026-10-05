@@ -82,12 +82,12 @@
     search: document.getElementById("search"),
     searchForm: document.getElementById("search-form"),
     searchSubmit: document.getElementById("search-submit"),
-    clear: document.getElementById("clear-search"),
     testamentGroup: document.getElementById("testament-options"),
     book: document.getElementById("book-filter"),
     theme: document.getElementById("theme-filter"),
     feeling: document.getElementById("feeling-filter"),
     count: document.getElementById("result-count"),
+    resultsMeta: document.getElementById("results-meta"),
     results: document.getElementById("results"),
     filtersToggle: document.getElementById("filters-toggle"),
     filtersPanel: document.getElementById("filters-panel"),
@@ -95,7 +95,78 @@
     smartGuide: document.getElementById("smart-guide"),
   };
 
-  const FILTERS_STORAGE_KEY = "gods-promises-filters-open";
+  /* —— Daily verse (changes at midnight Europe/Zurich) —— */
+
+  const DAILY_TZ = "Europe/Zurich";
+  /** Short enough to read in one breath on the landing card. */
+  const DAILY_MAX_TEXT = 320;
+  /** Prime step so consecutive days walk the pool without repeating. */
+  const DAILY_STEP = 7919;
+  const dailyPool = (function () {
+    const short = promises.filter(
+      (p) => p && p.text && p.text.length <= DAILY_MAX_TEXT
+    );
+    return short.length ? short : promises.slice();
+  })();
+
+  /** Calendar date in Zurich as "YYYY-MM-DD" (DST handled by Intl). */
+  function zurichDateKey(now) {
+    const d = now || new Date();
+    try {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: DAILY_TZ,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(d);
+      const get = (t) => (parts.find((x) => x.type === t) || {}).value;
+      return get("year") + "-" + get("month") + "-" + get("day");
+    } catch (e) {
+      // Very old engines: approximate with CET (UTC+1).
+      const z = new Date(d.getTime() + 60 * 60 * 1000);
+      return z.toISOString().slice(0, 10);
+    }
+  }
+
+  function gcd(a, b) {
+    while (b) {
+      const t = b;
+      b = a % b;
+      a = t;
+    }
+    return a;
+  }
+
+  /**
+   * Deterministic verse for a Zurich date key: whole days since 1970-01-01
+   * times a prime step, modulo the pool. Each new Zurich day gives a
+   * different verse until the whole pool has been shown once.
+   */
+  function dailyPromiseFor(key) {
+    const n = dailyPool.length;
+    if (!n) return null;
+    const [y, m, d] = key.split("-").map(Number);
+    const day = Math.floor(Date.UTC(y, m - 1, d) / 86400000);
+    const step = gcd(DAILY_STEP % n || 1, n) === 1 ? DAILY_STEP % n || 1 : 1;
+    const idx = (((day % n) * step) % n + n) % n;
+    return dailyPool[idx];
+  }
+
+  function dailyDateLabel(key) {
+    const [y, m, d] = key.split("-").map(Number);
+    try {
+      return new Intl.DateTimeFormat("en-GB", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        timeZone: "UTC",
+      }).format(new Date(Date.UTC(y, m - 1, d, 12)));
+    } catch (e) {
+      return key;
+    }
+  }
+
+  let dailyKeyShown = "";
 
   /** @type {""|"OT"|"NT"} */
   let activeTestament = "";
@@ -529,6 +600,55 @@
     }
   }
 
+  function isLanding() {
+    return (
+      !el.search.value.trim() &&
+      !activeTestament &&
+      !el.book.value &&
+      !el.theme.value &&
+      !el.feeling.value
+    );
+  }
+
+  /** Empty query, no filters: one quiet daily-verse card, nothing else. */
+  function paintDailyVerse() {
+    const key = zurichDateKey();
+    const p = dailyPromiseFor(key);
+    destroyDeckBinding();
+    lastFiltered = p ? [p] : [];
+    lastRankedMeta = null;
+    currentIndex = 0;
+    dailyKeyShown = key;
+    document.body.classList.add("is-landing");
+    el.count.innerHTML = "";
+    updateFiltersBadge();
+    if (!p) {
+      el.results.innerHTML = "";
+      el.results.classList.remove("results-host--reading");
+      document.body.classList.remove("reading-active");
+      return;
+    }
+    let cardHtml = renderCard(p, null);
+    cardHtml = cardHtml.replace(
+      'class="card',
+      'class="card card--reading card--daily'
+    );
+    el.results.innerHTML =
+      `<div class="reading-stage reading-stage--daily">` +
+      `<p class="daily-label"><span>Today’s verse</span>` +
+      `<span class="daily-date">${escapeHtml(dailyDateLabel(key))}</span></p>` +
+      `<ul class="results results--single">${cardHtml}</ul>` +
+      `</div>`;
+    el.results.classList.add("results-host--reading");
+    document.body.classList.add("reading-active");
+  }
+
+  /** Swap to the next day’s verse at Zurich midnight if still on the landing. */
+  function checkDailyRollover() {
+    if (!isLanding()) return;
+    if (zurichDateKey() !== dailyKeyShown) paintDailyVerse();
+  }
+
   function render(opts) {
     const preserveLimit = opts && opts.preserveLimit;
     const preserveIndex = opts && opts.preserveIndex;
@@ -536,6 +656,12 @@
     if (!preserveIndex && !preserveLimit) resetDeckIndex();
 
     updateSmartGuide();
+
+    if (isLanding()) {
+      paintDailyVerse();
+      return;
+    }
+    document.body.classList.remove("is-landing");
 
     const plan = currentPlan();
     const rawTokens = tokensFromQuery(el.search.value);
@@ -593,8 +719,6 @@
         ? `<strong>No matches</strong>${noteStr}`
         : `<strong>${n}</strong> promise${n === 1 ? "" : "s"}${noteStr}`;
 
-    el.clear.disabled =
-      !el.search.value && !activeTestament && !book && !theme && !feeling;
     updateFiltersBadge();
 
     if (n === 0) {
@@ -604,7 +728,7 @@
       el.results.innerHTML = `
         <div class="empty" role="status">
           <h2>No promises found</h2>
-          <p>Try another feeling or theme, clear search, or choose “All” in the menus.</p>
+          <p>Try another feeling or theme, or choose “All” in the filters.</p>
         </div>`;
       return;
     }
@@ -680,22 +804,13 @@
     if (!el.filtersToggle || !el.filtersPanel) return;
     el.filtersToggle.setAttribute("aria-expanded", open ? "true" : "false");
     el.filtersPanel.hidden = !open;
-    try {
-      sessionStorage.setItem(FILTERS_STORAGE_KEY, open ? "1" : "0");
-    } catch (e) {
-      /* ignore */
-    }
+    document.body.classList.toggle("filters-open", !!open);
   }
 
   function initFiltersToggle() {
     if (!el.filtersToggle || !el.filtersPanel) return;
-    let open = false;
-    try {
-      open = sessionStorage.getItem(FILTERS_STORAGE_KEY) === "1";
-    } catch (e) {
-      open = false;
-    }
-    setFiltersOpen(open);
+    // Always start collapsed so the first view is just the search bar.
+    setFiltersOpen(false);
     el.filtersToggle.addEventListener("click", () => {
       const next =
         el.filtersToggle.getAttribute("aria-expanded") !== "true";
@@ -707,19 +822,6 @@
     fillSelect(el.feeling, "All feelings", feelingUniverse());
     fillSelect(el.theme, "All themes", themeUniverse());
     refreshBookOptions(false);
-  }
-
-  function clearAll() {
-    el.search.value = "";
-    activeTestament = "";
-    syncTestamentButtons();
-    el.book.value = "";
-    el.theme.value = "";
-    el.feeling.value = "";
-    resetSmartFully();
-    refreshBookOptions(false);
-    render();
-    el.search.focus();
   }
 
   function initSmartGuide() {
@@ -859,7 +961,8 @@
     if (el.search && document.activeElement === el.search) el.search.blur();
     render();
     // Card (or empty state) is in the DOM now; scroll after that.
-    revealScripture();
+    // The quiet daily-verse landing stays put.
+    if (!isLanding()) revealScripture();
   }
 
   let debounce;
@@ -887,7 +990,6 @@
       submitSearch();
     });
   }
-  el.clear.addEventListener("click", clearAll);
   if (el.testamentGroup) {
     el.testamentGroup.addEventListener("click", (e) => {
       const btn = e.target.closest(".testament-btn");
@@ -936,4 +1038,10 @@
   initSmartGuide();
   syncTestamentButtons();
   render();
+
+  // Roll the daily verse over at midnight Zurich while the tab stays open.
+  window.setInterval(checkDailyRollover, 60 * 1000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkDailyRollover();
+  });
 })();
