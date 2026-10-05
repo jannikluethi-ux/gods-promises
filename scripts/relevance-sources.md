@@ -22,6 +22,10 @@ Curated topical anchors for search ranking. Weights favor verses that repeatedly
 | Provision / money / need | Phil 4:19, Matt 6:31–34, Ps 23:1–4, Matt 6:33, Heb 13:5–6 |
 | Peace | John 16:33, Isa 26:3, John 14:27, Phil 4:6–7, Col 3:15, Num 6:24–26 |
 | Love / rejection | Rom 8:38–39, John 3:16–17, Zeph 3:16–17, 1 John 4:16–18, Rom 5:6–8 |
+| Pain / hurt / suffering | Ps 34:18, Rev 21:4, 2 Cor 1:3–4, Isa 53:4–6, Rom 8:18, Matt 11:28–30 |
+| Jealousy / envy | Ps 37:7–8, Eph 4:32, Col 3:12–15 |
+| Betrayal | Rom 8:38–39, Heb 13:5–6, Deut 31:6, Ps 27:10 |
+| Failure | Rom 8:28, Phil 4:13, Jer 29:11, Lam 3:21–23 |
 | Healing | Isa 53:4–6, Ps 147:3, Jas 5:13–16, Jer 30:17, Ex 15:26 |
 | Salvation / eternal life | John 3:16–17, Eph 2:8–10, Rom 6:23, Rom 10:9–10, John 10:9–10 |
 | Protection | Ps 91:1–4, Ps 46:1–3, Ps 121, Isa 41:10, 2 Thess 3:3 |

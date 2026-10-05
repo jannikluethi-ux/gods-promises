@@ -2311,7 +2311,13 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "sick",
+        "illness",
+        "sickness",
+        "disease",
+        "healing",
+        "heal"
       ],
       "feelings": [
         "afraid",
@@ -5457,7 +5463,10 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "betrayal",
+        "abandoned",
+        "failure"
       ],
       "feelings": [
         "afraid",
@@ -11411,7 +11420,12 @@
         "regret",
         "remorse",
         "unworthy",
-        "guilty"
+        "guilty",
+        "pain",
+        "hurt",
+        "hurting",
+        "suffering",
+        "suffer"
       ],
       "feelings": [
         "sad",
@@ -12093,7 +12107,11 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "sick",
+        "sickness",
+        "healing",
+        "heal"
       ],
       "feelings": [
         "weary",
@@ -19641,7 +19659,11 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "healing",
+        "heal"
       ],
       "feelings": [
         "sad",
@@ -24194,7 +24216,9 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "failure",
+        "rejection"
       ],
       "feelings": [
         "afraid",
@@ -25846,7 +25870,14 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "suffering",
+        "suffer",
+        "healing",
+        "heal",
+        "heals"
       ],
       "feelings": [
         "guilty",
@@ -28521,7 +28552,9 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "failure",
+        "fail"
       ],
       "feelings": [
         "hopeless",
@@ -28690,7 +28723,13 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "healing",
+        "heal",
+        "sick",
+        "illness"
       ],
       "feelings": [
         "lonely",
@@ -29834,7 +29873,10 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "failure",
+        "fail",
+        "betrayal"
       ],
       "feelings": [
         "hopeless",
@@ -37436,7 +37478,10 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "burden"
       ],
       "feelings": [
         "weary",
@@ -47274,7 +47319,11 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "suffering",
+        "suffer"
       ],
       "feelings": [
         "weary",
@@ -47386,7 +47435,11 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "failure",
+        "fail",
+        "betrayal",
+        "betrayed"
       ],
       "feelings": [
         "confused",
@@ -47663,7 +47716,11 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "rejection",
+        "betrayal",
+        "betrayed",
+        "unloved"
       ],
       "feelings": [
         "afraid",
@@ -48955,7 +49012,12 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "suffering",
+        "suffer",
+        "trouble"
       ],
       "feelings": [
         "sad",
@@ -51899,7 +51961,10 @@
         "still",
         "quiet",
         "serene",
-        "peaceful"
+        "peaceful",
+        "failure",
+        "fail",
+        "strength"
       ],
       "feelings": [
         "anxious",
@@ -55332,7 +55397,9 @@
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "betrayal",
+        "rejection"
       ],
       "feelings": [
         "afraid",
@@ -59322,7 +59389,10 @@
         "valued",
         "precious",
         "wanted",
-        "loved"
+        "loved",
+        "hurt",
+        "suffering",
+        "suffer"
       ],
       "feelings": [
         "sad",

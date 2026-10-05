@@ -300,6 +300,29 @@
     unloved: null,
     loved: null,
 
+
+    // --- Pain / hurt / suffering ---
+    pain: [
+      a("Psalms", 34, 15, 18, 100),
+      a("Revelation", 21, 3, 4, 96),
+      a("2 Corinthians", 1, 3, 4, 94),
+      a("Isaiah", 53, 4, 6, 92),
+      a("Romans", 8, 18, 18, 90),
+      a("Matthew", 11, 28, 30, 86),
+      a("Psalms", 147, 3, 3, 84),
+      a("Romans", 8, 28, 28, 78),
+      a("Lamentations", 3, 21, 23, 74),
+      a("Isaiah", 41, 10, 10, 70),
+      a("Psalms", 23, 1, 4, 66),
+      a("John", 14, 1, 3, 60),
+    ],
+    hurt: null,
+    hurting: null,
+    suffering: null,
+    suffer: null,
+    ache: null,
+    agony: null,
+
     // --- Healing ---
     healing: [
       a("Isaiah", 53, 4, 6, 100),
@@ -383,6 +406,45 @@
       a("Hebrews", 4, 9, 11, 72),
       a("Isaiah", 40, 28, 31, 68),
     ],
+
+    jealous: [
+      a("Psalms", 37, 7, 8, 100),
+      a("Ephesians", 4, 32, 32, 88),
+      a("Colossians", 3, 12, 15, 82),
+      a("Proverbs", 15, 1, 1, 76),
+      a("Romans", 12, 17, 21, 70),
+      a("James", 1, 19, 20, 64),
+    ],
+    jealousy: null,
+    envy: null,
+    envious: null,
+
+
+    betrayal: [
+      a("Romans", 8, 38, 39, 100),
+      a("Hebrews", 13, 5, 6, 96),
+      a("Deuteronomy", 31, 6, 6, 92),
+      a("Psalms", 27, 10, 10, 88),
+      a("Isaiah", 41, 10, 10, 86),
+      a("Matthew", 28, 18, 20, 80),
+      a("Psalms", 34, 15, 18, 74),
+      a("2 Corinthians", 1, 3, 4, 70),
+    ],
+    betrayed: null,
+
+    failure: [
+      a("Romans", 8, 28, 28, 100),
+      a("Philippians", 4, 13, 13, 96),
+      a("Jeremiah", 29, 10, 11, 94),
+      a("Lamentations", 3, 21, 23, 90),
+      a("Isaiah", 41, 10, 10, 86),
+      a("2 Corinthians", 12, 9, 10, 82),
+      a("Romans", 15, 13, 13, 78),
+      a("Philippians", 1, 6, 6, 70),
+    ],
+    fail: null,
+    failed: null,
+
     happy: [
       a("Psalms", 16, 11, 11, 80),
       a("Philippians", 4, 4, 5, 76),
@@ -442,6 +504,25 @@
     rejected: "love",
     unloved: "love",
     loved: "love",
+    hurt: "pain",
+    hurting: "pain",
+    suffering: "pain",
+    suffer: "pain",
+    ache: "pain",
+    agony: "pain",
+    sick: "healing",
+    illness: "healing",
+    sickness: "healing",
+    disease: "healing",
+    jealous: "jealous",
+    jealousy: "jealous",
+    envy: "jealous",
+    envious: "jealous",
+    betrayal: "betrayal",
+    betrayed: "betrayal",
+    failure: "failure",
+    fail: "failure",
+    failed: "failure",
     "eternal-life": "salvation",
     trust: "faithfulness",
   };
@@ -510,6 +591,13 @@
     happy: ["happy", "grateful"],
     loved: ["love"],
     unloved: ["love", "loneliness"],
+    pain: ["pain"],
+    hurt: ["pain"],
+    suffering: ["pain"],
+    sick: ["healing"],
+    jealous: ["jealous", "anger"],
+    betrayal: ["betrayal", "love"],
+    failure: ["failure", "hope"],
   };
 
   function resolveTopicKey(key) {

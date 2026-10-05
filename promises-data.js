@@ -2312,7 +2312,13 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "sick",
+        "illness",
+        "sickness",
+        "disease",
+        "healing",
+        "heal"
       ],
       "feelings": [
         "afraid",
@@ -5458,7 +5464,10 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "betrayal",
+        "abandoned",
+        "failure"
       ],
       "feelings": [
         "afraid",
@@ -11412,7 +11421,12 @@ window.GODS_PROMISES_DATA = {
         "regret",
         "remorse",
         "unworthy",
-        "guilty"
+        "guilty",
+        "pain",
+        "hurt",
+        "hurting",
+        "suffering",
+        "suffer"
       ],
       "feelings": [
         "sad",
@@ -12094,7 +12108,11 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "sick",
+        "sickness",
+        "healing",
+        "heal"
       ],
       "feelings": [
         "weary",
@@ -19642,7 +19660,11 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "healing",
+        "heal"
       ],
       "feelings": [
         "sad",
@@ -24195,7 +24217,9 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "failure",
+        "rejection"
       ],
       "feelings": [
         "afraid",
@@ -25847,7 +25871,14 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "suffering",
+        "suffer",
+        "healing",
+        "heal",
+        "heals"
       ],
       "feelings": [
         "guilty",
@@ -28522,7 +28553,9 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "failure",
+        "fail"
       ],
       "feelings": [
         "hopeless",
@@ -28691,7 +28724,13 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "healing",
+        "heal",
+        "sick",
+        "illness"
       ],
       "feelings": [
         "lonely",
@@ -29835,7 +29874,10 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "failure",
+        "fail",
+        "betrayal"
       ],
       "feelings": [
         "hopeless",
@@ -37437,7 +37479,10 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "burden"
       ],
       "feelings": [
         "weary",
@@ -47275,7 +47320,11 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "suffering",
+        "suffer"
       ],
       "feelings": [
         "weary",
@@ -47387,7 +47436,11 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "failure",
+        "fail",
+        "betrayal",
+        "betrayed"
       ],
       "feelings": [
         "confused",
@@ -47664,7 +47717,11 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "rejection",
+        "betrayal",
+        "betrayed",
+        "unloved"
       ],
       "feelings": [
         "afraid",
@@ -48956,7 +49013,12 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "pain",
+        "hurt",
+        "suffering",
+        "suffer",
+        "trouble"
       ],
       "feelings": [
         "sad",
@@ -51900,7 +51962,10 @@ window.GODS_PROMISES_DATA = {
         "still",
         "quiet",
         "serene",
-        "peaceful"
+        "peaceful",
+        "failure",
+        "fail",
+        "strength"
       ],
       "feelings": [
         "anxious",
@@ -55333,7 +55398,9 @@ window.GODS_PROMISES_DATA = {
         "confident",
         "looking forward",
         "assurance",
-        "hopeful"
+        "hopeful",
+        "betrayal",
+        "rejection"
       ],
       "feelings": [
         "afraid",
@@ -59323,7 +59390,10 @@ window.GODS_PROMISES_DATA = {
         "valued",
         "precious",
         "wanted",
-        "loved"
+        "loved",
+        "hurt",
+        "suffering",
+        "suffer"
       ],
       "feelings": [
         "sad",
