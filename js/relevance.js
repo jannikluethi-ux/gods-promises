@@ -1,5 +1,5 @@
 /**
- * Topical relevance ranking for God’s Promises search.
+ * Topical popularity + relevance ranking for God’s Promises search.
  * Anchors grounded in OpenBible / YouVersion / pastoral topical lists
  * (see scripts/relevance-sources.md).
  */
@@ -536,20 +536,23 @@
     };
 
     if (plan) {
-      const intentId = plan.intent && plan.intent.intentId;
+      const intentId =
+        (plan.intent && plan.intent.intentId) || plan.rankingIntentId || null;
       if (intentId && INTENT_PRIMARY_TOPICS[intentId]) {
         INTENT_PRIMARY_TOPICS[intentId].forEach((t) => add(t, 1));
       } else if (intentId) {
         add(intentId, 1);
       }
-      if (plan.intent && plan.intent.keyword) add(plan.intent.keyword, 1);
+      // Keyword may alias to a side topic (e.g. burnout → strength); keep soft
+      // so it cannot outrank the primary intent topic list above.
+      if (plan.intent && plan.intent.keyword) add(plan.intent.keyword, 0.35);
 
       // Soft feelings / clarify options: secondary (do not outrank primary topical hits)
       (plan.softFeelings || []).forEach((f) => add(f, 0.45));
       (plan.boostFeelings || []).forEach((f) => add(f, 0.55));
       (plan.boostThemes || []).forEach((t) => add(t, 0.35));
       (plan.boostTerms || []).forEach((t) => add(t, 0.4));
-      (plan.contentTokens || []).forEach((t) => add(t, intentId ? 0.35 : 0.85));
+      (plan.contentTokens || []).forEach((t) => add(t, intentId ? 0.35 : 1));
     }
 
     if (filters) {
@@ -591,17 +594,18 @@
   function scorePromise(p, plan, filters) {
     if (!plan && !(filters && (filters.feeling || filters.theme))) return 0;
 
-    let score = 0;
+    let popularity = 0;
+    let relevance = 0;
     const topics = detectTopics(plan, filters);
     const anchored = anchorBoost(p, topics);
 
-    // High: researched topical verse anchors
+    // Primary: researched topical popularity (OpenBible / YouVersion-style weights)
     if (anchored.boost > 0) {
-      score += 200 + anchored.boost; // 240–300 band for famous topical hits
+      popularity = anchored.boost;
       const primaryHit = topics.some(
         (t) => (t.key || t) === anchored.topic && (t.factor == null || t.factor >= 0.95)
       );
-      if (primaryHit) score += 24;
+      if (primaryHit) popularity += 1; // tiny tie-break within same weight band
     }
 
     const feelings = p.feelings || [];
@@ -621,24 +625,24 @@
     );
 
     if (plan) {
-      // Medium: feeling / theme tag overlap with intent
+      // Secondary: feeling / theme tag overlap with intent
       for (const f of plan.boostFeelings || []) {
-        if (feelings.includes(f)) score += 14;
+        if (feelings.includes(f)) relevance += 14;
       }
       for (const f of plan.softFeelings || []) {
-        if (feelings.includes(f)) score += 10;
+        if (feelings.includes(f)) relevance += 10;
       }
       for (const t of plan.boostThemes || []) {
-        if (themes.includes(t)) score += 12;
+        if (themes.includes(t)) relevance += 12;
       }
 
-      // Medium: searchTerms / paraphrase keyword hits
+      // Secondary: searchTerms / paraphrase keyword hits (incl. soft context)
       for (const term of plan.boostTerms || []) {
         const nt = normalize(term);
         if (!nt) continue;
-        if (terms.some((x) => x === nt || x.includes(nt))) score += 8;
-        else if (promiseText.includes(nt)) score += 6;
-        else if (hay.includes(nt)) score += 2;
+        if (terms.some((x) => x === nt || x.includes(nt))) relevance += 8;
+        else if (promiseText.includes(nt)) relevance += 6;
+        else if (hay.includes(nt)) relevance += 2;
       }
 
       // Synonym group hits (prefer searchTerms / feelings over full haystack)
@@ -657,36 +661,33 @@
             hitTier = Math.max(hitTier, 1);
           }
         }
-        if (hitTier === 3) score += 6;
-        else if (hitTier === 2) score += 4;
-        else if (hitTier === 1) score += 2;
+        if (hitTier === 3) relevance += 6;
+        else if (hitTier === 2) relevance += 4;
+        else if (hitTier === 1) relevance += 2;
       }
 
-      // Slight boost if clarify-option themes already matched above;
-      // extra nudge when option themes appear in searchTerms too
       for (const t of plan.boostThemes || []) {
         const nt = normalize(t);
         if (terms.some((x) => x.includes(nt)) || promiseText.includes(nt)) {
-          score += 4;
+          relevance += 4;
         }
       }
 
-      // AND content tokens — small boost when present in paraphrase/terms
       for (const tok of plan.andTokens || []) {
         const nt = normalize(tok);
         if (!nt || nt.length < 2) continue;
-        if (terms.some((x) => x.includes(nt)) || promiseText.includes(nt)) score += 3;
-        else if (hay.includes(nt)) score += 1;
+        if (terms.some((x) => x.includes(nt)) || promiseText.includes(nt)) relevance += 3;
+        else if (hay.includes(nt)) relevance += 1;
       }
     }
 
-    // Filter-only soft boosts (feeling/theme dropdown)
     if (filters) {
-      if (filters.feeling && feelings.includes(filters.feeling)) score += 8;
-      if (filters.theme && themes.includes(filters.theme)) score += 8;
+      if (filters.feeling && feelings.includes(filters.feeling)) relevance += 8;
+      if (filters.theme && themes.includes(filters.theme)) relevance += 8;
     }
 
-    return score;
+    // Popularity dominates; relevance only orders within the same popularity band
+    return popularity * 1000 + relevance;
   }
 
   /**
@@ -716,15 +717,15 @@
     }));
     scored.sort((a, b) => compareScored(a, b) || a.idx - b.idx);
 
-    // Mark top 1–3 anchor-strong hits (avoid cluttering weaker keyword-only matches)
-    const anchorFloor = 220;
+    // Mark top 1–3 popularity-anchored hits (avoid cluttering keyword-only matches)
+    const popularityFloor = 50 * 1000; // anchor weight ≥ ~50
     let tier = 0;
     for (let i = 0; i < scored.length && i < 3; i++) {
       const s = scored[i];
-      if (s.score < anchorFloor) break;
+      if (s.score < popularityFloor) break;
       tier += 1;
       s.relevanceTier = tier;
-      s.relevanceLabel = tier === 1 ? "Most relevant" : "Top match";
+      s.relevanceLabel = tier === 1 ? "Most popular" : "Popular";
     }
 
     return scored;

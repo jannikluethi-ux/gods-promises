@@ -364,6 +364,55 @@
     ],
     tired: ["tired", "weary", "exhausted", "rest", "strength"],
     exhausted: ["exhausted", "weary", "tired", "rest", "strength"],
+    burnout: [
+      "burnout",
+      "burned",
+      "burnt",
+      "weary",
+      "tired",
+      "exhausted",
+      "rest",
+      "strength",
+      "stressed",
+      "stress",
+      "overwhelmed",
+      "anxious",
+    ],
+    burned: [
+      "burned",
+      "burnt",
+      "burnout",
+      "weary",
+      "tired",
+      "exhausted",
+      "rest",
+      "strength",
+      "stressed",
+      "overwhelmed",
+    ],
+    burnt: [
+      "burnt",
+      "burned",
+      "burnout",
+      "weary",
+      "tired",
+      "exhausted",
+      "rest",
+      "strength",
+      "stressed",
+    ],
+    hope: ["hope", "hopeful", "future", "encourage", "despair", "hopeless"],
+    forgiveness: [
+      "forgiveness",
+      "forgive",
+      "forgiven",
+      "mercy",
+      "guilt",
+      "guilty",
+      "shame",
+      "cleanse",
+    ],
+    peace: ["peace", "peaceful", "rest", "calm", "anxiety", "anxious", "worry"],
     confused: [
       "confused",
       "lost",
@@ -993,44 +1042,76 @@
    * @param {object|null} clarification - { intentId, optionId, option, freeText, skipped }
    * @returns {object} plan used by app.js matching/ranking
    */
-  function buildSearchPlan(query, clarification) {
+  function buildSearchPlan(query, clarification, opts) {
     const rawTokens = tokenize(query);
     const contentTokens = stripStopwords(rawTokens);
 
-    let intent = detectIntent(query);
+    let intent = detectIntent(query, opts);
+    // Feeling hits even when the clarifying guide is suppressed (exact theme word, etc.)
+    const silentHits = !intent ? findIntentMatches(query) : [];
+    const rankingIntentId = intent
+      ? intent.intentId
+      : silentHits.length
+        ? silentHits[0].intentId
+        : null;
+    const rankingKeyword = intent
+      ? intent.keyword
+      : silentHits.length
+        ? silentHits[0].keyword
+        : null;
+
     let orGroups = []; // each group: array of synonym terms — match if ANY hits
-    let andTokens = []; // remaining content words (AND)
+    let andTokens = []; // remaining content words (hard filter when no feeling OR groups)
     let softFeelings = [];
     let boostThemes = [];
     let boostFeelings = [];
     let boostTerms = [];
     let statusParts = [];
 
-    // Expand feeling-like content tokens into OR groups; other tokens stay AND
+    // Expand feeling/theme-like content tokens into OR groups; other tokens stay AND
     const feelingish = new Set(Object.keys(SYNONYM_EXPAND));
+    const intentKeywords = rankingIntentId
+      ? INTENT_KEYWORDS[rankingIntentId] || []
+      : [];
     for (const tok of contentTokens) {
-      if (feelingish.has(tok) || (intent && INTENT_KEYWORDS[intent.intentId] && INTENT_KEYWORDS[intent.intentId].some((k) => k.split(/\s+/)[0] === tok))) {
+      const intentTok = intentKeywords.some(
+        (k) => k === tok || k.split(/\s+/)[0] === tok
+      );
+      if (feelingish.has(tok) || intentTok) {
         orGroups.push(expandSynonyms(tok));
       } else if (tok.length > 1) {
         andTokens.push(tok);
       }
     }
 
-    // If intent detected but no orGroups yet (e.g. "I am stressed" → stressed expanded)
-    if (intent && orGroups.length === 0) {
-      const base = INTENT_TO_FEELINGS[intent.intentId] || [];
-      const expanded = expandSynonyms(intent.keyword);
+    // Ensure full feeling synonym OR coverage from intent / silent feeling hit
+    // (e.g. "left out" may only expand the token "left" — merge lonely synonyms too)
+    if (rankingIntentId) {
+      const base = INTENT_TO_FEELINGS[rankingIntentId] || [];
+      const expanded = expandSynonyms(rankingKeyword || rankingIntentId);
+      for (const s of expandSynonyms(rankingIntentId)) {
+        if (!expanded.includes(s)) expanded.push(s);
+      }
       for (const f of base) {
         for (const s of expandSynonyms(f)) {
           if (!expanded.includes(s)) expanded.push(s);
         }
       }
-      orGroups.push(expanded);
+      if (orGroups.length === 0) {
+        orGroups.push(expanded);
+      } else {
+        const g = orGroups[0];
+        for (const s of expanded) {
+          if (!g.includes(s)) g.push(s);
+        }
+      }
     }
 
     if (intent) {
       softFeelings = (INTENT_TO_FEELINGS[intent.intentId] || []).slice();
       statusParts.push(intent.label);
+    } else if (rankingIntentId) {
+      softFeelings = (INTENT_TO_FEELINGS[rankingIntentId] || []).slice();
     }
 
     if (clarification && clarification.option) {
@@ -1041,16 +1122,16 @@
       boostTerms = (opt.boostTerms || []).slice();
       statusParts.push(opt.label.toLowerCase());
 
-      // Merge option boost terms into OR matching loosely
+      // Clarification boost terms help ranking; do not hard-filter
       if (boostTerms.length) {
-        orGroups.push(boostTerms.map(normalize));
+        // keep as boostTerms only (already set) — avoid AND/OR filter tighten
       }
 
       if (clarification.freeText) {
         const extra = stripStopwords(tokenize(clarification.freeText));
         for (const t of extra) {
           if (feelingish.has(t)) orGroups.push(expandSynonyms(t));
-          else andTokens.push(t);
+          else boostTerms.push(t); // free-text context is soft
         }
         if (clarification.freeText.trim()) {
           statusParts.push('"' + clarification.freeText.trim().slice(0, 40) + '"');
@@ -1061,11 +1142,29 @@
     }
 
     // Deduplicate andTokens that already appear in orGroups
-    const orFlat = new Set(orGroups.flat());
-    andTokens = andTokens.filter((t) => !orFlat.has(t));
+    const orFlat = new Set(orGroups.flat().map(normalize));
+    andTokens = andTokens.filter((t) => !orFlat.has(normalize(t)));
+
+    // When a feeling/synonym OR group is active, demote leftover content words
+    // (e.g. "work" in "stress at work") to soft boosts — hard AND was dropping
+    // popular topical verses that never mention the context word.
+    if (orGroups.length > 0 && andTokens.length > 0) {
+      boostTerms = boostTerms.concat(andTokens);
+      andTokens = [];
+    }
+
+    // Dedupe boostTerms
+    const seenBoost = new Set();
+    boostTerms = boostTerms.filter((t) => {
+      const n = normalize(t);
+      if (!n || seenBoost.has(n)) return false;
+      seenBoost.add(n);
+      return true;
+    });
 
     return {
       intent: intent,
+      rankingIntentId: rankingIntentId,
       orGroups: orGroups,
       andTokens: andTokens,
       softFeelings: softFeelings,

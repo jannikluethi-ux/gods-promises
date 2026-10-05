@@ -298,35 +298,20 @@
     if (!Smart) return null;
     const q = el.search.value;
     if (!q.trim()) return null;
-    // Use smart plan when we have intent/clarification OR always for stopword stripping
+    // Scripture refs keep digit-preserving literal AND match (no plan)
+    if (Smart.looksLikeScriptureRef(q)) return null;
     const clarification =
       smartState.clarification &&
       smartState.queryKey === queryKey(q)
         ? smartState.clarification
         : null;
-    const detection = Smart.detectIntent(q, {
+    // Always build a plan for plain text: stopwords, synonym/feeling expand,
+    // soft context words, and topic hints for popularity ranking — even when
+    // the clarifying guide is not shown.
+    return Smart.buildSearchPlan(q, clarification, {
       knownThemes: knownThemesList(),
       knownFeelings: knownFeelingsList(),
     });
-    if (!detection && !clarification) {
-      // Still strip stopwords for plain queries like "I am stressed" leftovers
-      const content = Smart.stripStopwords(Smart.tokenize(q));
-      if (content.length !== tokensFromQuery(q).length) {
-        return {
-          intent: null,
-          orGroups: [],
-          andTokens: content,
-          softFeelings: [],
-          boostThemes: [],
-          boostFeelings: [],
-          boostTerms: [],
-          statusLabel: "",
-          contentTokens: content,
-        };
-      }
-      return null;
-    }
-    return Smart.buildSearchPlan(q, clarification);
   }
 
   function matches(item, tokens, testament, book, theme, feeling, plan) {
@@ -338,6 +323,11 @@
 
     if (plan && Smart && (plan.orGroups.length || plan.andTokens.length)) {
       return Smart.matchesPlan(hay, plan);
+    }
+
+    // Plan with only soft boosts / empty content after stopword strip: no text constraint
+    if (plan && Smart && !plan.orGroups.length && !plan.andTokens.length) {
+      // Fall through to raw tokens if any; else match (filters alone)
     }
 
     for (const tok of tokens) {
@@ -684,11 +674,15 @@
     };
 
     let rankedMeta = null;
-    if (plan && (Relevance || Smart)) {
+    const shouldRank =
+      (plan && (plan.orGroups.length || plan.andTokens.length || plan.contentTokens.length || plan.rankingIntentId || plan.softFeelings.length)) ||
+      filterCtx.feeling ||
+      filterCtx.theme;
+    if (shouldRank && (Relevance || Smart)) {
       if (Relevance && Relevance.rankItems) {
         rankedMeta = Relevance.rankItems(filteredItems, plan, filterCtx);
         filteredItems = rankedMeta.map((x) => x.item);
-      } else {
+      } else if (plan && Smart) {
         filteredItems = filteredItems
           .map((item) => ({
             item,

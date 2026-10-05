@@ -96,7 +96,7 @@
         : "";
 
     const badge = relevanceLabel
-      ? `<span class="relevance-badge" title="Ranked highly for your search">${escapeHtml(relevanceLabel)}</span>`
+      ? `<span class="relevance-badge" title="Among the most popular verses for this search">${escapeHtml(relevanceLabel)}</span>`
       : "";
 
     return `

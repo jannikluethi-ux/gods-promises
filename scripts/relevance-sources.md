@@ -1,6 +1,6 @@
 # Relevance research sources (short)
 
-Curated topical anchors for search ranking. Weights favor verses that repeatedly top pastoral / OpenBible / YouVersion-style lists (cross-checked ≥2 sources per major topic). Snapshot: Sep 2026.
+Curated topical anchors for search ranking. Weights favor verses that repeatedly top pastoral / OpenBible / YouVersion-style lists (cross-checked ≥2 sources per major topic). Snapshot: Oct 2026 (YouVersion 2025 Verse of the Year: Isa 41:10; Bible Gateway / OpenBible topical cross-check).
 
 ## Primary sources
 - OpenBible.info topical (helpful-vote rankings): anxiety, loneliness, hope, strength, peace, forgiveness, and related topics
