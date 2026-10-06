@@ -11,6 +11,7 @@
   const UI = window.GodsPromisesUI;
   if (UI && UI.initAuthNav) UI.initAuthNav();
 
+  const Versions = window.GodsPromisesVersions;
   const Smart = window.GodsPromisesSmartSearch;
   const Relevance = window.GodsPromisesRelevance;
   const promises = data.promises;
@@ -86,6 +87,8 @@
     book: document.getElementById("book-filter"),
     theme: document.getElementById("theme-filter"),
     feeling: document.getElementById("feeling-filter"),
+    version: document.getElementById("version-filter"),
+    versionMeta: document.getElementById("version-meta-label"),
     count: document.getElementById("result-count"),
     resultsMeta: document.getElementById("results-meta"),
     results: document.getElementById("results"),
@@ -346,6 +349,23 @@
           .replace(/"/g, "&quot;");
   }
 
+
+  function updateVersionMeta() {
+    if (!el.versionMeta) return;
+    if (Versions && Versions.versionLabelForMeta) {
+      el.versionMeta.textContent = Versions.versionLabelForMeta();
+    } else {
+      el.versionMeta.textContent = "WEB · public domain";
+    }
+  }
+
+  function hydrateVisibleCards(list) {
+    updateVersionMeta();
+    if (!Versions || !Versions.hydrateCards || !el.results) return;
+    const promises = list || lastFiltered || [];
+    Versions.hydrateCards(el.results, promises);
+  }
+
   function renderCard(p, meta) {
     const relevanceLabel = meta && meta.relevanceLabel;
     if (UI && UI.renderPromiseCard) {
@@ -471,6 +491,7 @@
         },
       });
     }
+    hydrateVisibleCards([p]);
   }
 
   function softSetFeelingFromPlan(plan) {
@@ -631,6 +652,7 @@
       `</div>`;
     el.results.classList.add("results-host--reading");
     document.body.classList.add("reading-active");
+    hydrateVisibleCards([p]);
   }
 
   /** Swap to the next day’s verse at Zurich midnight if still on the landing. */
@@ -816,6 +838,10 @@
     fillSelect(el.feeling, "All feelings", feelingUniverse());
     fillSelect(el.theme, "All themes", themeUniverse());
     refreshBookOptions(false);
+    if (Versions && Versions.fillSelect && el.version) {
+      Versions.fillSelect(el.version);
+    }
+    updateVersionMeta();
   }
 
   function initSmartGuide() {
@@ -989,6 +1015,20 @@
       const btn = e.target.closest(".testament-btn");
       if (!btn) return;
       setTestament(btn.dataset.testament || "");
+    });
+  }
+  if (el.version) {
+    el.version.addEventListener("change", () => {
+      if (Versions && Versions.setCurrent) {
+        Versions.setCurrent(el.version.value);
+      }
+      updateVersionMeta();
+      // Re-hydrate current card(s) without resetting search/filters
+      if (isLanding()) {
+        paintDailyVerse();
+      } else if (lastFiltered.length) {
+        paintReadingDeck();
+      }
     });
   }
   el.book.addEventListener("change", render);

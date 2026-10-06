@@ -110,6 +110,7 @@
         </div>
         <p class="card-promise">${escapeHtml(p.promise)}</p>
         <blockquote class="card-text">${escapeHtml(p.text)}</blockquote>
+        <p class="card-version-note" hidden></p>
         <p class="card-context">${escapeHtml(p.context)}</p>
         ${tagsBlock}
       </li>

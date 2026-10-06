@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Outfit:wght@300;400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=topmatch-1" />
+    <link rel="stylesheet" href="styles.css?v=versions-pd-1" />
   </head>
   <body class="page-home is-landing">
     <a class="skip-link" href="#results">Skip to results</a>
@@ -112,12 +112,22 @@
               </select>
             </div>
           </div>
+
+          <div class="filter-block">
+            <h2 id="version-heading">Version</h2>
+            <div class="select-row">
+              <label class="sr-only" for="version-filter">Bible version</label>
+              <select id="version-filter" aria-labelledby="version-heading">
+                <option value="web">World English Bible (WEB)</option>
+              </select>
+            </div>
+          </div>
         </div>
       </section>
 
       <div class="results-meta" id="results-meta" aria-live="polite">
         <span id="result-count"></span>
-        <span>WEB · public domain</span>
+        <span id="version-meta-label">WEB · public domain</span>
       </div>
 
       <section id="results" aria-label="Search results"></section>
@@ -127,20 +137,21 @@
 
     <footer class="site-footer">
       <p>
-        Scripture text: World English Bible (WEB), public domain. Paraphrases are
+        Scripture text: public-domain translations (WEB default; also KJV, ASV, YLT, Darby, Douay-Rheims via bible-api.com). Paraphrases are
         plain-language summaries for search—not additional Bible wording.
       </p>
       <p>Made for Carlos · Extend via <code>promises.json</code></p>
     </footer>
 
-    <script src="promises-data.js?v=topmatch-1"></script>
-    <script src="js/config.js?v=topmatch-1"></script>
-    <script src="js/subscription.js?v=topmatch-1"></script>
-    <script src="js/auth.js?v=topmatch-1"></script>
-    <script src="js/favorites.js?v=topmatch-1"></script>
-    <script src="js/ui-shared.js?v=topmatch-1"></script>
-    <script src="js/smart-search.js?v=topmatch-1"></script>
-    <script src="js/relevance.js?v=topmatch-1"></script>
-    <script src="app.js?v=topmatch-1"></script>
+    <script src="promises-data.js?v=versions-pd-1"></script>
+    <script src="js/config.js?v=versions-pd-1"></script>
+    <script src="js/subscription.js?v=versions-pd-1"></script>
+    <script src="js/auth.js?v=versions-pd-1"></script>
+    <script src="js/favorites.js?v=versions-pd-1"></script>
+    <script src="js/bible-versions.js?v=versions-pd-1"></script>
+    <script src="js/ui-shared.js?v=versions-pd-1"></script>
+    <script src="js/smart-search.js?v=versions-pd-1"></script>
+    <script src="js/relevance.js?v=versions-pd-1"></script>
+    <script src="app.js?v=versions-pd-1"></script>
   </body>
 </html>

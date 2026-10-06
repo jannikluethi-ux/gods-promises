@@ -5,6 +5,7 @@
   const favs = window.GodsPromisesFavorites;
   const sub = window.GodsPromisesSubscription;
   const UI = window.GodsPromisesUI;
+  const Versions = window.GodsPromisesVersions;
   const data = window.GODS_PROMISES_DATA;
 
   if (UI && UI.initAuthNav) UI.initAuthNav();
@@ -17,6 +18,7 @@
     count: document.getElementById("fav-count"),
     upgrade: document.getElementById("upgrade-panel"),
     signout: document.getElementById("signout-btn"),
+    version: document.getElementById("version-filter"),
   };
 
   const byId = new Map();
@@ -78,6 +80,9 @@
           goToIndex(currentIndex + 1);
         },
       });
+    }
+    if (Versions && Versions.hydrateCards) {
+      Versions.hydrateCards(el.favorites, [p]);
     }
   }
 
@@ -161,6 +166,14 @@
       onChange() {
         render();
       },
+    });
+  }
+
+  if (Versions && Versions.fillSelect && el.version) {
+    Versions.fillSelect(el.version);
+    el.version.addEventListener("change", function () {
+      Versions.setCurrent(el.version.value);
+      if (items.length) paintDeck();
     });
   }
 

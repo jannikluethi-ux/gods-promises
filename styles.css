@@ -573,7 +573,8 @@ a:hover {
 
 #book-filter,
 #feeling-filter,
-#theme-filter {
+#theme-filter,
+#version-filter {
   width: 100%;
   min-width: 0;
   min-height: 2.7rem;
@@ -593,7 +594,8 @@ a:hover {
 
 #book-filter:focus,
 #feeling-filter:focus,
-#theme-filter:focus {
+#theme-filter:focus,
+#version-filter:focus {
   border-color: rgba(22, 24, 29, 0.22);
   outline: none;
   box-shadow: 0 0 0 3px var(--focus-ring);
@@ -1550,4 +1552,37 @@ body.reading-active {
   .reading-viewport {
     scroll-behavior: auto;
   }
+}
+
+
+/* —— Bible version (public domain) —— */
+.card-text--loading {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.card-version-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.card-version-note[hidden] {
+  display: none;
+}
+
+.me-version-label {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.me-version-label #version-filter {
+  width: auto;
+  max-width: min(16rem, 55vw);
+  min-height: 2.2rem;
+  padding: 0.35rem 2rem 0.35rem 0.75rem;
+  font-size: 0.82rem;
 }

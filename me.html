@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Outfit:wght@300;400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=scroll-1" />
+    <link rel="stylesheet" href="styles.css?v=versions-pd-1" />
   </head>
   <body>
     <a class="skip-link" href="#favorites">Skip to favorites</a>
@@ -39,6 +39,10 @@
       <div class="me-toolbar" id="me-toolbar" hidden>
         <span id="fav-count" class="results-meta-inline"></span>
         <div class="me-toolbar-actions">
+          <label class="me-version-label" for="version-filter">
+            <span class="sr-only">Bible version</span>
+            <select id="version-filter" aria-label="Bible version"></select>
+          </label>
           <a class="nav-link" href="index.html">Search catalog</a>
           <button type="button" class="btn-secondary btn-compact" id="signout-btn">Sign out</button>
         </div>
@@ -49,17 +53,18 @@
 
     <footer class="site-footer">
       <p>
-        Scripture text: World English Bible (WEB), public domain. Paraphrases are
+        Scripture text: public-domain translations (WEB default; also KJV, ASV, YLT, Darby, Douay-Rheims via bible-api.com). Paraphrases are
         plain-language summaries for search—not additional Bible wording.
       </p>
     </footer>
 
-    <script src="promises-data.js?v=wixstyle-1"></script>
-    <script src="js/config.js?v=wixstyle-1"></script>
-    <script src="js/subscription.js?v=wixstyle-1"></script>
-    <script src="js/auth.js?v=wixstyle-1"></script>
-    <script src="js/favorites.js?v=wixstyle-1"></script>
-    <script src="js/ui-shared.js?v=wixstyle-1"></script>
-    <script src="js/me-page.js?v=wixstyle-1"></script>
+    <script src="promises-data.js?v=versions-pd-1"></script>
+    <script src="js/config.js?v=versions-pd-1"></script>
+    <script src="js/subscription.js?v=versions-pd-1"></script>
+    <script src="js/auth.js?v=versions-pd-1"></script>
+    <script src="js/favorites.js?v=versions-pd-1"></script>
+    <script src="js/bible-versions.js?v=versions-pd-1"></script>
+    <script src="js/ui-shared.js?v=versions-pd-1"></script>
+    <script src="js/me-page.js?v=versions-pd-1"></script>
   </body>
 </html>
