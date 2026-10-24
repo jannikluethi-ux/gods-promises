@@ -54,7 +54,7 @@
 
 
   /* —— Explanations: Matthew Henry (concise) + "More" notes (Barnes etc.) —— */
-  const EXPLAIN_VERSION = "henry-fix-1";
+  const EXPLAIN_VERSION = "integrity-1";
   let henryData = null;
   let henryPromise = null;
   const notesCache = {};
@@ -79,6 +79,11 @@
     return henryPromise;
   }
 
+  function henryLabel(id) {
+    const src = henryData && henryData._src && henryData._src[id];
+    return src ? "Matthew Henry · on " + src : "Matthew Henry";
+  }
+
   function fillHenry(root) {
     if (!henryData || !root || !root.querySelectorAll) return;
     root.querySelectorAll(".card-explain[data-henry-pending]").forEach((box) => {
@@ -88,6 +93,8 @@
       const t = box.querySelector(".card-henry-text");
       if (text && t) {
         t.textContent = text;
+        const lab = box.querySelector(".card-henry-label");
+        if (lab) lab.textContent = henryLabel(id);
         box.classList.remove("is-loading");
       } else {
         box.querySelector(".card-henry") && box.querySelector(".card-henry").remove();
@@ -107,7 +114,7 @@
     const henryBlock =
       ready && !text
         ? ""
-        : `<p class="card-henry"><span class="card-henry-label">Matthew Henry</span>` +
+        : `<p class="card-henry"><span class="card-henry-label">${escapeHtml(henryLabel(p.id))}</span>` +
           `<span class="card-henry-text">${escapeHtml(text)}</span></p>`;
     return (
       `<div class="card-explain${ready ? "" : " is-loading"}" data-explain-id="${escapeHtml(p.id)}" ` +
@@ -150,7 +157,7 @@
       .map((para) => {
         if (typeof para === "string") return `<p>${escapeHtml(para)}</p>`;
         if (para && para.v != null) {
-          return `<p class="note-verse">Verse ${escapeHtml(para.v)}</p>`;
+          return `<p class="note-verse">${String(para.v).includes("–") ? "Verses" : "Verse"} ${escapeHtml(para.v)}</p>`;
         }
         const l = para.l ? `<strong class="note-lemma">${escapeHtml(para.l)}</strong>` : "";
         const sep = para.l && para.t ? " — " : "";
