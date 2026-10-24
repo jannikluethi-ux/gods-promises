@@ -52,6 +52,165 @@
     );
   }
 
+
+  /* —— Explanations: Matthew Henry (concise) + "More" notes (Barnes etc.) —— */
+  const EXPLAIN_VERSION = "henry-barnes-1";
+  let henryData = null;
+  let henryPromise = null;
+  const notesCache = {};
+  const notesPending = {};
+  let explainSeq = 0;
+
+  function bookSlug(book) {
+    return String(book || "").toLowerCase().replace(/\s+/g, "-");
+  }
+
+  function loadHenry() {
+    if (!henryPromise) {
+      henryPromise = fetch("data/henry.json?v=" + EXPLAIN_VERSION)
+        .then((r) => (r.ok ? r.json() : {}))
+        .catch(() => ({}))
+        .then((d) => {
+          henryData = d || {};
+          fillHenry(document);
+          return henryData;
+        });
+    }
+    return henryPromise;
+  }
+
+  function fillHenry(root) {
+    if (!henryData || !root || !root.querySelectorAll) return;
+    root.querySelectorAll(".card-explain[data-henry-pending]").forEach((box) => {
+      const id = box.getAttribute("data-explain-id");
+      const text = henryData[id];
+      box.removeAttribute("data-henry-pending");
+      const t = box.querySelector(".card-henry-text");
+      if (text && t) {
+        t.textContent = text;
+        box.classList.remove("is-loading");
+      } else {
+        box.querySelector(".card-henry") && box.querySelector(".card-henry").remove();
+        box.classList.remove("is-loading");
+      }
+    });
+  }
+
+  function explainHtml(p) {
+    if (!p || !p.id) return "";
+    const uid = "more-" + ++explainSeq;
+    const ready = !!henryData;
+    const text = ready ? henryData[p.id] || "" : "";
+    if (!ready) {
+      loadHenry().then(() => fillHenry(document));
+    }
+    const henryBlock =
+      ready && !text
+        ? ""
+        : `<p class="card-henry"><span class="card-henry-label">Matthew Henry</span>` +
+          `<span class="card-henry-text">${escapeHtml(text)}</span></p>`;
+    return (
+      `<div class="card-explain${ready ? "" : " is-loading"}" data-explain-id="${escapeHtml(p.id)}" ` +
+      `data-book="${escapeHtml(bookSlug(p.book))}"${ready ? "" : " data-henry-pending"}>` +
+      henryBlock +
+      `<button type="button" class="card-more" aria-expanded="false" aria-controls="${uid}">` +
+      `<span class="card-more-label">More</span><span class="card-more-chev" aria-hidden="true"></span></button>` +
+      `<div class="card-more-panel" id="${uid}" role="region" aria-label="Fuller commentary" aria-hidden="true">` +
+      `<div class="card-more-inner"></div></div>` +
+      `</div>`
+    );
+  }
+
+  function loadNotes(slug) {
+    if (notesCache[slug]) return Promise.resolve(notesCache[slug]);
+    if (!notesPending[slug]) {
+      notesPending[slug] = fetch("data/notes/" + slug + ".json?v=" + EXPLAIN_VERSION)
+        .then((r) => {
+          if (!r.ok) throw new Error("notes " + r.status);
+          return r.json();
+        })
+        .then((d) => {
+          notesCache[slug] = d || {};
+          delete notesPending[slug];
+          return notesCache[slug];
+        })
+        .catch((err) => {
+          delete notesPending[slug];
+          throw err;
+        });
+    }
+    return notesPending[slug];
+  }
+
+  function notesHtml(entry) {
+    if (!entry || !entry.paras || !entry.paras.length) {
+      return '<p class="card-more-empty">No fuller note is available for this passage.</p>';
+    }
+    const body = entry.paras
+      .map((para) => {
+        if (typeof para === "string") return `<p>${escapeHtml(para)}</p>`;
+        if (para && para.v != null) {
+          return `<p class="note-verse">Verse ${escapeHtml(para.v)}</p>`;
+        }
+        const l = para.l ? `<strong class="note-lemma">${escapeHtml(para.l)}</strong>` : "";
+        const sep = para.l && para.t ? " — " : "";
+        return `<p>${l}${sep}${escapeHtml(para.t || "")}</p>`;
+      })
+      .join("");
+    return `<p class="card-more-source">${escapeHtml(entry.src || "Commentary")}</p>${body}`;
+  }
+
+  function setMoreOpen(btn, open) {
+    const panel = document.getElementById(btn.getAttribute("aria-controls"));
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    const label = btn.querySelector(".card-more-label");
+    if (label) label.textContent = open ? "Less" : "More";
+    if (panel) {
+      panel.classList.toggle("is-open", open);
+      panel.setAttribute("aria-hidden", open ? "false" : "true");
+    }
+  }
+
+  function onMoreClick(e) {
+    const btn = e.target.closest && e.target.closest(".card-more");
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const box = btn.closest(".card-explain");
+    const panel = document.getElementById(btn.getAttribute("aria-controls"));
+    if (!box || !panel) return;
+    const open = btn.getAttribute("aria-expanded") !== "true";
+    const inner = panel.querySelector(".card-more-inner");
+    if (open && inner && !panel.hasAttribute("data-loaded")) {
+      const id = box.getAttribute("data-explain-id");
+      const slug = box.getAttribute("data-book");
+      inner.innerHTML = '<p class="card-more-empty">Loading…</p>';
+      setMoreOpen(btn, true);
+      loadNotes(slug)
+        .then((d) => {
+          inner.innerHTML = notesHtml(d[id]);
+          panel.setAttribute("data-loaded", "");
+        })
+        .catch(() => {
+          inner.innerHTML =
+            '<p class="card-more-empty">Couldn’t load the fuller note. Tap Less, then More to try again.</p>';
+        });
+      return;
+    }
+    setMoreOpen(btn, open);
+  }
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("click", onMoreClick);
+    const start = () => {
+      const kick = () => loadHenry();
+      if ("requestIdleCallback" in global) global.requestIdleCallback(kick, { timeout: 1200 });
+      else setTimeout(kick, 200);
+    };
+    if (document.readyState === "complete") start();
+    else global.addEventListener("load", start);
+  }
+
   /**
    * @param {object} p promise
    * @param {{ interactiveTags?: boolean }} [opts]
@@ -108,10 +267,9 @@
           </div>
           ${favoriteButtonHtml(p.id, isFav)}
         </div>
-        <p class="card-promise">${escapeHtml(p.promise)}</p>
         <blockquote class="card-text">${escapeHtml(p.text)}</blockquote>
         <p class="card-version-note" hidden></p>
-        <p class="card-context">${escapeHtml(p.context)}</p>
+        ${explainHtml(p)}
         ${tagsBlock}
       </li>
     `;
@@ -378,6 +536,7 @@
     crossIconSvg,
     favoriteButtonHtml,
     renderPromiseCard,
+    loadHenry,
     bindFavoriteClicks,
     refreshAuthNav,
     initAuthNav,

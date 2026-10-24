@@ -159,6 +159,9 @@ supabaseAnonKey: ""
 | `scripts/catalog/` | Book-by-book curated metadata |
 | `scripts/build_promises.py` | Fills WEB text from `web_index.json`, writes JSON + JS |
 | `scripts/web_index.json` | Parsed engwebp verse index |
+| `data/henry.json` | Matthew Henry (Concise) explanation per promise id — fetched after first paint |
+| `data/notes/<book>.json` | Fuller “More” notes per promise id (Barnes / Ellicott / JFB), lazy-loaded per book |
+| `scripts/explanations/` | Build scripts for the two files above (SWORD modules + biblehub chapter pages) |
 
 ## Extending the data
 
@@ -172,6 +175,19 @@ supabaseAnonKey: ""
 python3 scripts/build_promises.py
 ```
 
+## Explanations under each verse
+
+Each card shows a short **Matthew Henry** excerpt (Concise Commentary, 2–5 sentences picked for the verse range, his own words with light modernising: thee/thou → you, -eth → -s, old spellings). A quiet **More** button (aria-expanded) smoothly expands the fuller verse notes:
+
+- New Testament, Job, Psalms, Isaiah, Daniel: **Barnes’ Notes**.
+- Other Old Testament books (Barnes has no volume): **Ellicott’s Commentary for English Readers** or **Jamieson-Fausset-Brown**, whichever is fuller, labelled accordingly.
+
+`data/henry.json` (~550 KB) is fetched once after first paint; `data/notes/<book>.json` is fetched only when More is first tapped for that book and then cached in memory. The `promise` and `context` fields stay in the data for search, but are no longer displayed.
+
+Rebuild: see `scripts/explanations/README.md`.
+
+**Explanations: Matthew Henry's Concise Commentary; Barnes' Notes (public domain).** Where Barnes has no OT volume, Ellicott's Commentary or Jamieson-Fausset-Brown (also public domain).
+
 ## Translation note
 
-Scripture quotations use the **World English Bible (WEB)**, public domain. Do not invent verse text. Paraphrases in the `promise` field are original summaries for discovery and clarity.
+Scripture quotations use the **World English Bible (WEB)**, public domain. Do not invent verse text. Paraphrases in the `promise` field are original summaries used for search (not displayed).
