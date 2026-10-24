@@ -340,25 +340,35 @@
    * @param {{ positionLabel: string, cardHtml: string, canPrev: boolean, canNext: boolean, listClass?: string }} opts
    */
   function readingDeckHtml(opts) {
-    const pos = escapeHtml(opts.positionLabel || "");
+    const pos =
+      typeof opts.positionHtml === "string"
+        ? opts.positionHtml
+        : escapeHtml(opts.positionLabel || "");
     const listClass = opts.listClass || "results results--single";
+    const stageClass = opts.stageClass ? " " + opts.stageClass : "";
     const prevDisabled = opts.canPrev ? "" : " disabled";
     const nextDisabled = opts.canNext ? "" : " disabled";
+    const prevLabel = escapeHtml(opts.prevLabel || "Prev");
+    const nextLabel = escapeHtml(opts.nextLabel || "Next");
+    const prevAria = escapeHtml(opts.prevAria || "Previous promise");
+    const nextAria = escapeHtml(opts.nextAria || "Next promise");
+    const viewportLabel = escapeHtml(opts.viewportLabel || "Promise reading cards");
+    const hint = escapeHtml(opts.hint || "Swipe or use arrows");
     return (
-      `<div class="reading-stage">` +
+      `<div class="reading-stage${stageClass}">` +
       `<div class="reading-chrome">` +
-      `<button type="button" class="reading-nav reading-nav--prev" aria-label="Previous promise"${prevDisabled}>` +
-      `<span aria-hidden="true">‹</span><span class="reading-nav-label">Prev</span>` +
+      `<button type="button" class="reading-nav reading-nav--prev" aria-label="${prevAria}"${prevDisabled}>` +
+      `<span aria-hidden="true">‹</span><span class="reading-nav-label">${prevLabel}</span>` +
       `</button>` +
       `<p class="reading-position" aria-live="polite">${pos}</p>` +
-      `<button type="button" class="reading-nav reading-nav--next" aria-label="Next promise"${nextDisabled}>` +
-      `<span class="reading-nav-label">Next</span><span aria-hidden="true">›</span>` +
+      `<button type="button" class="reading-nav reading-nav--next" aria-label="${nextAria}"${nextDisabled}>` +
+      `<span class="reading-nav-label">${nextLabel}</span><span aria-hidden="true">›</span>` +
       `</button>` +
       `</div>` +
-      `<div class="reading-viewport" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Promise reading cards">` +
+      `<div class="reading-viewport" tabindex="0" role="region" aria-roledescription="carousel" aria-label="${viewportLabel}">` +
       `<ul class="${listClass}">${opts.cardHtml || ""}</ul>` +
       `</div>` +
-      `<p class="reading-hint">Swipe or use arrows</p>` +
+      `<p class="reading-hint">${hint}</p>` +
       `</div>`
     );
   }

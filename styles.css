@@ -1,4 +1,4 @@
-/* God's Promises — quiet illustrated sky (original, not a brand copy) */
+/* Daily Promises — quiet illustrated sky (original, not a brand copy) */
 
 :root {
   --bg: #e5f7fa;
@@ -724,6 +724,24 @@ a:hover {
 
 .card--daily {
   min-height: 0;
+}
+
+/* Daily carousel: date label sits between the quiet Earlier / Later pills. */
+.reading-stage--daily .reading-position {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 9rem;
+}
+
+.reading-stage--daily .daily-when {
+  white-space: nowrap;
+}
+
+.reading-stage--daily .reading-position .daily-date {
+  display: block;
+  font-size: 0.74rem;
 }
 
 .results {

@@ -1,6 +1,6 @@
-# God’s Promises — searchable web tool
+# Daily Promises — searchable web tool
 
-A calm, offline-friendly single-page app for exploring **God’s promises** from Genesis through Revelation. Built for Carlos with a **comprehensive, curated catalog** (1186 promise units) anchored in the public-domain **World English Bible (WEB)**.
+**Daily Promises** is a calm, offline-friendly single-page app for exploring God’s promises from Genesis through Revelation. Built for Carlos with a **comprehensive, curated catalog** (1186 promise units) anchored in the public-domain **World English Bible (WEB)**.
 
 People often arrive by **how they feel** (lonely, angry, anxious…), not only by theological themes—so every promise carries pastoral `feelings` tags alongside themes.
 
@@ -33,7 +33,9 @@ Then visit `http://localhost:8080/`.
 - Across filter types, results must satisfy **all** active constraints.
 - Results paginate (**Show more**) so large catalogs stay responsive.
 - Click a feeling or theme tag on a result card to apply that filter.
-- With an empty search and no filters, the page shows one **daily verse**, which changes at midnight Zurich time (Europe/Zurich). Press **Esc** in the search box to return to it.
+- With an empty search and no filters, the page shows the **daily verse**, which changes at midnight Zurich time (Europe/Zurich). Press **Esc** in the search box to return to it.
+- The daily verse is a **carousel of past days**: today shows first; swipe right, drag with the mouse, press ←, or tap **‹ Earlier** to step back to yesterday and earlier days (up to 60 days back). **Later ›** / → moves forward again, never past today. Each card is labelled “Today”, “Yesterday”, or its date (e.g. “Saturday 17 October”). Past days use the same deterministic Zurich-date picker, so each shows exactly the verse it showed on that day. Favorites and the Version filter work on every card.
+- The site was renamed from “God’s Promises” to **Daily Promises**; the repo and URL stay `gods-promises`, and existing `localStorage` keys (accounts, favorites, version choice) are unchanged.
 
 Try: `lonely`, `angry`, `anxious`, `guilty`, `weary`, or themes like `covenant`, `presence`.
 

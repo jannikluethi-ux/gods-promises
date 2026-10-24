@@ -169,7 +169,34 @@
     }
   }
 
+  /** How many past days the daily carousel can reach (today is offset 0). */
+  const DAILY_MAX_BACK = 60;
+
+  /** Zurich date key `offset` days before `key` (calendar math in UTC). */
+  function shiftDateKey(key, offset) {
+    const [y, m, d] = key.split("-").map(Number);
+    const t = Date.UTC(y, m - 1, d) - offset * 86400000;
+    return new Date(t).toISOString().slice(0, 10);
+  }
+
+  function daysBetweenKeys(a, b) {
+    const toDay = (k) => {
+      const [y, m, d] = k.split("-").map(Number);
+      return Math.round(Date.UTC(y, m - 1, d) / 86400000);
+    };
+    return toDay(b) - toDay(a);
+  }
+
+  /** "Today", "Yesterday", else e.g. "Saturday 17 October". */
+  function dailyRelativeLabel(offset, key) {
+    if (offset === 0) return "Today";
+    if (offset === 1) return "Yesterday";
+    return dailyDateLabel(key);
+  }
+
   let dailyKeyShown = "";
+  /** Days back from today on the landing carousel (0 = today). */
+  let dailyOffset = 0;
 
   /** @type {""|"OT"|"NT"} */
   let activeTestament = "";
@@ -621,15 +648,30 @@
     );
   }
 
-  /** Empty query, no filters: one quiet daily-verse card, nothing else. */
+  function goDailyOffset(offset) {
+    const next = Math.max(0, Math.min(offset, DAILY_MAX_BACK));
+    if (next === dailyOffset) return;
+    dailyOffset = next;
+    paintDailyVerse();
+  }
+
+  /**
+   * Empty query, no filters: quiet daily-verse carousel. Today first; swipe
+   * right / ‹ / ArrowLeft goes back a day (up to DAILY_MAX_BACK), never forward
+   * past today. Each day uses the same deterministic Zurich-date picker, so a
+   * past card shows exactly the verse that day showed.
+   */
   function paintDailyVerse() {
-    const key = zurichDateKey();
+    const todayKey = zurichDateKey();
+    if (dailyOffset < 0) dailyOffset = 0;
+    if (dailyOffset > DAILY_MAX_BACK) dailyOffset = DAILY_MAX_BACK;
+    const key = shiftDateKey(todayKey, dailyOffset);
     const p = dailyPromiseFor(key);
     destroyDeckBinding();
     lastFiltered = p ? [p] : [];
     lastRankedMeta = null;
     currentIndex = 0;
-    dailyKeyShown = key;
+    dailyKeyShown = todayKey;
     document.body.classList.add("is-landing");
     el.count.innerHTML = "";
     updateFiltersBadge();
@@ -644,21 +686,71 @@
       'class="card',
       'class="card card--reading card--daily'
     );
+    cardHtml = cardHtml.replace(
+      /^(\s*<li\b)/,
+      `$1 data-daily-date="${escapeHtml(key)}"`
+    );
+    const rel = dailyRelativeLabel(dailyOffset, key);
+    const fullDate = dailyDateLabel(key);
+    const positionHtml =
+      `<span class="daily-when">${escapeHtml(rel)}</span>` +
+      (dailyOffset <= 1
+        ? `<span class="daily-date">${escapeHtml(fullDate)}</span>`
+        : "");
+    const canPrev = dailyOffset < DAILY_MAX_BACK;
+    const canNext = dailyOffset > 0;
     el.results.innerHTML =
-      `<div class="reading-stage reading-stage--daily">` +
-      `<p class="daily-label"><span>Today’s verse</span>` +
-      `<span class="daily-date">${escapeHtml(dailyDateLabel(key))}</span></p>` +
-      `<ul class="results results--single">${cardHtml}</ul>` +
-      `</div>`;
+      UI && UI.readingDeckHtml
+        ? UI.readingDeckHtml({
+            stageClass: "reading-stage--daily",
+            positionHtml,
+            cardHtml,
+            canPrev,
+            canNext,
+            prevLabel: "Earlier",
+            nextLabel: "Later",
+            prevAria: "Previous day’s verse",
+            nextAria: "Next day’s verse",
+            viewportLabel: "Daily verses, " + rel,
+            hint: dailyOffset === 0 ? "Swipe back for past days" : "Swipe or use arrows",
+          })
+        : `<div class="reading-stage reading-stage--daily">` +
+          `<p class="daily-label">${positionHtml}</p>` +
+          `<ul class="results results--single">${cardHtml}</ul>` +
+          `</div>`;
     el.results.classList.add("results-host--reading");
     document.body.classList.add("reading-active");
+    if (UI && UI.bindReadingDeck) {
+      deckBinding = UI.bindReadingDeck(el.results, {
+        onPrev: () => goDailyOffset(dailyOffset + 1),
+        onNext: () => goDailyOffset(dailyOffset - 1),
+        isTypingTarget(target) {
+          if (!target || !target.tagName) return false;
+          const tag = target.tagName.toLowerCase();
+          if (tag === "input" || tag === "textarea" || tag === "select") return true;
+          if (target.closest && target.closest("#search, .smart-guide, .filters")) {
+            return true;
+          }
+          return !!target.isContentEditable;
+        },
+      });
+    }
     hydrateVisibleCards([p]);
   }
 
-  /** Swap to the next day’s verse at Zurich midnight if still on the landing. */
+  /**
+   * At Zurich midnight, if still on the landing: today's card moves to the new
+   * day; a past card stays on the same date (its offset grows by one).
+   */
   function checkDailyRollover() {
     if (!isLanding()) return;
-    if (zurichDateKey() !== dailyKeyShown) paintDailyVerse();
+    const todayKey = zurichDateKey();
+    if (todayKey === dailyKeyShown) return;
+    if (dailyOffset > 0 && dailyKeyShown) {
+      const diff = daysBetweenKeys(dailyKeyShown, todayKey);
+      if (diff > 0) dailyOffset = Math.min(dailyOffset + diff, DAILY_MAX_BACK);
+    }
+    paintDailyVerse();
   }
 
   function render(opts) {
@@ -674,6 +766,8 @@
       return;
     }
     document.body.classList.remove("is-landing");
+    // Leaving the landing: next time it opens on today's verse.
+    dailyOffset = 0;
 
     const plan = currentPlan();
     const rawTokens = tokensFromQuery(el.search.value);

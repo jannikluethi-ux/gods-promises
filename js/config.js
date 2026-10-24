@@ -13,7 +13,7 @@
   "use strict";
 
   global.GodsPromisesConfig = {
-    appName: "God’s Promises",
+    appName: "Daily Promises",
     /** When true, favorites / personal area require user.subscriptionStatus === "active". */
     subscriptionRequired: false,
     /** Placeholder for later Supabase Auth + remote favorites. */
