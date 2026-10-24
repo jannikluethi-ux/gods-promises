@@ -54,7 +54,7 @@
 
 
   /* —— Explanations: Matthew Henry (concise) + "More" notes (Barnes etc.) —— */
-  const EXPLAIN_VERSION = "henry-barnes-1";
+  const EXPLAIN_VERSION = "henry-fix-1";
   let henryData = null;
   let henryPromise = null;
   const notesCache = {};
