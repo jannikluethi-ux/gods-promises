@@ -187,7 +187,7 @@ def main():
             feelings[f] += 1
 
     meta = {
-        "title": "God’s Promises — Comprehensive Searchable Catalog",
+        "title": "Daily Promises — Comprehensive Searchable Catalog",
         "translation": "World English Bible (WEB)",
         "translationNote": (
             "Scripture quotations are from the World English Bible (public domain). "
