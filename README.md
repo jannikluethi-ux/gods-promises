@@ -159,9 +159,8 @@ supabaseAnonKey: ""
 | `scripts/catalog/` | Book-by-book curated metadata |
 | `scripts/build_promises.py` | Fills WEB text from `web_index.json`, writes JSON + JS |
 | `scripts/web_index.json` | Parsed engwebp verse index |
-| `data/henry.json` | Matthew Henry (Concise) explanation per promise id — fetched after first paint |
-| `data/notes/<book>.json` | Fuller “More” notes per promise id (Barnes / Ellicott / JFB), lazy-loaded per book |
-| `scripts/explanations/` | Build scripts for the two files above (SWORD modules + biblehub chapter pages) |
+| `data/explanations.json` | One short original explanation per promise id, fetched after first paint |
+| `scripts/explanations/` | Notes on how the explanations were written, plus `sources.json` (commentaries consulted per entry) |
 
 ## Extending the data
 
@@ -177,16 +176,17 @@ python3 scripts/build_promises.py
 
 ## Explanations under each verse
 
-Each card shows a short **Matthew Henry** excerpt (Concise Commentary, 2–5 sentences picked for the verse range, his own words with light modernising: thee/thou → you, -eth → -s, old spellings). A quiet **More** button (aria-expanded) smoothly expands the fuller verse notes:
+Each card shows one short explanation, usually one or two sentences of plain modern English, saying what the passage means in context. It does not repeat the verse.
 
-- New Testament, Job, Psalms, Isaiah, Daniel: **Barnes’ Notes**.
-- Other Old Testament books (Barnes has no volume): **Ellicott’s Commentary for English Readers** or **Jamieson-Fausset-Brown**, whichever is fuller, labelled accordingly.
+Openings are honest about who is speaking:
 
-`data/henry.json` (~550 KB) is fetched once after first paint; `data/notes/<book>.json` is fetched only when More is first tapped for that book and then cached in memory. The `promise` and `context` fields stay in the data for search, but are no longer displayed.
+- "God promises…" or "Jesus promises…" is used only for real divine promises.
+- Promises made to a particular person or nation say so, e.g. "God promised Israel…".
+- Prayers, praise, wisdom sayings and teaching name the speaker, e.g. "David asks God…", "Paul explains…" or "This proverb teaches…".
 
-Rebuild: see `scripts/explanations/README.md`.
+`data/explanations.json` (~220 KB) is fetched once after first paint. The `promise` and `context` fields stay in the data for search but are not displayed. See `scripts/explanations/README.md`.
 
-**Explanations: Matthew Henry's Concise Commentary; Barnes' Notes (public domain).** Where Barnes has no OT volume, Ellicott's Commentary or Jamieson-Fausset-Brown (also public domain).
+**Credit:** the explanations are original summaries informed by public-domain commentaries: Barnes' Notes and Matthew Henry's Concise Commentary, plus Gill's Exposition and Ellicott's Commentary where used.
 
 ## Translation note
 

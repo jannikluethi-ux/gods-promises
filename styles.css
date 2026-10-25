@@ -956,14 +956,14 @@ body.reading-active {
   margin-top: 1.6rem;
 }
 
-/* —— Explanation: Matthew Henry (concise) + quiet "More" —— */
+/* —— Explanation: one short summary under the verse —— */
 .card-explain {
   order: 3;
   margin: 0 0 1.15rem;
   max-width: 36em;
 }
 
-.card-henry {
+.card-explain-text {
   margin: 0;
   color: var(--ink-muted);
   font-size: 0.95rem;
@@ -971,125 +971,11 @@ body.reading-active {
   line-height: 1.6;
 }
 
-.card-henry-label {
-  display: block;
-  margin-bottom: 0.3rem;
-  font-family: var(--font-sans);
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.card-explain.is-loading .card-henry-text {
+.card-explain.is-loading .card-explain-text {
   display: block;
   min-height: 3.2em;
   border-radius: 10px;
   background: linear-gradient(90deg, rgba(183, 184, 255, 0.10), rgba(183, 184, 255, 0.22), rgba(183, 184, 255, 0.10));
-}
-
-.card-more {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0.55rem 0 0 -0.55rem;
-  padding: 0.3rem 0.55rem;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  font-family: var(--font-sans);
-  font-size: 0.74rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #5b5ec9;
-  cursor: pointer;
-  transition: background var(--ease), color var(--ease);
-}
-
-.card-more:hover {
-  background: rgba(183, 184, 255, 0.22);
-}
-
-.card-more:focus-visible {
-  outline: 2px solid var(--lavender);
-  outline-offset: 2px;
-}
-
-.card-more-chev {
-  width: 0.42rem;
-  height: 0.42rem;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: translateY(-2px) rotate(45deg);
-  transition: transform 0.25s ease;
-}
-
-.card-more[aria-expanded="true"] .card-more-chev {
-  transform: translateY(1px) rotate(-135deg);
-}
-
-.card-more-panel {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  visibility: hidden;
-  transition: grid-template-rows 0.32s ease, opacity 0.25s ease, visibility 0s linear 0.32s;
-}
-
-.card-more-panel.is-open {
-  grid-template-rows: 1fr;
-  opacity: 1;
-  visibility: visible;
-  transition: grid-template-rows 0.32s ease, opacity 0.25s ease 0.05s, visibility 0s;
-}
-
-.card-more-inner {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.card-more-panel.is-open .card-more-inner {
-  margin-top: 0.6rem;
-  padding: 0.95rem 1.05rem 0.4rem;
-  border-left: 2px solid rgba(183, 184, 255, 0.65);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  background: rgba(183, 184, 255, 0.10);
-}
-
-.card-more-inner p {
-  margin: 0 0 0.7rem;
-  font-size: 0.86rem;
-  line-height: 1.6;
-  color: var(--ink-muted);
-}
-
-.card-more-inner .card-more-source {
-  margin-bottom: 0.55rem;
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.card-more-inner .note-verse {
-  margin: 0.9rem 0 0.35rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #5b5ec9;
-}
-
-.note-lemma {
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.card-more-empty {
-  font-style: italic;
 }
 
 .card-tags {
@@ -1156,12 +1042,8 @@ body.reading-active {
     font-size: 1.38rem;
   }
 
-  .card-henry {
+  .card-explain-text {
     font-size: 0.9rem;
-  }
-
-  .card-more-panel.is-open .card-more-inner {
-    padding: 0.85rem 0.85rem 0.3rem;
   }
 }
 
