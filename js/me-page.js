@@ -29,25 +29,19 @@
   /** @type {object[]} */
   let items = [];
   let currentIndex = 0;
-  /** @type {{ destroy: () => void }|null} */
-  let deckBinding = null;
+  /** Shared reading deck (same controller as the home page); bound once. */
+  const deck =
+    UI && UI.createReadingDeck ? UI.createReadingDeck(el.favorites) : null;
 
   function redirectLogin() {
     location.href = UI && UI.loginUrl ? UI.loginUrl("me.html") : "login.html?next=me.html";
   }
 
-  function destroyDeckBinding() {
-    if (deckBinding && typeof deckBinding.destroy === "function") {
-      deckBinding.destroy();
-    }
-    deckBinding = null;
-  }
-
-  function goToIndex(index) {
-    const n = items.length;
-    if (n === 0) return;
-    currentIndex = Math.max(0, Math.min(index, n - 1));
-    paintDeck();
+  function clearDeck(html) {
+    if (deck) deck.reset();
+    el.favorites.classList.remove("results-host--reading");
+    document.body.classList.remove("reading-active");
+    el.favorites.innerHTML = html;
   }
 
   function paintDeck() {
@@ -55,35 +49,28 @@
     if (n === 0) return;
     if (currentIndex >= n) currentIndex = n - 1;
     if (currentIndex < 0) currentIndex = 0;
-
-    const p = items[currentIndex];
-    let cardHtml = UI.renderPromiseCard(p, { interactiveTags: false });
-    cardHtml = cardHtml.replace('class="card', 'class="card card--reading');
-
-    const positionLabel = currentIndex + 1 + " of " + n;
-    destroyDeckBinding();
-    el.favorites.innerHTML = UI.readingDeckHtml({
-      positionLabel,
-      cardHtml,
-      canPrev: currentIndex > 0,
-      canNext: currentIndex < n - 1,
-    });
-    el.favorites.classList.add("results-host--reading");
+    const list = items;
     document.body.classList.add("reading-active");
-
-    if (UI.bindReadingDeck) {
-      deckBinding = UI.bindReadingDeck(el.favorites, {
-        onPrev: function () {
-          goToIndex(currentIndex - 1);
-        },
-        onNext: function () {
-          goToIndex(currentIndex + 1);
-        },
-      });
-    }
-    if (Versions && Versions.hydrateCards) {
-      Versions.hydrateCards(el.favorites, [p]);
-    }
+    deck.show({
+      key: "favorites",
+      count: n,
+      index: currentIndex,
+      renderCard: (i) => UI.renderPromiseCard(list[i], { interactiveTags: false }),
+      afterPaint: (li, i) => {
+        if (Versions && Versions.hydrateCards) Versions.hydrateCards(el.favorites, [list[i]]);
+      },
+      onIndexChange: (i) => {
+        currentIndex = i;
+      },
+      labels: {
+        prev: "Previous",
+        next: "Next",
+        prevAria: "Previous favorite",
+        nextAria: "Next favorite",
+        viewport: "Your favorite promises",
+      },
+      hint: (i, total) => (total > 1 ? "Swipe or use the arrows" : ""),
+    });
   }
 
   function render() {
@@ -97,12 +84,9 @@
     const canFav = !sub || sub.canAccessFavorites(user);
 
     if (!canApp || !canFav) {
-      destroyDeckBinding();
-      el.favorites.classList.remove("results-host--reading");
-      document.body.classList.remove("reading-active");
+      clearDeck("");
       el.upgrade.hidden = false;
       el.toolbar.hidden = true;
-      el.favorites.innerHTML = "";
       el.title.textContent = "My favorites";
       el.lede.textContent = "A subscription will unlock your personal favorites.";
       if (location.hash === "#upgrade") {
@@ -132,17 +116,14 @@
         : `<strong>${n}</strong> favorite${n === 1 ? "" : "s"}`;
 
     if (n === 0) {
-      destroyDeckBinding();
-      el.favorites.classList.remove("results-host--reading");
-      document.body.classList.remove("reading-active");
-      el.favorites.innerHTML = `
+      clearDeck(`
         <div class="empty" role="status">
           <h2>No favorites yet</h2>
           <p>
             Search the catalog and tap the <strong>cross</strong> on any promise to save it here.
           </p>
           <p class="empty-cta"><a class="btn-primary" href="index.html">Find promises</a></p>
-        </div>`;
+        </div>`);
       return;
     }
 
@@ -173,7 +154,8 @@
     Versions.fillSelect(el.version);
     el.version.addEventListener("change", function () {
       Versions.setCurrent(el.version.value);
-      if (items.length) paintDeck();
+      // Same card, new translation — position is kept.
+      if (items.length && deck) deck.refresh();
     });
   }
 

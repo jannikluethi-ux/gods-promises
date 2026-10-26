@@ -96,6 +96,7 @@
     filtersPanel: document.getElementById("filters-panel"),
     filtersBadge: document.getElementById("filters-badge"),
     smartGuide: document.getElementById("smart-guide"),
+    browseModes: document.getElementById("browse-modes"),
   };
 
   /* —— Daily verse (changes at midnight Europe/Zurich) —— */
@@ -201,15 +202,35 @@
   /** @type {""|"OT"|"NT"} */
   let activeTestament = "";
 
-  const PAGE_SIZE = 48;
-  let visibleLimit = PAGE_SIZE;
   /** Index into lastFiltered for the one-at-a-time reading card. */
   let currentIndex = 0;
   /** @type {object[]} */
   let lastFiltered = [];
   let lastRankedMeta = null;
-  /** @type {{ destroy: () => void }|null} */
-  let deckBinding = null;
+  /**
+   * Landing view with no search or filters: "daily" = today's verse with the
+   * 60-day history in the same deck; "all" = the whole collection in order.
+   * @type {"daily"|"all"}
+   */
+  let browseMode = "daily";
+  /** Remembered position in the full collection while switching modes. */
+  let allIndex = 0;
+
+  function isTypingTargetHome(target) {
+    if (!target || !target.tagName) return false;
+    const tag = target.tagName.toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return true;
+    if (target.closest && target.closest("#search, .smart-guide, .filters")) {
+      return true;
+    }
+    return !!target.isContentEditable;
+  }
+
+  /** One deck controller for #results; listeners are bound exactly once. */
+  const deck =
+    UI && UI.createReadingDeck
+      ? UI.createReadingDeck(el.results, { isTypingTarget: isTypingTargetHome })
+      : null;
 
   /**
    * Smart-guide session state.
@@ -417,106 +438,63 @@
     `;
   }
 
-  function resetVisibleLimit() {
-    visibleLimit = PAGE_SIZE;
-  }
-
   function resetDeckIndex() {
     currentIndex = 0;
   }
 
-  function ensureSliceForIndex(index) {
-    const n = lastFiltered.length;
-    while (index >= visibleLimit && visibleLimit < n) {
-      visibleLimit = Math.min(visibleLimit + PAGE_SIZE, n);
-    }
+  function showEmptyResults(html) {
+    if (deck) deck.reset();
+    el.results.classList.remove("results-host--reading");
+    document.body.classList.remove("reading-active");
+    el.results.innerHTML = html;
   }
 
-  function destroyDeckBinding() {
-    if (deckBinding && typeof deckBinding.destroy === "function") {
-      deckBinding.destroy();
-    }
-    deckBinding = null;
+  function rankedMetaFor(i) {
+    return lastRankedMeta && lastRankedMeta[i]
+      ? {
+          relevanceLabel: lastRankedMeta[i].relevanceLabel || "",
+          score: lastRankedMeta[i].score,
+        }
+      : null;
   }
 
-  function goToIndex(index) {
-    const n = lastFiltered.length;
-    if (n === 0) return;
-    const next = Math.max(0, Math.min(index, n - 1));
-    ensureSliceForIndex(next);
-    // Approaching end of loaded slice — grow quietly
-    if (next >= visibleLimit - 4 && visibleLimit < n) {
-      visibleLimit = Math.min(visibleLimit + PAGE_SIZE, n);
-    }
-    currentIndex = next;
-    paintReadingDeck();
-  }
-
-  function goPrev() {
-    goToIndex(currentIndex - 1);
-  }
-
-  function goNext() {
-    goToIndex(currentIndex + 1);
-  }
-
+  /**
+   * Main collection or search/filter results in the shared reading deck.
+   * The deck keeps its shell (arrows, progress, listeners) between calls.
+   */
   function paintReadingDeck() {
     const n = lastFiltered.length;
     if (n === 0) return;
-
     if (currentIndex >= n) currentIndex = n - 1;
     if (currentIndex < 0) currentIndex = 0;
-    ensureSliceForIndex(currentIndex);
-
-    const p = lastFiltered[currentIndex];
-    const meta =
-      lastRankedMeta && lastRankedMeta[currentIndex]
-        ? {
-            relevanceLabel: lastRankedMeta[currentIndex].relevanceLabel || "",
-            score: lastRankedMeta[currentIndex].score,
-          }
-        : null;
-
-    // Mark the single card as a reading card via class on the list item
-    let cardHtml = renderCard(p, meta);
-    cardHtml = cardHtml.replace(
-      'class="card',
-      'class="card card--reading'
-    );
-
-    const positionLabel = currentIndex + 1 + " of " + n;
-    const html =
-      UI && UI.readingDeckHtml
-        ? UI.readingDeckHtml({
-            positionLabel,
-            cardHtml,
-            canPrev: currentIndex > 0,
-            canNext: currentIndex < n - 1,
-          })
-        : `<ul class="results results--single">${cardHtml}</ul>` +
-          `<p class="reading-position">${positionLabel}</p>`;
-
-    destroyDeckBinding();
-    el.results.innerHTML = html;
-    el.results.classList.add("results-host--reading");
+    const list = lastFiltered;
+    const isAll = isLanding() && browseMode === "all";
     document.body.classList.add("reading-active");
-
-    if (UI && UI.bindReadingDeck) {
-      deckBinding = UI.bindReadingDeck(el.results, {
-        onPrev: goPrev,
-        onNext: goNext,
-        isTypingTarget(target) {
-          if (!target || !target.tagName) return false;
-          const tag = target.tagName.toLowerCase();
-          if (tag === "input" || tag === "textarea" || tag === "select") return true;
-          if (target.closest && target.closest("#search, .smart-guide, .filters")) {
-            return true;
-          }
-          return !!target.isContentEditable;
-        },
-      });
+    if (!deck) {
+      el.results.innerHTML = `<ul class="results results--single">${renderCard(list[currentIndex], rankedMetaFor(currentIndex))}</ul>`;
+      hydrateVisibleCards([list[currentIndex]]);
+      return;
     }
-    hydrateVisibleCards([p]);
+    deck.show({
+      key: isAll ? "all" : "results",
+      stageClass: isAll ? "reading-stage--all" : "",
+      count: n,
+      index: currentIndex,
+      renderCard: (i) => renderCard(list[i], rankedMetaFor(i)),
+      afterPaint: (li, i) => hydrateVisibleCards([list[i]]),
+      onIndexChange: (i) => {
+        currentIndex = i;
+        if (isAll) allIndex = i;
+      },
+      labels: {
+        prev: "Previous",
+        next: "Next",
+        prevAria: "Previous promise",
+        nextAria: "Next promise",
+        viewport: isAll ? "All promises" : "Search results",
+      },
+      hint: (i, total) => (total > 1 ? "Swipe or use the arrows" : ""),
+    });
   }
 
   function softSetFeelingFromPlan(plan) {
@@ -636,6 +614,23 @@
     }
   }
 
+  function syncBrowseModes() {
+    if (!el.browseModes) return;
+    const show = isLanding();
+    el.browseModes.hidden = !show;
+    el.browseModes.querySelectorAll("[data-mode]").forEach((btn) => {
+      btn.setAttribute("aria-pressed", btn.dataset.mode === browseMode ? "true" : "false");
+    });
+  }
+
+  function setBrowseMode(mode) {
+    const next = mode === "all" ? "all" : "daily";
+    if (next === browseMode) return;
+    if (browseMode === "all" && deck && deck.getCount()) allIndex = deck.getIndex();
+    browseMode = next;
+    render({ preserveIndex: true });
+  }
+
   function isLanding() {
     return (
       !el.search.value.trim() &&
@@ -646,26 +641,22 @@
     );
   }
 
-  function goDailyOffset(offset) {
-    const next = Math.max(0, Math.min(offset, DAILY_MAX_BACK));
-    if (next === dailyOffset) return;
-    dailyOffset = next;
-    paintDailyVerse();
-  }
-
   /**
-   * Empty query, no filters: quiet daily-verse carousel. Today first; swipe
-   * right / ‹ / ArrowLeft goes back a day (up to DAILY_MAX_BACK), never forward
-   * past today. Each day uses the same deterministic Zurich-date picker, so a
-   * past card shows exactly the verse that day showed.
+   * Empty query, no filters, "Today" mode: the daily verse and the previous
+   * DAILY_MAX_BACK days live in one chronological deck — oldest on the left,
+   * today on the right. It opens on today; swipe right / ‹ / ArrowLeft goes
+   * back a day, and the deck stops at today (no future days). Each day uses
+   * the same deterministic Zurich-date picker, so a past card shows exactly
+   * the verse that day showed.
    */
   function paintDailyVerse() {
     const todayKey = zurichDateKey();
     if (dailyOffset < 0) dailyOffset = 0;
     if (dailyOffset > DAILY_MAX_BACK) dailyOffset = DAILY_MAX_BACK;
-    const key = shiftDateKey(todayKey, dailyOffset);
-    const p = dailyPromiseFor(key);
-    destroyDeckBinding();
+    const total = DAILY_MAX_BACK + 1;
+    const keyAt = (i) => shiftDateKey(todayKey, DAILY_MAX_BACK - i);
+    const promiseAt = (i) => dailyPromiseFor(keyAt(i));
+    const p = promiseAt(DAILY_MAX_BACK - dailyOffset);
     lastFiltered = p ? [p] : [];
     lastRankedMeta = null;
     currentIndex = 0;
@@ -674,66 +665,60 @@
     el.count.innerHTML = "";
     updateFiltersBadge();
     if (!p) {
-      el.results.innerHTML = "";
-      el.results.classList.remove("results-host--reading");
-      document.body.classList.remove("reading-active");
+      showEmptyResults("");
       return;
     }
-    let cardHtml = renderCard(p, null);
-    cardHtml = cardHtml.replace(
-      'class="card',
-      'class="card card--reading card--daily'
-    );
-    cardHtml = cardHtml.replace(
-      /^(\s*<li\b)/,
-      `$1 data-daily-date="${escapeHtml(key)}"`
-    );
-    const rel = dailyRelativeLabel(dailyOffset, key);
-    const fullDate = dailyDateLabel(key);
-    const positionHtml =
-      `<span class="daily-when">${escapeHtml(rel)}</span>` +
-      (dailyOffset <= 1
-        ? `<span class="daily-date">${escapeHtml(fullDate)}</span>`
-        : "");
-    const canPrev = dailyOffset < DAILY_MAX_BACK;
-    const canNext = dailyOffset > 0;
-    el.results.innerHTML =
-      UI && UI.readingDeckHtml
-        ? UI.readingDeckHtml({
-            stageClass: "reading-stage--daily",
-            positionHtml,
-            cardHtml,
-            canPrev,
-            canNext,
-            prevLabel: "Earlier",
-            nextLabel: "Later",
-            prevAria: "Previous day’s verse",
-            nextAria: "Next day’s verse",
-            viewportLabel: "Daily verses, " + rel,
-            hint: dailyOffset === 0 ? "Swipe back for past days" : "Swipe or use arrows",
-          })
-        : `<div class="reading-stage reading-stage--daily">` +
-          `<p class="daily-label">${positionHtml}</p>` +
-          `<ul class="results results--single">${cardHtml}</ul>` +
-          `</div>`;
-    el.results.classList.add("results-host--reading");
     document.body.classList.add("reading-active");
-    if (UI && UI.bindReadingDeck) {
-      deckBinding = UI.bindReadingDeck(el.results, {
-        onPrev: () => goDailyOffset(dailyOffset + 1),
-        onNext: () => goDailyOffset(dailyOffset - 1),
-        isTypingTarget(target) {
-          if (!target || !target.tagName) return false;
-          const tag = target.tagName.toLowerCase();
-          if (tag === "input" || tag === "textarea" || tag === "select") return true;
-          if (target.closest && target.closest("#search, .smart-guide, .filters")) {
-            return true;
-          }
-          return !!target.isContentEditable;
-        },
-      });
+    const cardFor = (i) => {
+      const key = keyAt(i);
+      let cardHtml = renderCard(promiseAt(i), null);
+      cardHtml = cardHtml.replace('class="card', 'class="card card--daily');
+      return cardHtml.replace(/^(\s*<li\b)/, `$1 data-daily-date="${escapeHtml(key)}"`);
+    };
+    if (!deck) {
+      el.results.innerHTML = `<ul class="results results--single">${cardFor(DAILY_MAX_BACK - dailyOffset)}</ul>`;
+      hydrateVisibleCards([p]);
+      return;
     }
-    hydrateVisibleCards([p]);
+    deck.show({
+      key: "daily",
+      stageClass: "reading-stage--daily",
+      count: total,
+      index: DAILY_MAX_BACK - dailyOffset,
+      renderCard: cardFor,
+      afterPaint: (li, i) => {
+        const q = promiseAt(i);
+        lastFiltered = q ? [q] : [];
+        hydrateVisibleCards(lastFiltered);
+      },
+      onIndexChange: (i) => {
+        dailyOffset = DAILY_MAX_BACK - i;
+      },
+      position: (i) => {
+        const off = DAILY_MAX_BACK - i;
+        const key = keyAt(i);
+        const rel = dailyRelativeLabel(off, key);
+        const fullDate = dailyDateLabel(key);
+        const sub =
+          off <= 1
+            ? fullDate
+            : off + " days ago";
+        return {
+          html:
+            `<span class="daily-when">${escapeHtml(rel)}</span>` +
+            `<span class="daily-date">${escapeHtml(sub)}</span>`,
+          label: rel + (off <= 1 ? ", " + fullDate : "") + ". Day " + (i + 1) + " of " + total,
+        };
+      },
+      labels: {
+        prev: "Earlier",
+        next: "Later",
+        prevAria: "Previous day’s verse",
+        nextAria: "Next day’s verse",
+        viewport: "Daily verses",
+      },
+      hint: (i, n) => (i === n - 1 ? "Swipe right for the past 60 days" : "Swipe or use the arrows"),
+    });
   }
 
   /**
@@ -741,7 +726,7 @@
    * day; a past card stays on the same date (its offset grows by one).
    */
   function checkDailyRollover() {
-    if (!isLanding()) return;
+    if (!isLanding() || browseMode !== "daily") return;
     const todayKey = zurichDateKey();
     if (todayKey === dailyKeyShown) return;
     if (dailyOffset > 0 && dailyKeyShown) {
@@ -754,12 +739,22 @@
   function render(opts) {
     const preserveLimit = opts && opts.preserveLimit;
     const preserveIndex = opts && opts.preserveIndex;
-    if (!preserveLimit) resetVisibleLimit();
     if (!preserveIndex && !preserveLimit) resetDeckIndex();
 
     updateSmartGuide();
+    syncBrowseModes();
 
     if (isLanding()) {
+      if (browseMode === "all") {
+        document.body.classList.add("is-landing");
+        lastFiltered = promises;
+        lastRankedMeta = null;
+        currentIndex = allIndex;
+        el.count.innerHTML = "";
+        updateFiltersBadge();
+        paintReadingDeck();
+        return;
+      }
       paintDailyVerse();
       return;
     }
@@ -813,7 +808,6 @@
 
     const n = filtered.length;
     if (currentIndex >= n) currentIndex = Math.max(0, n - 1);
-    ensureSliceForIndex(currentIndex);
 
     const notes = [];
     if (testament === "OT") notes.push("Old Testament");
@@ -825,19 +819,16 @@
     el.count.innerHTML =
       n === 0
         ? `<strong>No matches</strong>${noteStr}`
-        : `<strong>${n}</strong> promise${n === 1 ? "" : "s"}${noteStr}`;
+        : `<strong>${UI && UI.formatCount ? UI.formatCount(n) : n}</strong> promise${n === 1 ? "" : "s"}${noteStr}`;
 
     updateFiltersBadge();
 
     if (n === 0) {
-      destroyDeckBinding();
-      el.results.classList.remove("results-host--reading");
-      document.body.classList.remove("reading-active");
-      el.results.innerHTML = `
+      showEmptyResults(`
         <div class="empty" role="status">
           <h2>No promises found</h2>
           <p>Try another feeling or theme, or choose “All” in the filters.</p>
-        </div>`;
+        </div>`);
       return;
     }
 
@@ -1115,11 +1106,11 @@
         Versions.setCurrent(el.version.value);
       }
       updateVersionMeta();
-      // Re-hydrate current card(s) without resetting search/filters
-      if (isLanding()) {
-        paintDailyVerse();
-      } else if (lastFiltered.length) {
-        paintReadingDeck();
+      // Re-render the current card in place: same deck, same position.
+      if (deck && deck.getCount()) {
+        deck.refresh();
+      } else if (isLanding()) {
+        render({ preserveIndex: true });
       }
     });
   }
@@ -1131,6 +1122,14 @@
     smartState.previousFeeling = "";
     render();
   });
+
+  if (el.browseModes) {
+    el.browseModes.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-mode]");
+      if (!btn) return;
+      setBrowseMode(btn.dataset.mode);
+    });
+  }
 
   el.results.addEventListener("click", (e) => {
     if (e.target.closest(".favorite-btn")) return;
