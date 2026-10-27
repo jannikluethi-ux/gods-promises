@@ -34,7 +34,7 @@
   --radius-pill: 999px;
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  /* Script face for scripture text; Newsreader stays as the fallback. */
+  /* Script face for the wordmark and page headings; Newsreader stays as the fallback. */
   --font-script: "Yellowtail", "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --max: 760px;
   --ease: 0.18s ease;
@@ -184,10 +184,10 @@ a:hover {
 
 .site-header h1 {
   margin: 0 0 0.85rem;
-  font-family: var(--font-serif);
-  font-size: clamp(2.3rem, 6vw, 3.4rem);
+  font-family: var(--font-script);
+  font-size: clamp(2.6rem, 6.8vw, 3.8rem);
   font-weight: 400;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.05;
   color: var(--ink);
 }
@@ -216,10 +216,11 @@ a:hover {
 }
 
 .brand-link {
-  font-family: var(--font-serif);
-  font-weight: 500;
-  font-size: 1.05rem;
-  letter-spacing: -0.005em;
+  font-family: var(--font-script);
+  font-weight: 400;
+  font-size: 1.3rem;
+  letter-spacing: 0;
+  line-height: 1.1;
   color: var(--ink);
   text-decoration: none;
 }
@@ -291,10 +292,10 @@ a:hover {
 
 .hero-wordmark {
   margin: 0 0 1.6rem;
-  font-family: var(--font-serif);
-  font-size: clamp(2.5rem, 7.5vw, 3.9rem);
+  font-family: var(--font-script);
+  font-size: clamp(2.8rem, 8.4vw, 4.4rem);
   font-weight: 400;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   line-height: 1;
   color: var(--ink);
 }
@@ -1002,13 +1003,13 @@ a:hover {
   margin: 1.25rem 0 1.4rem;
   padding: 0;
   max-width: 30em;
-  font-family: var(--font-script);
-  font-size: clamp(1.65rem, 3vw, 1.95rem);
+  font-family: var(--font-serif);
+  font-size: clamp(1.4rem, 2.6vw, 1.7rem);
   font-weight: 400;
   font-style: normal;
   font-optical-sizing: auto;
-  letter-spacing: 0.012em;
-  line-height: 1.42;
+  letter-spacing: -0.008em;
+  line-height: 1.5;
   color: var(--ink);
   background: transparent;
   border: none;
@@ -1016,8 +1017,8 @@ a:hover {
 }
 
 .card--reading .card-text {
-  font-size: clamp(1.7rem, 3.1vw, 2rem);
-  line-height: 1.42;
+  font-size: clamp(1.45rem, 2.8vw, 1.8rem);
+  line-height: 1.48;
   margin-top: 1.35rem;
 }
 
@@ -1079,10 +1080,10 @@ a:hover {
 
 .empty h2 {
   margin: 0 0 0.45rem;
-  font-family: var(--font-serif);
-  font-size: clamp(1.7rem, 4vw, 2.2rem);
+  font-family: var(--font-script);
+  font-size: clamp(1.9rem, 4.4vw, 2.45rem);
   font-weight: 400;
-  letter-spacing: -0.015em;
+  letter-spacing: 0;
   color: var(--ink);
 }
 
@@ -1112,7 +1113,7 @@ a:hover {
 
   .card-text,
   .card--reading .card-text {
-    font-size: 1.6rem;
+    font-size: 1.32rem;
   }
 
   .card-explain-text {
@@ -1382,10 +1383,10 @@ a:hover {
 
 .auth-welcome {
   margin: 0 0 0.35rem;
-  font-family: var(--font-serif);
-  font-size: clamp(1.7rem, 4vw, 2.1rem);
+  font-family: var(--font-script);
+  font-size: clamp(1.9rem, 4.4vw, 2.35rem);
   font-weight: 400;
-  letter-spacing: -0.015em;
+  letter-spacing: 0;
   line-height: 1.15;
 }
 
@@ -1444,8 +1445,8 @@ a:hover {
 
 .upgrade-panel h2 {
   margin: 0 0 0.5rem;
-  font-family: var(--font-serif);
-  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  font-family: var(--font-script);
+  font-size: clamp(1.8rem, 4.4vw, 2.35rem);
   font-weight: 400;
 }
 
