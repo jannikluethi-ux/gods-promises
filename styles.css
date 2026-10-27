@@ -34,6 +34,8 @@
   --radius-pill: 999px;
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  /* Script face for scripture text; Newsreader stays as the fallback. */
+  --font-script: "Yellowtail", "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --max: 760px;
   --ease: 0.18s ease;
   --shadow-card:
@@ -1000,13 +1002,13 @@ a:hover {
   margin: 1.25rem 0 1.4rem;
   padding: 0;
   max-width: 30em;
-  font-family: var(--font-serif);
-  font-size: clamp(1.4rem, 2.6vw, 1.7rem);
+  font-family: var(--font-script);
+  font-size: clamp(1.65rem, 3vw, 1.95rem);
   font-weight: 400;
   font-style: normal;
   font-optical-sizing: auto;
-  letter-spacing: -0.008em;
-  line-height: 1.5;
+  letter-spacing: 0.012em;
+  line-height: 1.42;
   color: var(--ink);
   background: transparent;
   border: none;
@@ -1014,8 +1016,8 @@ a:hover {
 }
 
 .card--reading .card-text {
-  font-size: clamp(1.45rem, 2.8vw, 1.8rem);
-  line-height: 1.48;
+  font-size: clamp(1.7rem, 3.1vw, 2rem);
+  line-height: 1.42;
   margin-top: 1.35rem;
 }
 
@@ -1110,7 +1112,7 @@ a:hover {
 
   .card-text,
   .card--reading .card-text {
-    font-size: 1.32rem;
+    font-size: 1.6rem;
   }
 
   .card-explain-text {
