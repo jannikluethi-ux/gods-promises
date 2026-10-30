@@ -35,7 +35,6 @@
       label: "Young's Literal Translation (YLT)",
       short: "YLT",
       api: "ylt",
-      ntOnly: true,
     },
     {
       id: "darby",

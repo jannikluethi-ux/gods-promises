@@ -7,10 +7,27 @@
 
   const params = new URLSearchParams(location.search);
   const nextRaw = params.get("next") || "me.html";
-  const next =
-    nextRaw.startsWith("http") || nextRaw.includes("://") || nextRaw.startsWith("//")
-      ? "me.html"
-      : nextRaw.replace(/^\/+/, "") || "me.html";
+
+  function safeNext(raw) {
+    try {
+      const base = new URL(".", location.href);
+      const target = new URL(raw, base);
+      const allowedPaths = new Set([
+        new URL("index.html", base).pathname,
+        new URL("me.html", base).pathname,
+      ]);
+      if (
+        target.protocol === location.protocol &&
+        target.origin === location.origin &&
+        allowedPaths.has(target.pathname)
+      ) return target.href;
+    } catch (_) {
+      // Use the safe default for malformed URLs.
+    }
+    return new URL("me.html", location.href).href;
+  }
+
+  const next = safeNext(nextRaw);
 
   const el = {
     status: document.getElementById("auth-status"),
