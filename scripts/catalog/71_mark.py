@@ -4,7 +4,7 @@ from catalog._entry import e
 ENTRIES = [
     e('Mark', 1, 14, 15, 'The time is fulfilled, and God’s Kingdom is at hand! Repent, and believe in the Good News.', 'Jesus’ opening proclamation.', ['kingdom', 'repentance', 'hope', 'salvation'], ['hopeless', 'hopeful'], ['time', 'kingdom', 'repent', 'believe', 'Good News']),
     e('Mark', 2, 5, 5, 'Son, your sins are forgiven you.', 'Paralytic.', ['forgiveness', 'salvation'], ['guilty', 'hopeful'], ['sins', 'forgiven', 'son']),
-    e('Mark', 2, 17, 17, 'I came not to call the righteous, but sinners.', 'Eating with sinners.', ['salvation', 'mercy', 'calling'], ['guilty', 'ashamed', 'hopeful'], ['call', 'sinners', 'righteous']),
+    e('Mark', 2, 17, 17,"Jesus says he came to call sinners, not the righteous.", 'Eating with sinners.', ['salvation', 'mercy', 'calling'], ['guilty', 'ashamed', 'hopeful'], ['call', 'sinners', 'righteous']),
     e('Mark', 4, 39, 40, 'He awoke and rebuked wind: Peace! Be still! Why are you so afraid? How is it that you have no faith?', 'Storm stilled.', ['peace', 'fear', 'authority'], ['afraid', 'anxious', 'peaceful', 'hopeful'], ['Peace', 'still', 'afraid', 'faith', 'storm']),
     e('Mark', 5, 34, 34, 'Daughter, your faith has made you well. Go in peace, and be cured of your disease.', 'Bleeding woman.', ['healing', 'peace', 'faithfulness'], ['afraid', 'ashamed', 'hopeful', 'peaceful'], ['faith', 'well', 'peace', 'disease']),
     e('Mark', 5, 36, 36, 'Don’t be afraid, only believe.', 'Jairus’ daughter.', ['fear', 'hope', 'faithfulness'], ['afraid', 'sad', 'hopeful'], ['afraid', 'believe', 'only']),

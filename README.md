@@ -1,6 +1,6 @@
 # Daily Promises — searchable web tool
 
-**Daily Promises** is a calm, offline-friendly single-page app for exploring God’s promises from Genesis through Revelation. Built for Carlos with a **comprehensive, curated catalog** (1186 promise units) anchored in the public-domain **World English Bible (WEB)**.
+**Daily Promises** is a calm, offline-friendly single-page app for exploring God’s promises from Genesis through Revelation. Built for Carlos with a **comprehensive, curated catalog** (1188 promise units) anchored in the public-domain **World English Bible (WEB)**.
 
 People often arrive by **how they feel** (lonely, angry, anxious…), not only by theological themes—so every promise carries pastoral `feelings` tags alongside themes.
 
@@ -41,7 +41,7 @@ Try: `lonely`, `angry`, `anxious`, `guilty`, `weary`, or themes like `covenant`,
 
 ## Catalog size & methodology
 
-**Current count:** 1186 unique promise entries (WEB text).
+**Current count:** 1188 unique promise entries (WEB text).
 
 Different ministries count “promises” differently—some aim near ~3000 by including every blessing, inferred assurance, or command-with-benefit. **This catalog prioritizes clear divine promissory statements** (God speaking commitment, covenant, assurance) and closely related sworn assurances attributed as God’s word, plus NT declarations of God’s sure commitment in Christ. Quality and accurate citation over padding. **Verse `text` is never invented**—only WEB.
 
@@ -65,7 +65,7 @@ Different ministries count “promises” differently—some aim near ~3000 by i
 | Ezekiel | 25 |
 | 2 Corinthians | 22 |
 | Zechariah | 21 |
-| Ephesians | 20 |
+| Ephesians | 21 |
 | 1 John | 19 |
 | Mark | 19 |
 | 1 Corinthians | 18 |
@@ -74,7 +74,7 @@ Different ministries count “promises” differently—some aim near ~3000 by i
 | 1 Peter | 15 |
 | Acts | 12 |
 | Colossians | 11 |
-| James | 11 |
+| James | 12 |
 | Galatians | 10 |
 | Hosea | 10 |
 | Joshua | 10 |
