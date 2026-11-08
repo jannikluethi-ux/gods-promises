@@ -1,5 +1,5 @@
 /**
- * Client-side guided intelligence for Daily Promises search.
+ * Client-side guided intelligence for His Promises Daily search.
  * No external AI API — intent detection, clarifying follow-ups, synonym expand + rank.
  */
 (function (global) {
