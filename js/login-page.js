@@ -7,10 +7,7 @@
 
   const params = new URLSearchParams(location.search);
   const nextRaw = params.get("next") || "me.html";
-  const next =
-    nextRaw.startsWith("http") || nextRaw.includes("://") || nextRaw.startsWith("//")
-      ? "me.html"
-      : nextRaw.replace(/^\/+/, "") || "me.html";
+  const next = window.GodsPromisesSafeNext(nextRaw, location.href);
 
   const el = {
     status: document.getElementById("auth-status"),
