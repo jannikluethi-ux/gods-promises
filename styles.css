@@ -1233,6 +1233,19 @@ a:hover {
   max-width: 28rem;
 }
 
+.site-footer .footer-links a {
+  color: var(--ink-muted);
+}
+
+.local-beta-notice {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+  max-width: 36rem;
+  margin: 0 auto 1.5rem;
+  overflow-wrap: anywhere;
+}
+
 .site-footer code {
   font-size: 0.95em;
   color: var(--ink-muted);
@@ -1688,4 +1701,17 @@ a:hover {
   min-height: 2.2rem;
   padding: 0.35rem 2rem 0.35rem 0.75rem;
   font-size: 0.82rem;
+}
+
+/* —— Legal pages —— */
+.legal-page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.legal-page h2 {
+  font-size: 1.05rem;
+  margin: 1.75rem 0 0.5rem;
 }
