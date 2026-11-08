@@ -8,7 +8,7 @@ assert.deepStrictEqual(s(pv(D + "/login.html?next=me.html%23upgrade")), { type: 
 assert.deepStrictEqual(s(pv(D + "/index.html?q=anxiety&email=test%40example.invalid#v=JHN.3.16")), { type: "pageview", url: D + "/index.html" });
 assert.deepStrictEqual(s(pv(D + "/me.html#upgrade")), { type: "pageview", url: D + "/me.html" });
 assert.deepStrictEqual(s(pv("https://www.hispromisedaily.com/privacy.html?x=1")), { type: "pageview", url: "https://www.hispromisedaily.com/privacy.html" });
-for (const u of [D + "/secret.html", D + "/data/explanations.json", D + "/login.html/extra", "https://jannikluethi-ux.github.io/gods-promises/", "https://gods-promises-azure.vercel.app/", "http://localhost:8766/", "http://hispromisedaily.com/", "https://evil.com/", "https://hispromisedaily.com.evil.com/", "not a url"])
+for (const u of [D + "/secret.html", D + "/verses/gen-1-28.html?q=private#saved", D + "/browse/", D + "/browse/topics/hope.html", D + "/data/explanations.json", D + "/login.html/extra", "https://jannikluethi-ux.github.io/gods-promises/", "https://gods-promises-azure.vercel.app/", "http://localhost:8766/", "http://hispromisedaily.com/", "https://evil.com/", "https://hispromisedaily.com.evil.com/", "not a url"])
   assert.strictEqual(s(pv(u)), null, u);
 assert.strictEqual(s({ type: "event", url: D + "/" }), null);
 assert.strictEqual(s(null), null);

@@ -1,0 +1,45 @@
+name: Deploy old demo migration only
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify production and migration artifacts
+        run: |
+          python3 -m unittest discover -s tests -p 'test_*.py'
+          node tests/analytics.test.js
+          node tests/safe-next.test.js
+      - name: Build migration artifact (never upload production dist)
+        run: python3 scripts/build_site.py --target migration
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages-dist
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy migration only
+        id: deployment
+        uses: actions/deploy-pages@v4
