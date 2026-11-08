@@ -54,7 +54,7 @@
 
 
   /* —— Explanation: one short original summary per promise —— */
-  const EXPLAIN_VERSION = "unified-1"; // data unchanged; keep cache key
+  const EXPLAIN_VERSION = "promise-1"; // bump when data/explanations.json changes
   let explainData = null;
   let explainPromise = null;
 
