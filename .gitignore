@@ -1,3 +1,7 @@
 .DS_Store
 *.pyc
 __pycache__/
+
+# Disposable host-specific static artifacts
+dist/
+pages-dist/

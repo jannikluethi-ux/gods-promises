@@ -1,0 +1,14 @@
+/* Static reading pages only; the existing homepage's layout and styles are unchanged. */
+.browse-catalog { font-size: 0.8rem; }
+.catalog-page { max-width: 48rem; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; overflow-wrap: anywhere; }
+.catalog-page h1 { font-family: var(--font-script); font-size: clamp(2.3rem, 6vw, 3.2rem); font-weight: 400; line-height: 1.15; }
+.catalog-page h2 { font-size: 1.1rem; margin-top: 1.6rem; }
+.catalog-directory { columns: 2 14rem; padding-left: 1.25rem; }
+.catalog-directory li, .catalog-list li { padding: 0.3rem 0; break-inside: avoid; }
+.catalog-verse { background: var(--paper); padding: clamp(1.25rem, 4vw, 2.25rem); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-card); }
+.catalog-verse .card-text { max-width: none; }
+.catalog-verse .card-ref { margin-top: 0; }
+.catalog-note, .catalog-crumb { color: var(--ink-faint); font-size: 0.8rem; }
+.catalog-pagination { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1.5rem 0; }
+.catalog-pagination a, .catalog-pagination [aria-current] { padding: 0.4rem 0.65rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); }
+.catalog-pagination [aria-current] { background: var(--accent-wash); font-weight: 600; }
