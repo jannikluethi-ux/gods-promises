@@ -1,5 +1,5 @@
 /**
- * Topical popularity + relevance ranking for His Promises Daily search.
+ * Topical popularity + relevance ranking for His Promise Daily search.
  * Anchors grounded in OpenBible / YouVersion / pastoral topical lists
  * (see scripts/relevance-sources.md).
  */
