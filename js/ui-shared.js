@@ -54,7 +54,7 @@
 
 
   /* —— Explanation: one short original summary per promise —— */
-  const EXPLAIN_VERSION = "promise-1"; // bump when data/explanations.json changes
+  const EXPLAIN_VERSION = "promise-2"; // bump when data/explanations.json changes
   let explainData = null;
   let explainPromise = null;
 
