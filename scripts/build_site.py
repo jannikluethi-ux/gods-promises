@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 from collections import defaultdict
 from copy import deepcopy
+from functools import lru_cache
 import hashlib
 from html import escape
 import json
@@ -97,6 +98,20 @@ def verse_json_ld(entry, title, description, path):
         "publisher": publisher_org(),
     }
 
+
+
+@lru_cache(maxsize=None)
+def explain_version(root=ROOT):
+    """The explanation cache/version id the live cards use (single source: js/ui-shared.js)."""
+    source = (root / "js/ui-shared.js").read_text(encoding="utf-8")
+    match = re.search(r'const EXPLAIN_VERSION = "([a-z0-9][a-z0-9._-]{0,39})"', source)
+    if not match:
+        raise ValueError("EXPLAIN_VERSION not found in js/ui-shared.js")
+    return match.group(1)
+
+
+def asset_digest(root, name):
+    return hashlib.sha256((root / name).read_bytes()).hexdigest()[:12]
 
 
 def load_records(root=ROOT):
@@ -193,15 +208,17 @@ def groups_for(records):
     return books, topics
 
 
-def page_shell(title, description, path, heading, content, root=ROOT, json_ld=None, og_type="website"):
+def page_shell(title, description, path, heading, content, root=ROOT, json_ld=None, og_type="website",
+               scripts=()):
     source = (root / "index.html").read_text(encoding="utf-8")
     # Reuse the existing font and favicon, while cache-busting each changed stylesheet by content.
     links = re.findall(r"<link\b[^>]*>", source, re.S)
     links = [link for link in links if 'rel="preconnect"' in link or 'rel="icon"' in link
              or "fonts.googleapis.com/css" in link]
     for name in ("styles.css", "browse.css"):
-        digest = hashlib.sha256((root / name).read_bytes()).hexdigest()[:12]
-        links.append(f'<link rel="stylesheet" href="/{name}?v={digest}" />')
+        links.append(f'<link rel="stylesheet" href="/{name}?v={asset_digest(root, name)}" />')
+    # Deferred, content-hashed page scripts (verse pages: the explanation feedback widget only).
+    links.extend(f'<script src="/{name}?v={asset_digest(root, name)}" defer></script>' for name in scripts)
     return f'''<!DOCTYPE html>
 <html lang="en" class="theme-light">
   <head>
@@ -249,7 +266,8 @@ def verse_page(entry, books, root=ROOT):
         <h2 class="card-ref">World English Bible (WEB)</h2>
         <blockquote class="card-text">{html(entry['text'])}</blockquote>
         <section aria-labelledby="explanation-heading"><h2 id="explanation-heading">Explanation</h2>
-          <p class="card-explain-text">{html(entry['explanation'])}</p></section>
+          <p class="card-explain-text">{html(entry['explanation'])}</p>
+          <section class="fb" data-fb-verse="{html(entry['id'])}" data-fb-version="{html(explain_version(root))}" data-fb-source="verse_page" aria-label="Feedback on this explanation"></section></section>
         <p class="catalog-note">The explanation is an original summary, not additional Bible text.</p>
         <nav aria-label="Related topics">{topics}</nav>
       </article>
@@ -257,7 +275,7 @@ def verse_page(entry, books, root=ROOT):
     path = verse_path(entry)
     schema = verse_json_ld(entry, title, description, path)
     return page_shell(title, description, path, reference, content, root,
-                      json_ld=schema, og_type="article")
+                      json_ld=schema, og_type="article", scripts=("js/feedback.js",))
 
 
 def listing_page(kind, value, entries, page, root=ROOT):

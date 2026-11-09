@@ -161,6 +161,7 @@ supabaseAnonKey: ""
 | `scripts/web_index.json` | Parsed engwebp verse index |
 | `data/explanations.json` | One short original explanation per promise id, fetched after first paint |
 | `scripts/explanations/` | Notes on how the explanations were written, plus `sources.json` (commentaries consulted per entry) |
+| `js/feedback.js`, `api/feedback.js`, `supabase/migrations/` | “Was this explanation helpful?” feedback (server function + Supabase); see `docs/explanation-feedback.md` |
 
 ## Extending the data
 

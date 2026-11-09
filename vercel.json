@@ -4,6 +4,12 @@
   "buildCommand": "python3 scripts/build_site.py --target production",
   "outputDirectory": "dist",
   "cleanUrls": false,
+  "functions": {
+    "api/feedback.js": {
+      "maxDuration": 10,
+      "includeFiles": "{promises.json,data/explanations.json,js/ui-shared.js}"
+    }
+  },
   "redirects": [
     { "source": "/index.html", "destination": "/", "permanent": true }
   ]
