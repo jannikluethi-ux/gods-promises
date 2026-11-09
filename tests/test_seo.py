@@ -99,9 +99,19 @@ class StaticSeoTests(unittest.TestCase):
                 self.assertEqual(doc.values["blockquote"], [entry["text"]])
                 self.assertEqual(doc.values["explanation"], [entry["explanation"]])
                 self.assertEqual(doc.values["h1"], [entry["reference"]])
-                # JSON-LD only: no executable scripts or analytics on static verse pages.
+                # JSON-LD plus exactly one deferred, content-hashed feedback widget script.
+                # No analytics or any other executable script on static verse pages.
                 self.assertTrue(doc.scripts)
-                self.assertTrue(all(s.get("type") == "application/ld+json" and "src" not in s for s in doc.scripts))
+                external = [s for s in doc.scripts if "src" in s]
+                self.assertEqual(len(external), 1)
+                self.assertRegex(external[0]["src"], r"^/js/feedback\.js\?v=[0-9a-f]{12}$")
+                self.assertIn("defer", external[0])
+                self.assertTrue(all(s.get("type") == "application/ld+json" for s in doc.scripts if "src" not in s))
+                widgets = [a for a in doc.attributes if a.get("class") == "fb"]
+                self.assertEqual(len(widgets), 1)
+                self.assertEqual(widgets[0]["data-fb-verse"], entry["id"])
+                self.assertEqual(widgets[0]["data-fb-version"], site.explain_version())
+                self.assertEqual(widgets[0]["data-fb-source"], "verse_page")
 
     def test_metadata_unique_and_complete(self):
         titles, descriptions, canonicals, headings = set(), set(), set(), set()

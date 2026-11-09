@@ -12,8 +12,8 @@
       rel="stylesheet"
     />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23f6f1e7%27/%3E%3Cpath d=%27M16 6v20M10 12h12%27 stroke=%27%234e5b33%27 stroke-width=%273%27 stroke-linecap=%27round%27/%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="styles.css?v=brand-12" />
-    <script src="js/analytics.js?v=brand-12"></script>
+    <link rel="stylesheet" href="styles.css?v=brand-13" />
+    <script src="js/analytics.js?v=brand-13"></script>
   </head>
   <body>
     <header class="site-header site-header--compact">
@@ -26,8 +26,11 @@
       <h1>Privacy</h1>
       <p>His Promise Daily is run by Jannik Luethi. Questions about privacy: <a href="mailto:jannik.luethi@proton.me">Email Jannik Luethi (jannik.luethi@proton.me)</a>.</p>
       <h2>What stays in your browser</h2>
-      <p>The site has no server-side accounts and no database. If you create a profile, your email address, optional display name, a salted password hash (PBKDF2), your sign-in session and your saved verses are stored in your browser’s local storage on this device, separately for each web address (the old GitHub address and hispromisedaily.com do not share them). Your chosen Bible version is stored there too, and verse texts from other versions may be cached for the current browser session. The site’s code does not send this information to the operator.</p>
+      <p>The site has no server-side accounts. If you create a profile, your email address, optional display name, a salted password hash (PBKDF2), your sign-in session and your saved verses are stored in your browser’s local storage on this device, separately for each web address (the old GitHub address and hispromisedaily.com do not share them). Your chosen Bible version is stored there too, and verse texts from other versions may be cached for the current browser session. Apart from the optional explanation feedback described below, the site’s code does not send this information to the operator.</p>
       <p>To delete it, sign out and clear this site’s data in your browser settings. There is no in-site account deletion yet, and the operator cannot recover or delete data that exists only in your browser. If you email us, we receive your email address and whatever you write.</p>
+      <h2>Feedback on explanations</h2>
+      <p>Under each explanation you can optionally answer “Was this explanation helpful?”. If you send feedback, we store your answer, any reasons you tick, any comment you write, which verse and which version of the explanation it was about, and the time. If you are signed in on this device, the random ID of your local profile is stored with it (not your email address). Please don’t include personal details in comments.</p>
+      <p>To prevent duplicate and automated submissions, sending feedback sets a cookie (<code>hpd_fb</code>) containing a random ID that is only sent back to our feedback service; we store it only in hashed form. A hashed form of your IP address is kept briefly to limit abuse. Feedback is stored with our database provider, Supabase, and is used only to review and improve the explanations.</p>
       <h2>Services your browser contacts</h2>
       <p>These providers handle data under their own policies, which we do not control.</p>
       <ul>
@@ -42,7 +45,7 @@
       <p>Before anything is sent, the site removes every query string and “#” fragment from the address and only reports its own known pages. Search words, sign-in redirect values, email addresses, profiles and saved verses are never sent, and no custom events are recorded.</p>
       <p>Vercel states that Web Analytics uses no third-party cookies; visitors are recognised by a hash created from the incoming request, which is discarded after 24 hours. Each page view may be stored with a timestamp, the page address, the referring site, location (country, region, city), operating system and browser with versions, device type and the script version. Vercel’s privacy notice also says it collects information about traffic to its customers’ websites, such as visitor IP address and location derived from it. <a href="https://vercel.com/docs/analytics/privacy-policy" rel="noopener noreferrer">Vercel Web Analytics privacy</a> · <a href="https://vercel.com/legal/privacy-policy" rel="noopener noreferrer">Vercel Privacy Notice</a></p>
       <h2>Cookies and other tracking</h2>
-      <p>This site’s own code sets no cookies and includes no advertising, session-replay or other tracking scripts. The third-party services above may process data as described in their own policies.</p>
+      <p>This site’s own code sets no cookies except the feedback cookie described above, which is set only if you send explanation feedback. It includes no advertising, session-replay or other tracking scripts. The third-party services above may process data as described in their own policies.</p>
       <h2>Changes</h2>
       <p>This is a beta, and this notice may change as the site changes.</p>
       <p><a href="index.html">Back to search</a></p>

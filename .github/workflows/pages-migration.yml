@@ -24,6 +24,8 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_*.py'
           node tests/analytics.test.js
           node tests/safe-next.test.js
+          node tests/feedback-api.test.js
+          node tests/feedback-widget.test.js
       - name: Build migration artifact (never upload production dist)
         run: python3 scripts/build_site.py --target migration
       - uses: actions/upload-pages-artifact@v3

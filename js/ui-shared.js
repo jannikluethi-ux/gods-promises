@@ -84,6 +84,12 @@
     });
   }
 
+  /** "Was this explanation helpful?" widget (js/feedback.js), tied to this explanation version. */
+  function feedbackHtml(id) {
+    const fb = global.HPDFeedback;
+    return fb && fb.html ? fb.html(id, EXPLAIN_VERSION, "card") : "";
+  }
+
   function explainHtml(p) {
     if (!p || !p.id) return "";
     const ready = !!explainData;
@@ -94,6 +100,7 @@
       `<div class="card-explain${ready ? "" : " is-loading"}" data-explain-id="${escapeHtml(p.id)}"` +
       `${ready ? "" : " data-explain-pending"}>` +
       `<p class="card-explain-text">${escapeHtml(text)}</p>` +
+      feedbackHtml(p.id) +
       `</div>`
     );
   }
@@ -309,7 +316,7 @@
     const isTypingTarget =
       (hostOpts && hostOpts.isTypingTarget) || defaultIsTypingTarget;
     const ignoreSel =
-      ".favorite-btn, .tag, .reading-nav, a, input, select, textarea, label";
+      ".favorite-btn, .tag, .reading-nav, a, input, select, textarea, label, .fb";
 
     let cfg = null;
     let index = 0;
