@@ -24,8 +24,13 @@ PAGE_SIZE = 30
 SOURCE_PAGES = ("index.html", "terms.html", "privacy.html", "contact.html",
                 "support.html", "login.html", "me.html")
 PRIVATE_PAGES = {"login.html", "me.html"}
-HOME_DESCRIPTION = ("Read a Bible verse for every day and explore Bible promises by book and topic. "
-                    "World English Bible (WEB) Scripture with short explanations.")
+HOME_TITLE = "His Promise Daily – God's promises in the Bible, one verse a day"
+HOME_DESCRIPTION = ("A free daily Bible verse and searchable catalog of God's promises in Scripture "
+                    "(World English Bible), with short explanations by book, feeling, and topic.")
+OG_IMAGE_PATH = "/og-image.png"
+OG_IMAGE_WIDTH = 1200
+OG_IMAGE_HEIGHT = 630
+META_DESCRIPTION_LIMIT = 155
 
 
 def html(value):
@@ -51,6 +56,47 @@ def canonical(path):
     if not path.startswith("/") or "?" in path or "#" in path or "//" in path:
         raise ValueError(f"Invalid public path: {path}")
     return ORIGIN + path
+
+
+def meta_description(text, limit=META_DESCRIPTION_LIMIT):
+    """One-line meta description, truncated on a word boundary without rewriting sense."""
+    cleaned = " ".join(str(text).split())
+    if len(cleaned) <= limit:
+        return cleaned
+    cut = cleaned[: max(1, limit - 1)].rsplit(" ", 1)[0].rstrip(" ,.;:")
+    if not cut:
+        cut = cleaned[: max(1, limit - 1)]
+    return cut + "…"
+
+
+def publisher_org():
+    return {"@type": "Organization", "name": NAME, "url": ORIGIN + "/"}
+
+
+def website_json_ld():
+    # Homepage search is client-side only (no stable query-URL template), so omit SearchAction.
+    return {
+        "@context": "https://schema.org",
+        "@graph": [
+            {"@type": "WebSite", "name": NAME, "url": ORIGIN + "/", "publisher": publisher_org()},
+            {**publisher_org(), "@id": ORIGIN + "/#organization"},
+        ],
+    }
+
+
+def verse_json_ld(entry, title, description, path):
+    return {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": title,
+        "name": entry["reference"],
+        "description": description,
+        "url": canonical(path),
+        "inLanguage": "en",
+        "isPartOf": {"@type": "WebSite", "name": NAME, "url": ORIGIN + "/"},
+        "publisher": publisher_org(),
+    }
+
 
 
 def load_records(root=ROOT):
@@ -86,23 +132,28 @@ def load_records(root=ROOT):
     return catalog, records
 
 
-def metadata(title, description, path, noindex=False, website=False):
+def metadata(title, description, path, noindex=False, website=False, json_ld=None, og_type="website"):
     url = canonical(path)
+    image = canonical(OG_IMAGE_PATH)
     tags = [f'<title>{html(title)}</title>',
             f'<meta name="description" content="{html(description)}" />',
             f'<link rel="canonical" href="{html(url)}" />',
             '<meta name="robots" content="noindex, follow" />' if noindex else '',
-            '<meta property="og:type" content="website" />',
+            f'<meta property="og:type" content="{html(og_type)}" />',
             f'<meta property="og:site_name" content="{NAME}" />',
             f'<meta property="og:title" content="{html(title)}" />',
             f'<meta property="og:description" content="{html(description)}" />',
             f'<meta property="og:url" content="{html(url)}" />',
-            '<meta name="twitter:card" content="summary" />',
+            f'<meta property="og:image" content="{html(image)}" />',
+            f'<meta property="og:image:width" content="{OG_IMAGE_WIDTH}" />',
+            f'<meta property="og:image:height" content="{OG_IMAGE_HEIGHT}" />',
+            '<meta name="twitter:card" content="summary_large_image" />',
             f'<meta name="twitter:title" content="{html(title)}" />',
-            f'<meta name="twitter:description" content="{html(description)}" />']
-    if website:
-        data = {"@context": "https://schema.org", "@type": "WebSite", "name": NAME, "url": ORIGIN + "/"}
-        tags.append(f'<script type="application/ld+json">{json_script(data)}</script>')
+            f'<meta name="twitter:description" content="{html(description)}" />',
+            f'<meta name="twitter:image" content="{html(image)}" />']
+    payload = website_json_ld() if website else json_ld
+    if payload is not None:
+        tags.append(f'<script type="application/ld+json">{json_script(payload)}</script>')
     return "\n    ".join(t for t in tags if t)
 
 
@@ -111,7 +162,7 @@ def source_page(name, root=ROOT):
     title = re.search(r"<title>(.*?)</title>", source, re.S).group(1)
     description = re.search(r'<meta\s+name="description"\s+content="([^"]*)"\s*/?>', source, re.S).group(1)
     if name == "index.html":
-        title, description = "Daily Bible Promises (WEB) — His Promise Daily", HOME_DESCRIPTION
+        title, description = HOME_TITLE, HOME_DESCRIPTION
     # Existing source titles/descriptions use text without HTML entities.
     source = re.sub(r"\s*<title>.*?</title>", "", source, flags=re.S)
     source = re.sub(r'\s*<meta\s+name="description"\s+content="[^"]*"\s*/?>', "", source, flags=re.S)
@@ -142,7 +193,7 @@ def groups_for(records):
     return books, topics
 
 
-def page_shell(title, description, path, heading, content, root=ROOT):
+def page_shell(title, description, path, heading, content, root=ROOT, json_ld=None, og_type="website"):
     source = (root / "index.html").read_text(encoding="utf-8")
     # Reuse the existing font and favicon, while cache-busting each changed stylesheet by content.
     links = re.findall(r"<link\b[^>]*>", source, re.S)
@@ -156,7 +207,7 @@ def page_shell(title, description, path, heading, content, root=ROOT):
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {metadata(title, description, path)}
+    {metadata(title, description, path, json_ld=json_ld, og_type=og_type)}
     {chr(10).join(links)}
   </head>
   <body class="page-browse">
@@ -180,8 +231,9 @@ def page_shell(title, description, path, heading, content, root=ROOT):
 
 def verse_page(entry, books, root=ROOT):
     reference = entry["reference"]
-    title = f"{reference} — Bible Promise (WEB) | {NAME}"
-    description = f"Read {reference} in the World English Bible (WEB), with a short explanation. Explore Bible promises in {entry['book']}."
+    title = f"{reference} — His Promise Daily"
+    # Prefix the reference so identical explanations stay unique in meta descriptions.
+    description = meta_description(f"{reference}. {entry['explanation']}")
     topics = " · ".join(f'<a href="{html(listing_path("topics", t))}">{html(t.replace("-", " "))}</a>'
                         for t in dict.fromkeys(entry["themes"]))
     siblings = books[entry["book"]]
@@ -202,7 +254,10 @@ def verse_page(entry, books, root=ROOT):
         <nav aria-label="Related topics">{topics}</nav>
       </article>
       <nav class="catalog-pagination" aria-label="More promises in this book">{' · '.join(adjacent)}</nav>'''
-    return page_shell(title, description, verse_path(entry), reference, content, root)
+    path = verse_path(entry)
+    schema = verse_json_ld(entry, title, description, path)
+    return page_shell(title, description, path, reference, content, root,
+                      json_ld=schema, og_type="article")
 
 
 def listing_page(kind, value, entries, page, root=ROOT):
@@ -312,7 +367,7 @@ def build(target="production", root=ROOT):
     if target == "production":
         for name in SOURCE_PAGES:
             (output / name).write_text(source_page(name, root), encoding="utf-8")
-        for name in ("styles.css", "browse.css", "app.js"):
+        for name in ("styles.css", "browse.css", "app.js", "og-image.png"):
             shutil.copy2(root / name, output / name)
         shutil.copytree(root / "js", output / "js")
         (output / "data").mkdir()
