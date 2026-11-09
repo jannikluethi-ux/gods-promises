@@ -14,6 +14,10 @@ const ENV = {
   SUPABASE_SERVICE_ROLE_KEY: "sb_secret_test_only_not_a_real_key_0000",
   FEEDBACK_HASH_SECRET: "x".repeat(40),
 };
+const JWT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.not-a-real-signature";
+function b64wrap(raw) {
+  return "b64:" + Buffer.from(raw, "utf8").toString("base64");
+}
 const catalog = core.loadCatalog(ROOT);
 const VERSION = fs.readFileSync(path.join(ROOT, "js/ui-shared.js"), "utf8").match(/const EXPLAIN_VERSION = "([^"]+)"/)[1];
 const explanations = JSON.parse(fs.readFileSync(path.join(ROOT, "data/explanations.json"), "utf8"));
@@ -59,6 +63,67 @@ const base = (extra) => Object.assign({ verseId: VERSE, explanationVersion: VERS
     assert.equal(res.statusCode, 503);
     assert.deepEqual(res.json(), { error: "feedback_unavailable" });
     assert.equal(called, false);
+  }
+
+  // —— Service-role key: raw sb_secret_ / eyJ, or b64: + standard Base64 of one of those ——
+  assert.equal(core.readConfig(ENV).key, ENV.SUPABASE_SERVICE_ROLE_KEY);
+  assert.equal(core.readConfig({ ...ENV, SUPABASE_SERVICE_ROLE_KEY: JWT_KEY }).key, JWT_KEY);
+  assert.equal(core.readConfig({ ...ENV, SUPABASE_SERVICE_ROLE_KEY: "dev-only-not-a-secret-000000" }).key, "dev-only-not-a-secret-000000");
+  assert.equal(core.readConfig({ ...ENV, SUPABASE_SERVICE_ROLE_KEY: b64wrap(ENV.SUPABASE_SERVICE_ROLE_KEY) }).key, ENV.SUPABASE_SERVICE_ROLE_KEY);
+  assert.equal(core.readConfig({ ...ENV, SUPABASE_SERVICE_ROLE_KEY: b64wrap(JWT_KEY) }).key, JWT_KEY);
+  const plusKey = "sb_secret_" + ">".repeat(10);
+  assert.match(Buffer.from(plusKey, "utf8").toString("base64"), /\+/);
+  assert.equal(core.readConfig({ ...ENV, SUPABASE_SERVICE_ROLE_KEY: b64wrap(plusKey) }).key, plusKey);
+  const jwtPadded = Buffer.from(JWT_KEY, "utf8").toString("base64");
+  assert.ok(jwtPadded.endsWith("="));
+  assert.equal(core.readConfig({ ...ENV, SUPABASE_SERVICE_ROLE_KEY: "b64:" + jwtPadded.replace(/=+$/, "") }).key, JWT_KEY);
+
+  const urlSafe = Buffer.from(plusKey, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const rejectedKeys = [
+    "sb_secret_",
+    "sb_secret_short",
+    "eyJhbGciOi",
+    "x".repeat(19),
+    "b64:",
+    "b64:****",
+    "b64:not valid base64",
+    "b64:" + "abcd".repeat(10) + "!",
+    b64wrap("sb_secret_"),
+    b64wrap("eyJhbGciOi"),
+    b64wrap("x".repeat(19)),
+    b64wrap("not-a-service-role-key-at-all"),
+    "b64:" + urlSafe,
+    "b64:\n" + Buffer.from(ENV.SUPABASE_SERVICE_ROLE_KEY, "utf8").toString("base64"),
+    b64wrap(ENV.SUPABASE_SERVICE_ROLE_KEY) + "\n",
+  ];
+  for (const badKey of rejectedKeys) {
+    assert.equal(core.readConfig({ ...ENV, SUPABASE_SERVICE_ROLE_KEY: badKey }), null, JSON.stringify(badKey));
+  }
+  {
+    const leaked = "plain-text-key-should-not-leak-0000";
+    const logs = [];
+    const hBad = core.createHandler({
+      env: { ...ENV, SUPABASE_SERVICE_ROLE_KEY: b64wrap(leaked) },
+      catalog, rpc: async () => { throw new Error("rpc must not run"); }, log: (m) => logs.push(String(m)),
+    });
+    const badRes = await call(hBad, req("GET", undefined, { url: "/api/feedback?verseId=" + VERSE + "&v=" + VERSION }));
+    assert.equal(badRes.statusCode, 503);
+    assert.deepEqual(badRes.json(), { error: "feedback_unavailable" });
+    assert.ok(!badRes.body.includes(leaked));
+    assert.ok(!badRes.body.includes("b64:"));
+    const logged = logs.join("\n");
+    assert.ok(!logged.includes(leaked));
+    assert.ok(!logged.includes("b64:"));
+    assert.match(logged, /missing or invalid SUPABASE_URL/);
+  }
+  {
+    const hWrapped = core.createHandler({
+      env: { ...ENV, SUPABASE_SERVICE_ROLE_KEY: b64wrap(ENV.SUPABASE_SERVICE_ROLE_KEY) },
+      catalog, rpc: async () => ({ submitted: false }), log: () => {},
+    });
+    const wrappedRes = await call(hWrapped, req("GET", undefined, { url: "/api/feedback?verseId=" + VERSE + "&v=" + VERSION }));
+    assert.equal(wrappedRes.statusCode, 200, wrappedRes.body);
+    assert.deepEqual(wrappedRes.json(), { submitted: false });
   }
 
   const rpc = createFakeRpc();
@@ -225,6 +290,36 @@ const base = (extra) => Object.assign({ verseId: VERSE, explanationVersion: VERS
   assert.equal(sent[0].url, ENV.SUPABASE_URL + "/rest/v1/rpc/hpd_feedback_submit");
   assert.equal(sent[0].init.headers.apikey, ENV.SUPABASE_SERVICE_ROLE_KEY);
   assert.equal(sent[0].init.headers.authorization, undefined);
+  assert.ok(!res.body.includes("b64:"));
+
+  async function captureRpc(envKey) {
+    const got = [];
+    const handler = core.createHandler({
+      env: { ...ENV, SUPABASE_SERVICE_ROLE_KEY: envKey },
+      catalog, log: () => {},
+      fetch: async (url, init) => {
+        got.push({ url, init });
+        return { ok: true, json: async () => ({ status: "created", id: "x" }) };
+      },
+    });
+    const response = await call(handler, req("POST", base(), { ip: "203.0.113.77" }));
+    assert.equal(response.statusCode, 201, response.body);
+    assert.ok(!response.body.includes(envKey));
+    assert.ok(!response.body.includes("b64:"));
+    return got[0];
+  }
+  let rpcCall = await captureRpc(b64wrap(ENV.SUPABASE_SERVICE_ROLE_KEY));
+  assert.equal(rpcCall.url, ENV.SUPABASE_URL + "/rest/v1/rpc/hpd_feedback_submit");
+  assert.equal(rpcCall.init.headers.apikey, ENV.SUPABASE_SERVICE_ROLE_KEY);
+  assert.equal(rpcCall.init.headers.authorization, undefined);
+  assert.ok(!JSON.stringify(rpcCall.init.headers).includes("b64:"));
+  rpcCall = await captureRpc(JWT_KEY);
+  assert.equal(rpcCall.init.headers.apikey, JWT_KEY);
+  assert.equal(rpcCall.init.headers.authorization, "Bearer " + JWT_KEY);
+  rpcCall = await captureRpc(b64wrap(JWT_KEY));
+  assert.equal(rpcCall.init.headers.apikey, JWT_KEY);
+  assert.equal(rpcCall.init.headers.authorization, "Bearer " + JWT_KEY);
+  assert.ok(!JSON.stringify(rpcCall.init.headers).includes("b64:"));
   const args = JSON.parse(sent[0].init.body);
   assert.deepEqual(Object.keys(args).sort(), ["p_book", "p_categories", "p_chapter", "p_comment", "p_explanation_sha256", "p_explanation_version", "p_ip_key", "p_language", "p_local_user_id", "p_rating", "p_reference", "p_source", "p_submitter_key", "p_verse_end", "p_verse_id", "p_verse_start"]);
   assert.ok(!sent[0].init.body.includes("203.0.113.7"), "raw IP must not be sent to storage");

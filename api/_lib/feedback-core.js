@@ -156,11 +156,47 @@ function hmac(secret, label, value) {
   return crypto.createHmac("sha256", secret).update(label + ":" + value).digest("hex");
 }
 
+/**
+ * Standard Base64 (RFC 4648), with or without padding. Rejects whitespace and the
+ * URL-safe alphabet so a truncated or altered wrapper cannot decode into a different key.
+ * @returns {string|null}
+ */
+function decodeStandardBase64(encoded) {
+  if (typeof encoded !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) return null;
+  const pad = encoded.endsWith("==") ? 2 : encoded.endsWith("=") ? 1 : 0;
+  if (pad && encoded.length % 4 !== 0) return null;
+  const body = encoded.slice(0, encoded.length - pad);
+  if (body.length % 4 === 1) return null;
+  const buf = Buffer.from(body, "base64");
+  if (buf.length === 0 || buf.toString("base64").replace(/=+$/, "") !== body) return null;
+  const text = buf.toString("utf8");
+  if (Buffer.compare(Buffer.from(text, "utf8"), buf) !== 0) return null;
+  return text;
+}
+
+/**
+ * SUPABASE_SERVICE_ROLE_KEY as sent to Supabase.
+ * Raw values pass through unchanged (sb_secret_, eyJ, and any other key); readConfig
+ * still requires length >= 20. A value that starts with the literal prefix "b64:" is
+ * standard Base64 of the raw key — used when a transfer would truncate a raw sb_secret_
+ * value to that 10-character prefix. The decoded bytes must themselves be an sb_secret_
+ * or eyJ key of length >= 20; anything else returns null so the API fails closed.
+ * This never logs the key.
+ * @returns {string|null}
+ */
+function resolveServiceRoleKey(raw) {
+  const value = String(raw || "");
+  if (!value.startsWith("b64:")) return value;
+  const decoded = decodeStandardBase64(value.slice(4));
+  if (!decoded || decoded.length < 20 || (!decoded.startsWith("sb_secret_") && !decoded.startsWith("eyJ"))) return null;
+  return decoded;
+}
+
 function readConfig(env) {
   const url = String(env.SUPABASE_URL || "").replace(/\/+$/, "");
-  const key = String(env.SUPABASE_SERVICE_ROLE_KEY || "");
+  const key = resolveServiceRoleKey(env.SUPABASE_SERVICE_ROLE_KEY);
   const secret = String(env.FEEDBACK_HASH_SECRET || "");
-  if (!/^https:\/\/[^/\s]+$/.test(url) || key.length < 20 || secret.length < 32) return null;
+  if (key === null || !/^https:\/\/[^/\s]+$/.test(url) || key.length < 20 || secret.length < 32) return null;
   return { url, key, secret };
 }
 
