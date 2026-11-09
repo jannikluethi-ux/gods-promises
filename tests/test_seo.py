@@ -99,7 +99,9 @@ class StaticSeoTests(unittest.TestCase):
                 self.assertEqual(doc.values["blockquote"], [entry["text"]])
                 self.assertEqual(doc.values["explanation"], [entry["explanation"]])
                 self.assertEqual(doc.values["h1"], [entry["reference"]])
-                self.assertFalse(doc.scripts, "Static content must not require JS or collect analytics")
+                # JSON-LD only: no executable scripts or analytics on static verse pages.
+                self.assertTrue(doc.scripts)
+                self.assertTrue(all(s.get("type") == "application/ld+json" and "src" not in s for s in doc.scripts))
 
     def test_metadata_unique_and_complete(self):
         titles, descriptions, canonicals, headings = set(), set(), set(), set()
@@ -128,7 +130,11 @@ class StaticSeoTests(unittest.TestCase):
                 self.assertEqual(doc.metadata("og:url"), [url])
                 self.assertEqual(doc.metadata("twitter:title"), [title])
                 self.assertEqual(doc.metadata("twitter:description"), description)
-                self.assertEqual(doc.metadata("twitter:card"), ["summary"])
+                self.assertEqual(doc.metadata("twitter:card"), ["summary_large_image"])
+                self.assertEqual(doc.metadata("og:image"), [site.ORIGIN + site.OG_IMAGE_PATH])
+                self.assertEqual(doc.metadata("twitter:image"), [site.ORIGIN + site.OG_IMAGE_PATH])
+                self.assertEqual(doc.metadata("og:image:width"), [str(site.OG_IMAGE_WIDTH)])
+                self.assertEqual(doc.metadata("og:image:height"), [str(site.OG_IMAGE_HEIGHT)])
 
     def test_all_pages_reachable_by_ordinary_links_and_assets_exist(self):
         seen, pending = set(), ["index.html"]
@@ -182,8 +188,29 @@ class StaticSeoTests(unittest.TestCase):
         source = (self.output / "index.html").read_text()
         marker = '<script type="application/ld+json">'
         data = json.loads(source.split(marker)[1].split("</script>")[0])
-        self.assertEqual(data, {"@context": "https://schema.org", "@type": "WebSite", "name": site.NAME, "url": site.ORIGIN + "/"})
+        self.assertEqual(data, site.website_json_ld())
         self.assertNotIn("SearchAction", source)
+        self.assertEqual((self.output / "index.html").read_text().count(marker), 1)
+        # Homepage title/description tightened for search snippets.
+        home = self.documents["index.html"]
+        self.assertEqual(home.values["title"], [site.HOME_TITLE])
+        self.assertEqual(home.metadata("description"), [site.HOME_DESCRIPTION])
+        # Verse pages carry Article JSON-LD with the truncated explanation description.
+        verse = self.documents["verses/gen-1-28.html"]
+        entry = next(e for e in self.records if e["id"] == "gen-1-28")
+        expected_desc = site.meta_description(f"{entry['reference']}. {entry['explanation']}")
+        self.assertEqual(verse.values["title"], [f"{entry['reference']} — His Promise Daily"])
+        self.assertEqual(verse.metadata("description"), [expected_desc])
+        self.assertEqual(verse.metadata("og:type"), ["article"])
+        verse_html = (self.output / "verses/gen-1-28.html").read_text()
+        verse_data = json.loads(verse_html.split(marker)[1].split("</script>")[0])
+        self.assertEqual(verse_data["@type"], "Article")
+        self.assertEqual(verse_data["headline"], f"{entry['reference']} — His Promise Daily")
+        self.assertEqual(verse_data["description"], expected_desc)
+        self.assertEqual(verse_data["url"], site.canonical(site.verse_path(entry)))
+        self.assertEqual(verse_data["inLanguage"], "en")
+        json.loads(json.dumps(verse_data))  # validates JSON round-trip
+        self.assertTrue((self.output / "og-image.png").is_file())
 
     def test_migration_is_only_stubs_and_targets_production(self):
         output = site.ROOT / "pages-dist"
@@ -222,7 +249,7 @@ class StaticSeoTests(unittest.TestCase):
         self.assertEqual(doc.values["explanation"], [malicious])
         self.assertNotIn("img", doc.tags)
         self.assertFalse(any("onmouseover" in attrs or "onerror" in attrs for attrs in doc.attributes))
-        self.assertEqual(doc.metadata("description"), [f"Read {malicious} in the World English Bible (WEB), with a short explanation. Explore Bible promises in {entry['book']}."])
+        self.assertEqual(doc.metadata("description"), [site.meta_description(f"{malicious}. {malicious}")])
         encoded = site.json_script({"name": malicious})
         self.assertNotIn("</script>", encoded)
         self.assertNotIn("<", encoded)
@@ -235,7 +262,7 @@ class StaticSeoTests(unittest.TestCase):
     def test_build_uses_latest_sources_and_validates_counts(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            for name in site.SOURCE_PAGES + ("styles.css", "browse.css", "app.js", "promises.json"):
+            for name in site.SOURCE_PAGES + ("styles.css", "browse.css", "app.js", "promises.json", "og-image.png"):
                 shutil.copy2(site.ROOT / name, root / name)
             shutil.copytree(site.ROOT / "js", root / "js")
             (root / "data").mkdir()
@@ -294,6 +321,7 @@ class StaticSeoTests(unittest.TestCase):
                        ("/verses/gen-1-28.html", "text/html"),
                        ("/styles.css", "text/css"), ("/browse.css", "text/css"),
                        ("/app.js", "javascript"), ("/data/explanations.json", "application/json"),
+                       ("/og-image.png", "image/png"),
                        ("/robots.txt", "text/plain"), ("/sitemap.xml", "xml")]
             for path, content_type in samples:
                 with urlopen(base + path, timeout=5) as response:
