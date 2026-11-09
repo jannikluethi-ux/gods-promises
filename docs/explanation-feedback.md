@@ -27,12 +27,25 @@ required whenever `data/explanations.json` changes) lets readers rate the new ve
 | Name | Value |
 | --- | --- |
 | `SUPABASE_URL` | `https://<project-ref>.supabase.co` of a **dedicated** His Promise Daily project |
-| `SUPABASE_SERVICE_ROLE_KEY` | that project’s secret / service-role key (server only, never in client JS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | that project’s secret / service-role key (server only, never in client JS). Raw `sb_secret_…` or legacy `eyJ…` is used as-is. See below for the `b64:` form. |
 | `FEEDBACK_HASH_SECRET` | random string, ≥ 32 chars (e.g. `openssl rand -base64 48`); HMAC key for cookie and IP hashes |
 
 Without all three the API fails closed with `503 {"error":"feedback_unavailable"}` and the widget
 shows a gentle “couldn’t be sent” message. Rotating `FEEDBACK_HASH_SECRET` resets duplicate
 detection for existing cookies (old rows stay).
+
+Some env transfers truncate a raw value that starts with `sb_secret_` down to that 10-character
+prefix, which fails the length check. In that case set `SUPABASE_SERVICE_ROLE_KEY` to the literal
+prefix `b64:` plus one line of standard Base64 of the raw key (no spaces or line breaks):
+
+```sh
+# KEY is the raw sb_secret_ or eyJ value. Do not commit the output.
+node -e 'if (!process.env.KEY) process.exit(1); process.stdout.write("b64:" + Buffer.from(process.env.KEY, "utf8").toString("base64"))'
+```
+
+The function decodes that before the Supabase RPC and sends the raw key. The decoded value must
+still start with `sb_secret_` or `eyJ` and be at least 20 characters; anything else fails closed.
+The key is never logged. Legacy `eyJ` keys can stay raw.
 
 ## Applying the migration
 
@@ -73,7 +86,7 @@ in the Supabase SQL editor; they are not reachable with the anon key.
 
 ## Tests
 
-- `node tests/feedback-api.test.js`: validation, allowlists, duplicates, cookies, origin, fail-closed, rate limits.
+- `node tests/feedback-api.test.js`: validation, allowlists, duplicates, cookies, origin, fail-closed, rate limits, raw and `b64:` service-role keys.
 - `node tests/feedback-widget.test.js`: markup, labels, states cache, card hook.
 - `python3 -m unittest discover -s tests -p 'test_*.py'`: every verse page has exactly one widget and one deferred feedback script.
 - `tests/sql/explanation_feedback_checks.sql`: grants/RLS/RPC behavior on a throwaway Postgres with Supabase roles.
