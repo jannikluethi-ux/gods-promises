@@ -28,7 +28,8 @@ function createFakeRpc() {
       chapter: a.p_chapter, verse_start: a.p_verse_start, verse_end: a.p_verse_end,
       explanation_version: a.p_explanation_version, explanation_sha256: a.p_explanation_sha256,
       language: a.p_language, rating: a.p_rating, categories: [...new Set(a.p_categories)].sort(),
-      comment: a.p_comment, local_user_id: a.p_local_user_id, submitter_key: a.p_submitter_key,
+      comment: a.p_comment, local_user_id: null, auth_user_id: a.p_auth_user_id || null,
+      submitter_key: a.p_submitter_key,
       source: a.p_source, created_at: new Date().toISOString(),
     };
     rows.push(row);

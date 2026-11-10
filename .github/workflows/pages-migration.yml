@@ -19,6 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: npm ci
       - name: Verify production and migration artifacts
         run: |
           python3 -m unittest discover -s tests -p 'test_*.py'
@@ -26,6 +27,10 @@ jobs:
           node tests/safe-next.test.js
           node tests/feedback-api.test.js
           node tests/feedback-widget.test.js
+          node tests/account-api.test.js
+          node tests/auth-cloud.test.js
+          node tests/run-sql.js
+          node tests/behavior-regression.test.js
       - name: Build migration artifact (never upload production dist)
         run: python3 scripts/build_site.py --target migration
       - uses: actions/upload-pages-artifact@v3

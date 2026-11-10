@@ -164,6 +164,34 @@ function readConfig(env) {
   return { url, key, secret };
 }
 
+/**
+ * Resolve a Supabase Auth user from an Authorization bearer token.
+ * Returns { id: null } when no token was sent, { invalid: true } for a bad
+ * token, and { error: true } when the Auth API cannot be reached.
+ * The user id in a JSON body is never consulted.
+ */
+async function verifiedAuthUserId(req, cfg, fetchImpl) {
+  const raw = String(header(req, "authorization") || "");
+  const match = /^Bearer\s+(\S+)$/i.exec(raw);
+  if (!match) return { id: null };
+  const jwt = match[1];
+  if (jwt.length < 20 || jwt.length > 8192) return { invalid: true };
+  let res;
+  try {
+    res = await fetchImpl(cfg.url + "/auth/v1/user", {
+      method: "GET",
+      headers: { apikey: cfg.key, authorization: "Bearer " + jwt, accept: "application/json" },
+    });
+  } catch (_) {
+    return { error: true };
+  }
+  if (!res || !res.ok) return { invalid: true };
+  let body;
+  try { body = await res.json(); } catch (_) { return { invalid: true }; }
+  if (!body || typeof body.id !== "string" || !UUID_RE.test(body.id)) return { invalid: true };
+  return { id: body.id };
+}
+
 /** Small per-instance limiter in front of the database limiter (cheap first line of defense). */
 function memoryLimiter(limit, windowMs) {
   const hits = new Map();
@@ -307,6 +335,15 @@ function createHandler(deps) {
     }
     const sessionToken = token || newToken();
     const extra = token ? undefined : { "set-cookie": cookieHeader(sessionToken, req) };
+    let authUser;
+    try {
+      authUser = await verifiedAuthUserId(req, cfg, fetchImpl);
+    } catch (_) {
+      authUser = { error: true };
+    }
+    if (authUser.error) return send(res, 502, { error: "storage_error" }, extra);
+    if (authUser.invalid) return send(res, 401, { error: "invalid_session" }, extra);
+    const authUserId = authUser.id;
     // Honeypot filled: look successful to the bot, store nothing.
     if (v.honeypot) return send(res, 201, { ok: true, status: "created" }, extra);
     const f = v.value;
@@ -325,7 +362,8 @@ function createHandler(deps) {
         p_rating: f.rating,
         p_categories: f.categories,
         p_comment: f.comment,
-        p_local_user_id: f.localUserId,
+        p_local_user_id: null,
+        p_auth_user_id: authUserId,
         p_submitter_key: hmac(cfg.secret, "submitter", sessionToken),
         p_ip_key: ipKey,
         p_source: f.source,
@@ -345,5 +383,5 @@ function createHandler(deps) {
 
 module.exports = {
   createHandler, validateSubmission, cleanComment, loadCatalog, originAllowed, readConfig,
-  parseCookies, memoryLimiter, CATEGORIES, COOKIE_NAME, MAX_COMMENT,
+  verifiedAuthUserId, parseCookies, memoryLimiter, CATEGORIES, COOKIE_NAME, MAX_COMMENT, UUID_RE,
 };

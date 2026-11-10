@@ -112,7 +112,9 @@ const base = (extra) => Object.assign({ verseId: VERSE, explanationVersion: VERS
   const r2 = rpc.rows[1];
   assert.deepEqual(r2.categories, ["missing_context", "other", "too_general"]);
   assert.equal(r2.comment, "Needs more context about the covenant.\n\nThanks");
-  assert.equal(r2.local_user_id, "123e4567-e89b-42d3-a456-426614174000");
+  // A user id in the JSON body is not an identity. Anonymous rows store neither id.
+  assert.equal(r2.local_user_id, null);
+  assert.equal(r2.auth_user_id, null);
   assert.notEqual(r2.submitter_key, row.submitter_key);
 
   // —— Validation: every field is checked server-side ——
@@ -226,7 +228,40 @@ const base = (extra) => Object.assign({ verseId: VERSE, explanationVersion: VERS
   assert.equal(sent[0].init.headers.apikey, ENV.SUPABASE_SERVICE_ROLE_KEY);
   assert.equal(sent[0].init.headers.authorization, undefined);
   const args = JSON.parse(sent[0].init.body);
-  assert.deepEqual(Object.keys(args).sort(), ["p_book", "p_categories", "p_chapter", "p_comment", "p_explanation_sha256", "p_explanation_version", "p_ip_key", "p_language", "p_local_user_id", "p_rating", "p_reference", "p_source", "p_submitter_key", "p_verse_end", "p_verse_id", "p_verse_start"]);
+  assert.deepEqual(Object.keys(args).sort(), ["p_auth_user_id", "p_book", "p_categories", "p_chapter", "p_comment", "p_explanation_sha256", "p_explanation_version", "p_ip_key", "p_language", "p_local_user_id", "p_rating", "p_reference", "p_source", "p_submitter_key", "p_verse_end", "p_verse_id", "p_verse_start"]);
+  assert.equal(args.p_local_user_id, null);
+  assert.equal(args.p_auth_user_id, null);
+  assert.equal(sent.length, 1, "anonymous feedback must not call the Auth API");
+
+  // A bearer token is checked with Auth. The body user id is ignored.
+  // An invalid token does not fall back to anonymous attribution.
+  const USER = "123e4567-e89b-42d3-a456-426614174000";
+  const authed = [];
+  const h6 = core.createHandler({ env: ENV, catalog, log: () => {}, fetch: async (url, init) => {
+    authed.push({ url, init });
+    if (String(url).endsWith("/auth/v1/user")) {
+      const jwt = init.headers.authorization || "";
+      if (jwt.endsWith("good-token-value-0123456789")) return { ok: true, status: 200, json: async () => ({ id: USER }) };
+      return { ok: false, status: 401, json: async () => ({ message: "bad" }) };
+    }
+    return { ok: true, json: async () => ({ status: "created", id: "x" }) };
+  } });
+  res = await call(h6, req("POST", base({ localUserId: "123e4567-e89b-42d3-a456-426614174099" }), {
+    headers: { authorization: "Bearer good-token-value-0123456789" }, ip: "198.51.100.20",
+  }));
+  assert.equal(res.statusCode, 201, res.body);
+  assert.equal(authed[0].url, ENV.SUPABASE_URL + "/auth/v1/user");
+  assert.equal(authed[0].init.headers.authorization, "Bearer good-token-value-0123456789");
+  assert.equal(authed[0].init.headers.apikey, ENV.SUPABASE_SERVICE_ROLE_KEY);
+  const authedArgs = JSON.parse(authed[1].init.body);
+  assert.equal(authedArgs.p_auth_user_id, USER);
+  assert.equal(authedArgs.p_local_user_id, null);
+  assert.ok(!authedArgs.p_auth_user_id.includes("174099"));
+  res = await call(h6, req("POST", base(), {
+    headers: { authorization: "Bearer not-the-right-token-0123456789" }, ip: "198.51.100.21",
+  }));
+  assert.equal(res.statusCode, 401);
+  assert.equal(authed.length, 3, "invalid session must not submit feedback");
   assert.ok(!sent[0].init.body.includes("203.0.113.7"), "raw IP must not be sent to storage");
 
   // —— Client bundle never contains server secrets or Supabase endpoints ——

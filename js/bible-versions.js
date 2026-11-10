@@ -124,6 +124,8 @@
     } catch (e) {
       /* ignore */
     }
+    var auth = global.GodsPromisesAuth;
+    if (auth && typeof auth.syncBibleVersion === "function") auth.syncBibleVersion(id);
   }
 
   function getCurrentId() {

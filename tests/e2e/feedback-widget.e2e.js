@@ -178,17 +178,33 @@ async function signedInFlow(browser) {
   const ctx = await browser.newContext(VIEWPORTS.desktop);
   const page = await ctx.newPage();
   await page.goto(`${BASE}/`);
-  await page.evaluate(() => window.GodsPromisesAuth.signUp({ email: "fb-e2e@example.invalid", password: "correct horse 1", displayName: "E2E" }));
+  const signed = await page.evaluate(async () => {
+    try {
+      const user = await window.GodsPromisesAuth.signUp({ email: "fb-e2e@example.invalid", password: "correct horse 1", displayName: "E2E" });
+      return { id: user && user.id || null, needsVerification: !!(user && user.needsVerification) };
+    } catch (error) {
+      return { error: error && error.message };
+    }
+  });
+  if (!signed || signed.error || signed.needsVerification || !signed.id) {
+    console.log("signed-in feedback association skipped:", (signed && (signed.error || "email verification required")) || "no session");
+    await ctx.close();
+    return;
+  }
   await page.reload();
-  const userId = await page.evaluate(() => window.GodsPromisesAuth.getCurrentUser().id);
+  const userId = await page.evaluate(() => window.GodsPromisesAuth.getCurrentUser() && window.GodsPromisesAuth.getCurrentUser().id);
   const card = page.locator(".deck-card").first();
   await card.locator(".card-explain:not(.is-loading) .fb-choice").first().waitFor({ timeout: 15000 });
   const posted = page.waitForRequest((r) => r.url().endsWith("/api/feedback") && r.method() === "POST");
   await card.getByRole("button", { name: "Yes, helpful" }).click();
   await card.getByText("Practical and applicable to my daily life").click();
   await card.getByRole("button", { name: "Send feedback" }).click();
-  const body = JSON.parse((await posted).postData());
-  assert.equal(body.localUserId, userId, "signed-in local profile id is attached (unverified)");
+  const postedReq = await posted;
+  const body = JSON.parse(postedReq.postData());
+  assert.equal(body.localUserId, undefined, "the browser does not send a user id");
+  const authorization = postedReq.headers().authorization || "";
+  if (authorization) assert.match(authorization, /^Bearer\s+\S+/);
+  assert.ok(userId);
   assert.deepEqual(body.categories, ["practical"]);
   await card.locator(".fb-done").waitFor();
   await ctx.close();

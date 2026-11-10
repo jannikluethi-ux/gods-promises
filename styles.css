@@ -1681,9 +1681,38 @@ a:hover {
   margin-top: 1.25rem;
 }
 
-.auth-form .btn-primary {
+.auth-form .btn-primary,
+.auth-form .auth-form-secondary {
   width: 100%;
   margin-top: 1.35rem;
+}
+
+.account-settings {
+  margin: 0 auto 1.5rem;
+  max-width: 36rem;
+}
+
+.account-settings h2,
+.account-danger summary {
+  font-family: var(--font-script);
+  font-size: 1.7rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.account-danger {
+  margin-top: 1.4rem;
+  color: var(--ink-muted);
+}
+
+.account-danger summary {
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.account-danger p {
+  font-size: 0.88rem;
+  line-height: 1.5;
 }
 
 .me-toolbar {
