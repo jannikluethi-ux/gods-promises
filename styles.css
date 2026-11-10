@@ -1362,6 +1362,53 @@ a:hover {
   margin: 0;
 }
 
+/* Unmatched search: a cloud-blue note, then a short list of comfort promises.
+   Distinct from the one-card reading deck used for exact matches. */
+.search-fallback {
+  max-width: 40rem;
+  margin: 0.15rem auto 1.5rem;
+}
+
+.search-fallback-lead {
+  margin: 0 0 1.15rem;
+  padding: 1.35rem 1.35rem 1.2rem;
+  text-align: center;
+  background: #e1e9f1;
+  border: 1px solid rgba(61, 84, 112, 0.28);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+.search-fallback-lead h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-script);
+  font-size: clamp(1.9rem, 4.4vw, 2.45rem);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.15;
+  color: #3d5470;
+}
+
+.search-fallback-lead p {
+  margin: 0 auto;
+  max-width: 34em;
+  font-family: var(--font-verse);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.08rem;
+  line-height: 1.45;
+  color: #3d5470;
+}
+
+.search-fallback-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.search-corrected {
+  color: #3d5470;
+}
+
 @media (max-width: 560px) {
   .reading-stage {
     padding: 0.15rem 0 1rem;

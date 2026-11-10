@@ -398,6 +398,26 @@
     currentIndex = 0;
   }
 
+  function showSearchFallback(list) {
+    if (deck) deck.reset();
+    el.results.classList.remove("results-host--reading");
+    document.body.classList.remove("reading-active");
+    const note =
+      Smart && Smart.COMFORT_NOTE
+        ? Smart.COMFORT_NOTE
+        : "We don't have that exact word, but here are promises that have comforted others in hard moments.";
+    const cards = list.map((p) => renderCard(p, null)).join("");
+    el.results.innerHTML = `
+      <div class="search-fallback" data-fallback="1" role="status">
+        <div class="search-fallback-lead">
+          <h2>For a hard moment</h2>
+          <p>${escapeHtml(note)}</p>
+        </div>
+        <ul class="results search-fallback-list">${cards}</ul>
+      </div>`;
+    hydrateVisibleCards(list);
+  }
+
   function showEmptyResults(html) {
     if (deck) deck.reset();
     el.results.classList.remove("results-host--reading");
@@ -719,31 +739,86 @@
     // Leaving the landing: next time it opens on today's verse.
     dailyOffset = 0;
 
-    const plan = currentPlan();
+    let plan = currentPlan();
     const rawTokens = tokensFromQuery(el.search.value);
     // Prefer smart plan tokens (stopwords stripped); else legacy AND tokens
-    const tokens = plan
+    let tokens = plan
       ? [] // plan handles matching
       : rawTokens;
     const testament = activeTestament;
     const book = el.book.value;
     const theme = el.theme.value;
     const feeling = el.feeling.value;
+    const rawQuery = el.search.value.trim();
+    const scriptureQuery = Smart && Smart.looksLikeScriptureRef(rawQuery);
+    let correctedQuery = "";
+
+    function textHits(activePlan, activeTokens) {
+      return indexed.filter((item) =>
+        matches(item, activeTokens, "", "", "", "", activePlan)
+      ).length;
+    }
 
     let filteredItems = indexed.filter((item) =>
       matches(item, tokens, testament, book, theme, feeling, plan)
     );
+
+    // Typos are corrected only when the words themselves match nothing.
+    // A real match hidden by Testament or Book stays empty so those filters hold.
+    const uncorrectedHits = textHits(plan, tokens);
+    if (
+      rawQuery &&
+      Smart &&
+      Smart.correctQuery &&
+      !scriptureQuery &&
+      uncorrectedHits === 0 &&
+      !(smartState.clarification && smartState.queryKey === queryKey(rawQuery))
+    ) {
+      const corrected = Smart.correctQuery(rawQuery);
+      if (corrected && corrected !== rawQuery) {
+        const correctedPlan = Smart.buildSearchPlan(corrected, null, {
+          knownThemes: knownThemesList(),
+          knownFeelings: knownFeelingsList(),
+        });
+        if (textHits(correctedPlan, []) > 0) {
+          plan = correctedPlan;
+          tokens = [];
+          correctedQuery = corrected;
+          filteredItems = indexed.filter((item) =>
+            matches(item, tokens, testament, book, theme, feeling, plan)
+          );
+        }
+      }
+    }
 
     const filterCtx = {
       feeling: feeling || "",
       theme: theme || "",
     };
 
+    const queryMissed =
+      !!rawQuery &&
+      !scriptureQuery &&
+      textHits(plan, tokens) === 0;
+    let usedFallback = false;
+    if (queryMissed && filteredItems.length === 0 && Smart && Smart.comfortPromises) {
+      const comfort = Smart.comfortPromises(promises);
+      const comfortItems = comfort
+        .map((p) => indexed.find((item) => item.p === p || item.p.id === p.id))
+        .filter(Boolean);
+      const narrowed = comfortItems.filter((item) =>
+        matches(item, [], testament, book, theme, feeling, null)
+      );
+      filteredItems = narrowed.length ? narrowed : comfortItems;
+      usedFallback = filteredItems.length > 0;
+    }
+
     let rankedMeta = null;
     const shouldRank =
-      (plan && (plan.orGroups.length || plan.andTokens.length || plan.contentTokens.length || plan.rankingIntentId || plan.softFeelings.length)) ||
+      !usedFallback &&
+      ((plan && (plan.orGroups.length || plan.andTokens.length || plan.contentTokens.length || plan.rankingIntentId || plan.softFeelings.length)) ||
       filterCtx.feeling ||
-      filterCtx.theme;
+      filterCtx.theme);
     if (shouldRank && (Relevance || Smart)) {
       if (Relevance && Relevance.rankItems) {
         rankedMeta = Relevance.rankItems(filteredItems, plan, filterCtx);
@@ -773,10 +848,13 @@
     if (theme) notes.push(`theme: ${theme}`);
     if (book) notes.push(`book: ${book}`);
     const noteStr = notes.length ? ` · ${notes.join(" · ")}` : "";
+    const correctionNote = correctedQuery
+      ? ` <span class="search-corrected">Showing results for “${escapeHtml(correctedQuery)}”</span>`
+      : "";
     el.count.innerHTML =
       n === 0
         ? `<strong>No matches</strong>${noteStr}`
-        : `<strong>${UI && UI.formatCount ? UI.formatCount(n) : n}</strong> promise${n === 1 ? "" : "s"}${noteStr}`;
+        : `<strong>${UI && UI.formatCount ? UI.formatCount(n) : n}</strong> promise${n === 1 ? "" : "s"}${noteStr}${correctionNote}`;
 
     updateFiltersBadge();
 
@@ -786,6 +864,11 @@
           <h2>No promises found</h2>
           <p>Try another feeling or theme, or choose “All” in the filters.</p>
         </div>`);
+      return;
+    }
+
+    if (usedFallback) {
+      showSearchFallback(filtered);
       return;
     }
 
@@ -995,6 +1078,7 @@
     const run = () => {
       if (!el.results) return;
       const target =
+        el.results.querySelector(".search-fallback-lead") ||
         el.results.querySelector(".card--reading") ||
         el.results.querySelector(".empty");
       if (!target || !target.isConnected) return;
@@ -1068,6 +1152,8 @@
         deck.refresh();
       } else if (isLanding()) {
         render({ preserveIndex: true });
+      } else if (el.results && el.results.querySelector("[data-fallback]")) {
+        hydrateVisibleCards(lastFiltered);
       }
     });
   }

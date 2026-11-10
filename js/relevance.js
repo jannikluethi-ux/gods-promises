@@ -458,6 +458,68 @@
       a("Psalms", 103, 1, 5, 76),
       a("Colossians", 3, 15, 17, 70),
     ],
+
+    // Everyday words that are not already a feeling. Weights are local to the
+    // topic so a tied cross-topic score cannot reorder anxiety, anger, or hope.
+    patience: [
+      a("Psalms", 37, 7, 8, 100),
+      a("James", 1, 19, 20, 98),
+      a("Proverbs", 15, 1, 1, 96),
+      a("Isaiah", 40, 28, 31, 94),
+      a("James", 5, 7, 8, 92),
+      a("Psalms", 27, 13, 14, 90),
+      a("Lamentations", 3, 24, 26, 88),
+      a("Galatians", 6, 7, 9, 84),
+      a("Isaiah", 30, 18, 18, 80),
+    ],
+    livelihood: [
+      a("Philippians", 4, 19, 19, 100),
+      a("Matthew", 6, 31, 34, 98),
+      a("Matthew", 6, 25, 30, 96),
+      a("Psalms", 23, 1, 4, 94),
+      a("Jeremiah", 29, 10, 11, 92),
+      a("Isaiah", 41, 10, 10, 90),
+      a("Philippians", 4, 13, 13, 88),
+      a("Psalms", 37, 25, 25, 86),
+      a("Hebrews", 13, 5, 6, 84),
+      a("Romans", 15, 13, 13, 82),
+    ],
+    children: [
+      a("Psalms", 127, 3, 5, 100),
+      a("Matthew", 19, 14, 14, 98),
+      a("Mark", 10, 14, 15, 96),
+      a("Proverbs", 22, 6, 6, 94),
+      a("Isaiah", 54, 13, 13, 90),
+      a("Psalms", 103, 13, 14, 86),
+      a("Matthew", 18, 10, 10, 84),
+      a("Psalms", 128, 1, 4, 82),
+    ],
+    pregnancy: [
+      a("Psalms", 139, 13, 16, 100),
+      a("Jeremiah", 1, 5, 5, 96),
+      a("Isaiah", 46, 3, 4, 92),
+      a("Luke", 1, 30, 33, 88),
+      a("Psalms", 127, 3, 5, 84),
+    ],
+    barren: [
+      a("Psalms", 113, 7, 9, 100),
+      a("Psalms", 139, 13, 16, 90),
+      a("Isaiah", 54, 1, 1, 70),
+    ],
+    sleep: [
+      a("Psalms", 4, 8, 8, 100),
+      a("Psalms", 127, 1, 2, 96),
+      a("Matthew", 11, 28, 30, 94),
+      a("Proverbs", 3, 21, 26, 88),
+    ],
+    oppression: [
+      a("Psalms", 9, 9, 10, 100),
+      a("Psalms", 91, 1, 4, 98),
+      a("Psalms", 34, 15, 18, 96),
+      a("2 Corinthians", 1, 3, 4, 94),
+      a("Nahum", 1, 7, 7, 88),
+      a("Psalms", 46, 1, 3, 86),
+    ],
   };
 
   // Aliases share the same anchor arrays
@@ -598,6 +660,19 @@
     jealous: ["jealous", "anger"],
     betrayal: ["betrayal", "love"],
     failure: ["failure", "hope"],
+    frustrated: ["patience", "anger", "peace"],
+    impatient: ["patience", "peace"],
+    livelihood: ["livelihood"],
+    career: ["guidance", "livelihood"],
+    marriage: ["love", "faithfulness"],
+    divorce: ["comfort", "healing", "love"],
+    children: ["children"],
+    school: ["wisdom", "guidance", "peace"],
+    addiction: ["strength", "hope", "forgiveness"],
+    abuse: ["oppression", "comfort", "protection", "healing"],
+    insomnia: ["sleep", "peace", "rest"],
+    pregnancy: ["pregnancy"],
+    infertility: ["barren", "comfort", "hope", "healing"],
   };
 
   function resolveTopicKey(key) {

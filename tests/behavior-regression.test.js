@@ -159,6 +159,128 @@ function search(directory, data) {
   return results;
 }
 
+function feelingCoverage(directory, data) {
+  const context = runtime(directory);
+  load(context, 'js/smart-search.js');
+  load(context, 'js/relevance.js');
+  const smart = context.GodsPromisesSmartSearch;
+  const relevance = context.GodsPromisesRelevance;
+  const opts = { knownThemes: data.themeVocabulary, knownFeelings: data.feelingsVocabulary };
+  const hay = p => [p.reference, p.book, p.promise, p.text, p.context, ...p.themes, ...p.feelings, ...p.searchTerms].join(' ').toLowerCase();
+  function rankedFor(query) {
+    const corrected = smart.correctQuery(query);
+    const plan = smart.buildSearchPlan(corrected || query, null, opts);
+    const candidates = data.promises.filter(p => smart.matchesPlan(hay(p), plan));
+    const ranked = relevance.rankItems(candidates.map(p => ({ p })), plan, {});
+    return { corrected, plan, ranked };
+  }
+  function topId(query) {
+    const result = rankedFor(query);
+    assert.ok(result.ranked.length > 0, query);
+    return result.ranked[0].p.id;
+  }
+
+  assert.equal(smart.detectIntent('why stressed', opts).intentId, 'stressed');
+  assert.equal(topId('angry'), 'eph-4-32');
+  assert.equal(topId('stressed'), 'php-4-6-7');
+  assert.equal(topId('why stressed'), 'php-4-6-7');
+  assert.equal(topId('irritated'), 'eph-4-32');
+  assert.equal(topId('mad'), 'eph-4-32');
+  assert.equal(topId('lost'), 'pro-3-5-6');
+  assert.equal(topId('I feel lost'), 'pro-3-5-6');
+  assert.equal(topId('hope'), 'rom-15-13');
+  assert.equal(topId('peace'), 'jhn-16-33');
+  assert.equal(topId('sick'), 'isa-53-4-6');
+  assert.equal(topId('Genesis'), 'gen-1-28');
+  assert.equal(topId('strength'), 'php-4-11-13');
+  assert.equal(topId('forgiveness'), '1jn-1-8-9');
+  assert.equal(topId('lonely'), 'isa-41-8-10');
+  assert.equal(topId('John 3:16'), 'jhn-1-16-17');
+  assert.ok(rankedFor('John 3:16').ranked.some(item => item.p.id === 'jhn-3-16-17'));
+  assert.equal(smart.correctQuery('John 3:16'), null);
+  assert.equal(smart.correctQuery('Genesis'), null);
+  assert.equal(smart.correctQuery('unknownzzword'), null);
+
+  const queries = [
+    'frustrated', 'frustration', 'frustrations', 'annoyed', 'annoyance', 'irritation',
+    'hopelessness', 'impatience', 'finances', 'jobs', 'unemployed', 'unemployment',
+    'layoff', 'fired', 'career', 'marriage', 'divorce', 'kids', 'exams', 'school',
+    'disappointment', 'worthless', 'insecurity', 'addiction', 'addicted', 'abuse',
+    'abused', 'cancer', 'insomnia', 'pregnant', 'pregnancy', 'infertility',
+    'miscarriage', 'homesick', 'I am frustrated', "I'm frustrated", 'feeling frustrated',
+    'I feel frustrated', 'why am I frustrated', 'help with frustration', 'I feel annoyed',
+    'I have debt', 'I am unemployed', 'going through a divorce', 'frustraited',
+    'frustrted', 'frusrated', 'anixous', 'lonley', 'deperessed', 'overwelmed',
+    'exausted', 'greif', 'jealosy', 'anoyed', 'impatiant', 'woried', 'depresed',
+    'lost my job', 'exam', 'broke',
+  ];
+  for (const query of queries) {
+    const result = rankedFor(query);
+    assert.ok(result.ranked.length > 0, query);
+    assert.ok(!result.ranked.slice(0, 8).some(item => item.p.id === 'psa-14-5-6'), query);
+  }
+  assert.equal(topId('frustrated'), 'psa-37-7-8');
+  assert.equal(topId('impatience'), 'psa-37-7-8');
+  assert.equal(topId('finances'), 'php-4-19');
+  assert.equal(topId('jobs'), 'php-4-19');
+  assert.equal(topId('job'), 'php-4-19');
+  assert.equal(topId('lost my job'), 'php-4-19');
+  assert.equal(topId('I have debt'), 'php-4-19');
+  assert.equal(topId('I am unemployed'), 'php-4-19');
+  assert.equal(topId('broke'), 'php-4-19');
+  assert.equal(topId('exam'), 'pro-3-5-6');
+  assert.notEqual(rankedFor('exam').ranked[0].p.id, 'heb-4-9-11');
+  assert.equal(topId('kids'), 'psa-127-3-5');
+  assert.equal(topId('divorce'), 'isa-53-4-6');
+  assert.equal(topId('going through a divorce'), '2co-1-3-4');
+  assert.equal(topId('marriage'), 'rom-8-38-39');
+  assert.equal(topId('cancer'), 'isa-53-4-6');
+  assert.equal(topId('homesick'), 'isa-41-8-10');
+  assert.equal(topId('hopelessness'), 'rom-15-13');
+  assert.equal(topId('pregnant'), 'psa-139-13-16');
+  assert.equal(topId('miscarriage'), 'psa-113-7-9');
+  assert.equal(topId('insomnia'), 'mat-11-28-30');
+  assert.equal(topId('abuse'), 'psa-9-9-10');
+  assert.equal(topId('addiction'), 'rom-15-13');
+  assert.equal(topId('school'), 'pro-3-5-6');
+  assert.equal(topId('disappointment'), 'psa-34-15-18');
+  assert.equal(topId('career'), 'pro-3-5-6');
+  assert.equal(topId('worthless'), 'isa-41-8-10');
+  assert.equal(rankedFor('frustrated').plan.rankingIntentId, 'frustrated');
+  assert.equal(rankedFor('lost my job').plan.rankingIntentId, 'livelihood');
+  assert.notEqual(rankedFor('lost my job').plan.rankingIntentId, 'confused');
+
+  const typos = {
+    frustraited: 'frustrated',
+    frustrted: 'frustrated',
+    frusrated: 'frustrated',
+    anixous: 'anxious',
+    lonley: 'lonely',
+    deperessed: 'depressed',
+    overwelmed: 'overwhelmed',
+    exausted: 'exhausted',
+    greif: 'grief',
+    jealosy: 'jealousy',
+    anoyed: 'annoyed',
+    impatiant: 'impatient',
+    woried: 'worried',
+    depresed: 'depressed',
+  };
+  for (const [bad, good] of Object.entries(typos)) {
+    assert.equal(smart.correctQuery(bad), good, bad);
+    const raw = smart.buildSearchPlan(bad, null, opts);
+    assert.equal(data.promises.filter(p => smart.matchesPlan(hay(p), raw)).length, 0, bad);
+  }
+
+  const comfort = smart.comfortPromises(data.promises);
+  assert.ok(comfort.length >= 5 && comfort.length <= 8);
+  assert.deepEqual(Array.from(comfort, p => p.id), [
+    'php-4-6-7', 'isa-41-8-10', 'psa-34-15-18', 'mat-11-28-30',
+    'psa-23-1-4', 'jhn-14-27', 'deu-31-6', '2co-1-3-4',
+  ]);
+  assert.equal(smart.COMFORT_NOTE, "We don't have that exact word, but here are promises that have comforted others in hard moments.");
+}
+
 async function versions(directory, data) {
   const calls = [];
   const localStorage = memoryStorage();
@@ -255,6 +377,8 @@ function analytics(directory) {
   assert.deepEqual(newData, oldData, 'Independent parsed interactive payloads must agree');
   for (const directory of directories) await authAndFavorites(directory);
   assert.deepEqual(search(directories[1], newData), search(ROOT, oldData), 'Search plans and all ranked IDs/scores must be unchanged');
+  feelingCoverage(ROOT, oldData);
+  feelingCoverage(directories[1], newData);
   assert.deepEqual(await versions(directories[1], newData), await versions(ROOT, oldData));
   for (const directory of directories) analytics(directory);
   console.log('Non-browser functional regression: source and dist both pass Supabase auth/favorites lifecycle; 15 search queries plus clarification have identical full ranked IDs/scores; all 6 translation modes, on-demand requests/caches/fallbacks unchanged; analytics beforeSend rejects all new paths and strips allowed URL queries/hashes');

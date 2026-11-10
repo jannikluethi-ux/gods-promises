@@ -147,6 +147,9 @@
       "isolated",
       "forsaken",
       "left out",
+      "homesick",
+      "homesickness",
+      "lonesome",
     ],
     anxious: [
       "anxious",
@@ -161,6 +164,9 @@
       "nervous",
       "panic",
       "uneasy",
+      "insecurity",
+      "insecurities",
+      "insecure",
     ],
     sad: [
       "sad",
@@ -176,6 +182,9 @@
       "down",
       "cry",
       "crying",
+      "disappointment",
+      "disappointed",
+      "disappointing",
     ],
     angry: [
       "angry",
@@ -200,8 +209,10 @@
     ],
     hopeless: [
       "hopeless",
+      "hopelessness",
       "despair",
       "desperate",
+      "despairing",
       "give up",
       "giving up",
       "no hope",
@@ -240,7 +251,16 @@
       "delighted",
     ],
     loved: ["loved", "unloved", "rejected", "rejection", "unwanted", "accepted"],
-    unloved: ["unloved", "rejected", "rejection", "unwanted"],
+    unloved: [
+      "unloved",
+      "rejected",
+      "rejection",
+      "unwanted",
+      "worthless",
+      "worthlessness",
+      "useless",
+      "inadequate",
+    ],
     pain: [
       "pain",
       "hurt",
@@ -260,6 +280,11 @@
       "disease",
       "diseases",
       "unwell",
+      "cancer",
+      "tumor",
+      "tumour",
+      "chemo",
+      "chemotherapy",
     ],
     jealous: [
       "jealous",
@@ -280,6 +305,130 @@
       "fail",
       "defeat",
       "defeated",
+    ],
+    // Longer phrases are listed first. Matching keeps the first hit inside an
+    // intent, and "lost my job" must beat the shorter "lost" (guidance) intent.
+    frustrated: [
+      "fed up",
+      "ticked off",
+      "frustrations",
+      "frustrating",
+      "frustration",
+      "frustrated",
+      "annoyance",
+      "annoying",
+      "annoyed",
+      "irritation",
+      "irritating",
+      "irritable",
+      "aggravated",
+    ],
+    impatient: ["impatience", "impatiently", "impatient"],
+    livelihood: [
+      "lost my job",
+      "lost a job",
+      "lost the job",
+      "out of work",
+      "laid off",
+      "no job",
+      "money trouble",
+      "unemployment",
+      "unemployed",
+      "bankruptcy",
+      "bankrupt",
+      "financial",
+      "finances",
+      "paycheck",
+      "mortgage",
+      "jobless",
+      "layoffs",
+      "layoff",
+      "downsized",
+      "salary",
+      "indebted",
+      "finance",
+      "debts",
+      "broke",
+      "bills",
+      "debt",
+      "rent",
+      "fired",
+      "jobs",
+      "job",
+    ],
+    career: ["workplace", "vocation", "careers", "career"],
+    marriage: [
+      "marriage",
+      "married",
+      "marrying",
+      "wedding",
+      "spouse",
+      "husband",
+      "wife",
+      "fiance",
+      "fiancé",
+    ],
+    divorce: [
+      "going through a divorce",
+      "divorcing",
+      "divorced",
+      "divorce",
+    ],
+    children: [
+      "parenthood",
+      "parenting",
+      "teenagers",
+      "teenager",
+      "toddlers",
+      "toddler",
+      "children",
+      "child",
+      "kids",
+      "kid",
+    ],
+    school: [
+      "schoolwork",
+      "homework",
+      "studying",
+      "university",
+      "classroom",
+      "students",
+      "semester",
+      "college",
+      "student",
+      "schools",
+      "midterm",
+      "finals",
+      "school",
+      "exams",
+      "study",
+      "exam",
+    ],
+    addiction: [
+      "alcoholism",
+      "alcoholic",
+      "addiction",
+      "addictive",
+      "addicted",
+      "addict",
+    ],
+    abuse: ["abusive", "abuser", "abused", "abuse"],
+    insomnia: [
+      "cannot sleep",
+      "can't sleep",
+      "cant sleep",
+      "sleeplessness",
+      "sleepless",
+      "insomnia",
+    ],
+    pregnancy: ["pregnancy", "pregnant"],
+    infertility: [
+      "infertility",
+      "miscarriage",
+      "miscarried",
+      "stillbirth",
+      "infertile",
+      "barren",
     ],
   };
 
@@ -302,6 +451,19 @@
     jealous: ["bitter", "angry"],
     betrayal: ["sad", "lonely"],
     failure: ["hopeless", "guilty"],
+    frustrated: ["angry", "peaceful"],
+    impatient: ["peaceful", "anxious"],
+    livelihood: ["anxious", "hopeful"],
+    career: ["confused", "hopeful"],
+    marriage: ["loved"],
+    divorce: ["sad", "lonely"],
+    children: ["loved", "hopeful"],
+    school: ["anxious"],
+    addiction: ["hopeless", "guilty"],
+    abuse: ["sad", "afraid"],
+    insomnia: ["anxious", "weary"],
+    pregnancy: ["hopeful"],
+    infertility: ["sad", "hopeless"],
   };
 
   /** Synonym expansion for matching (intent / feeling word → terms to OR-match) */
@@ -563,6 +725,51 @@
     failed: ["failed", "failure", "fail", "defeat", "hope", "strength"],
     fail: ["fail", "failure", "failed", "hope", "strength", "faithful"],
   };
+
+  /**
+   * Query words that must not be searched as raw substrings.
+   * "exam" sits inside "example", "job" is the book of Job, "broke" sits
+   * inside "broken", and "frustrated" must not stem to Psalm 14's "frustrate".
+   * These lists are catalog words already used by the themes above.
+   */
+  function useTerms(intentId, terms) {
+    const list = terms.slice();
+    SYNONYM_EXPAND[intentId] = list.slice();
+    const words = INTENT_KEYWORDS[intentId] || [];
+    for (let i = 0; i < words.length; i++) {
+      const n = normalize(words[i]);
+      if (!n || /\s/.test(n)) continue;
+      SYNONYM_EXPAND[n] = list.slice();
+    }
+  }
+
+  useTerms("frustrated", [
+    "patience",
+    "peace",
+    "angry",
+    "anger",
+    "forgiveness",
+    "bitter",
+  ]);
+  useTerms("impatient", ["patience", "peace", "wait", "endurance"]);
+  useTerms("livelihood", ["provision", "provide", "hope", "strength", "supply"]);
+  useTerms("career", ["guidance", "wisdom", "provision", "calling", "hope"]);
+  useTerms("marriage", ["love", "faithfulness", "covenant", "faithful"]);
+  useTerms("divorce", ["comfort", "healing", "love", "hope", "presence"]);
+  useTerms("children", ["children", "child", "offspring", "little children", "little ones"]);
+  useTerms("school", ["wisdom", "guidance", "peace", "discern"]);
+  useTerms("addiction", ["strength", "hope", "forgiveness", "deliverance", "freedom"]);
+  useTerms("abuse", ["comfort", "protection", "healing", "refuge", "oppressed", "love"]);
+  useTerms("insomnia", ["peace", "rest", "sleep"]);
+  useTerms("pregnancy", ["womb", "children", "offspring", "hope", "protection"]);
+  useTerms("infertility", ["comfort", "hope", "healing", "barren", "womb"]);
+  SYNONYM_EXPAND.worthless = ["love", "accepted", "precious", "identity", "lonely"];
+  SYNONYM_EXPAND.worthlessness = SYNONYM_EXPAND.worthless.slice();
+  SYNONYM_EXPAND.useless = SYNONYM_EXPAND.worthless.slice();
+  SYNONYM_EXPAND.inadequate = SYNONYM_EXPAND.worthless.slice();
+  SYNONYM_EXPAND.insecurity = ["anxious", "anxiety", "peace", "love", "insecure", "afraid"];
+  SYNONYM_EXPAND.insecurities = SYNONYM_EXPAND.insecurity.slice();
+  SYNONYM_EXPAND.insecure = SYNONYM_EXPAND.insecurity.slice();
 
   const FOLLOW_UPS = {
     stressed: {
@@ -1574,6 +1781,152 @@
       </div>`;
   }
 
+  const COMFORT_NOTE =
+    "We don't have that exact word, but here are promises that have comforted others in hard moments.";
+
+  /** Well-loved comfort promises, in the order they should be offered. */
+  const COMFORT_ANCHORS = [
+    { book: "Philippians", chapter: 4, verseStart: 6, verseEnd: 7 },
+    { book: "Isaiah", chapter: 41, verseStart: 10, verseEnd: 10 },
+    { book: "Psalms", chapter: 34, verseStart: 18, verseEnd: 18 },
+    { book: "Matthew", chapter: 11, verseStart: 28, verseEnd: 30 },
+    { book: "Psalms", chapter: 23, verseStart: 1, verseEnd: 4 },
+    { book: "John", chapter: 14, verseStart: 27, verseEnd: 27 },
+    { book: "Deuteronomy", chapter: 31, verseStart: 6, verseEnd: 6 },
+    { book: "2 Corinthians", chapter: 1, verseStart: 3, verseEnd: 4 },
+  ];
+
+  function overlapsAnchor(p, anchor) {
+    const book = normalize(p.book).replace(/^psalm$/, "psalms");
+    const want = normalize(anchor.book).replace(/^psalm$/, "psalms");
+    if (book !== want) return false;
+    if (Number(p.chapter) !== Number(anchor.chapter)) return false;
+    const ps = Number(p.verseStart);
+    const pe = Number(p.verseEnd != null ? p.verseEnd : ps);
+    const as = Number(anchor.verseStart);
+    const ae = Number(anchor.verseEnd != null ? anchor.verseEnd : as);
+    return !(pe < as || ps > ae);
+  }
+
+  function comfortPromises(promises) {
+    const chosen = [];
+    const seen = new Set();
+    const list = promises || [];
+    for (let i = 0; i < COMFORT_ANCHORS.length && chosen.length < 8; i++) {
+      const anchor = COMFORT_ANCHORS[i];
+      for (let j = 0; j < list.length; j++) {
+        const p = list[j];
+        if (!p || seen.has(p.id) || !overlapsAnchor(p, anchor)) continue;
+        seen.add(p.id);
+        chosen.push(p);
+        break;
+      }
+    }
+    return chosen;
+  }
+
+  function editAtMost1(a, b) {
+    if (a === b) return 0;
+    const la = a.length;
+    const lb = b.length;
+    if (Math.abs(la - lb) > 1) return 2;
+    if (la === lb) {
+      let first = -1;
+      let diffs = 0;
+      for (let i = 0; i < la; i++) {
+        if (a.charAt(i) === b.charAt(i)) continue;
+        diffs += 1;
+        if (diffs > 2) return 2;
+        if (first < 0) first = i;
+      }
+      if (diffs === 1) return 1;
+      if (
+        diffs === 2 &&
+        first < la - 1 &&
+        a.charAt(first) === b.charAt(first + 1) &&
+        a.charAt(first + 1) === b.charAt(first)
+      ) {
+        for (let j = first + 2; j < la; j++) {
+          if (a.charAt(j) !== b.charAt(j)) return 2;
+        }
+        return 1;
+      }
+      return 2;
+    }
+    const longer = la > lb ? a : b;
+    const shorter = la > lb ? b : a;
+    let i = 0;
+    let j = 0;
+    let skips = 0;
+    while (i < longer.length && j < shorter.length) {
+      if (longer.charAt(i) === shorter.charAt(j)) {
+        i += 1;
+        j += 1;
+      } else {
+        skips += 1;
+        i += 1;
+        if (skips > 1) return 2;
+      }
+    }
+    return 1;
+  }
+
+  let typoDictionary = null;
+  function typoWords() {
+    if (typoDictionary) return typoDictionary;
+    const words = new Set();
+    const add = (w) => {
+      const n = normalize(w);
+      if (n.length >= 5 && /^[a-z]+$/.test(n)) words.add(n);
+    };
+    const groups = Object.keys(INTENT_KEYWORDS);
+    for (let g = 0; g < groups.length; g++) {
+      const keywords = INTENT_KEYWORDS[groups[g]] || [];
+      for (let i = 0; i < keywords.length; i++) {
+        const parts = String(keywords[i]).toLowerCase().split(/[^a-z]+/);
+        for (let p = 0; p < parts.length; p++) add(parts[p]);
+      }
+    }
+    const keys = Object.keys(SYNONYM_EXPAND);
+    for (let i = 0; i < keys.length; i++) add(keys[i]);
+    typoDictionary = Array.from(words);
+    return typoDictionary;
+  }
+
+  function nearestWord(word, dict) {
+    const hits = [];
+    for (let i = 0; i < dict.length; i++) {
+      if (editAtMost1(word, dict[i]) === 1) hits.push(dict[i]);
+    }
+    if (!hits.length) return null;
+    hits.sort((a, b) => b.length - a.length || (a < b ? -1 : a > b ? 1 : 0));
+    if (hits.length > 1 && hits[0].length === hits[1].length) return null;
+    return hits[0];
+  }
+
+  /**
+   * Light correction used only after a search matches nothing.
+   * Returns the corrected query, or null when nothing was changed.
+   * One edit (or an adjacent transposition) and a single best dictionary word.
+   */
+  function correctQuery(query) {
+    const raw = String(query || "");
+    if (!raw.trim()) return null;
+    if (looksLikeScriptureRef(raw) || isOnlyBookName(raw)) return null;
+    const dict = typoWords();
+    const known = new Set(dict);
+    let changed = false;
+    const next = raw.replace(/[A-Za-z]+/g, (word) => {
+      const n = normalize(word);
+      if (n.length < 5 || known.has(n)) return word;
+      const hit = nearestWord(n, dict);
+      if (!hit) return word;
+      changed = true;
+      return hit;
+    });
+    return changed ? next : null;
+  }
+
   function getOption(intentId, optionId) {
     const fu = FOLLOW_UPS[intentId];
     if (!fu) return null;
@@ -1592,6 +1945,9 @@
     tokenize: tokenize,
     expandSynonyms: expandSynonyms,
     looksLikeScriptureRef: looksLikeScriptureRef,
+    correctQuery: correctQuery,
+    comfortPromises: comfortPromises,
+    COMFORT_NOTE: COMFORT_NOTE,
     STOPWORDS: STOPWORDS,
     INTENT_TO_FEELINGS: INTENT_TO_FEELINGS,
   };

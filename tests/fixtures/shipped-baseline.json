@@ -28,12 +28,12 @@
     "coverageNotes"
   ],
   "unchanged_script_sha256": {
-    "app.js": "3953b9e9005c39764d0c87a031782036e9dddf3725189abdb0ea6d2055bc214c",
+    "app.js": "e2c9a8148a5344d97126204620686ace551a1a7daa7843392484c15d237edecb",
     "js/auth.js": "08f348002d9a5c58ef41477992b825e87d7ad7b25645a5b241fb81a04bc25138",
     "js/login-page.js": "665928db7aec2d2a9305aa0b8fd56ebe755014838ccfdcba7ea218f7e15693d7",
     "js/me-page.js": "e925c3882f7efea7287048b432162b7df07390c65f7119abde518b3e65933d86",
-    "js/smart-search.js": "e21a3294dcb58869fd32036c24193c1ab28a127abf8f91fc3efc32ec6e0c4781",
-    "js/relevance.js": "3eda9f82fd722e0b89667dffcc9b309cec3562885cbf75cec3df4e54f45376c9",
+    "js/smart-search.js": "8b2e6c4029cf7f40f1854bbf17588894641b4df43e63fbd149cbb1cedc253306",
+    "js/relevance.js": "6bb4a261e25acc92cee5710d0bf0429493b6893d2453977b35b791a32938e769",
     "js/favorites.js": "e996cc6b1d8063702e50c30293301adc976db4df1ace64e8a78e4488abb72876",
     "js/subscription.js": "0d204409d5f2d09c24af824c1d45c5de86f3568f992876bf473f845086c0735b",
     "js/config.js": "4bbf47459f1c38763d8086a59d0c7bc25efe458c4edc3b50c7ec38ccc424c768",
