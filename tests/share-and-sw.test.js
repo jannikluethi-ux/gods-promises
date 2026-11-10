@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { renderShareCardPng, WIDTH, HEIGHT } = require("../api/_lib/share-card");
-const { bypassRequest, SHELL } = require("../sw");
+const { bypassRequest, SHELL, CACHE } = require("../sw");
 
 function pngSize(buffer) {
   assert.equal(buffer[0], 0x89);
@@ -34,6 +34,9 @@ function pngSize(buffer) {
   assert.equal(bypassRequest(new URL(origin + "/_vercel/insights/script.js"), "GET", origin), true);
   assert.equal(bypassRequest(new URL(origin + "/"), "GET", origin), false);
   assert.equal(bypassRequest(new URL(origin + "/promises-data.js"), "GET", origin), false);
+  assert.equal(CACHE, "hpd-shell-v2");
+  assert.ok(SHELL.includes("/js/smart-search.js"));
+  assert.ok(SHELL.includes("/js/relevance.js"));
   assert.ok(SHELL.includes("/promises-data.js"));
   assert.ok(SHELL.includes("/data/explanations.json"));
   assert.ok(SHELL.includes("/"));
