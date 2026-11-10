@@ -447,7 +447,8 @@
 
   function searchFeedbackHtml(found, rows) {
     const ids = rows.map((row) => row.id).join(",");
-    return `<div class="search-feedback" data-query="${escapeHtml(found.query || "")}" data-intent="${escapeHtml(found.conceptId || "")}" data-results="${escapeHtml(ids)}">
+    const refs = rows.map((row) => row.reference);
+    return `<div class="search-feedback" data-query="${escapeHtml(found.query || "")}" data-intent="${escapeHtml((found.conceptId || "") + "/" + (found.intentionId || ""))}" data-category="${escapeHtml(found.heading || "")}" data-results="${escapeHtml(ids)}" data-refs="${escapeHtml(JSON.stringify(refs))}">
       <p>Did these results address your search?</p>
       <div class="search-feedback-actions">
         <button type="button" data-helpful="yes">Yes</button>
@@ -539,7 +540,7 @@
     if (theme) notes.push("theme: " + theme);
     if (book) notes.push("book: " + book);
     const noteStr = notes.length ? " · " + notes.join(" · ") : "";
-    el.count.innerHTML = `<strong>${chosen.length}</strong> promise${chosen.length === 1 ? "" : "s"}${noteStr}`;
+    el.count.innerHTML = `<strong>Not understood</strong>${noteStr}`;
     updateFiltersBadge();
     lastFiltered = chosen;
     lastRankedMeta = null;
@@ -550,17 +551,36 @@
     if (deck) deck.reset();
     el.results.classList.remove("results-host--reading");
     document.body.classList.remove("reading-active");
-    const note =
-      Smart && Smart.COMFORT_NOTE
-        ? Smart.COMFORT_NOTE
-        : "We don't have that exact word, but here are promises that have comforted others in hard moments.";
+    const suggestions = [
+      ["I feel anxious", "Anxiety"],
+      ["I feel exhausted", "Exhaustion"],
+      ["I need peace in my mind", "Peace of mind"],
+      ["I need strength to continue", "Strength to continue"],
+      ["I wish I was rich", "Money"],
+      ["I am worried about money", "Money worries"],
+      ["I feel frustrated", "Frustration"],
+      ["I am grieving", "Grief"],
+      ["I can't forgive", "Forgiveness"],
+      ["I want a stronger marriage", "Marriage"],
+      ["I need guidance", "A decision"],
+      ["I feel alone", "Loneliness"],
+    ];
+    const chips = suggestions
+      .map(
+        (pair) =>
+          `<button type="button" class="search-suggest" data-suggest="${escapeHtml(pair[0])}">${escapeHtml(pair[1])}</button>`
+      )
+      .join("");
     const cards = list.map((p) => renderCard(p, null)).join("");
     el.results.innerHTML = `
       <div class="search-fallback" data-fallback="1" role="status">
         <div class="search-fallback-lead">
-          <h2>For a hard moment</h2>
-          <p>${escapeHtml(note)}</p>
+          <h2>This search wasn’t clear</h2>
+          <p>The search wasn’t understood well enough to choose scriptures for it. Try a suggestion, or say the situation in a few ordinary words.</p>
+          <div class="search-suggests" role="group" aria-label="Suggested searches">${chips}</div>
         </div>
+        <h3 class="discovery-group">Not a match for that search</h3>
+        <p class="discovery-why">These are promises people often find comforting. They are not a result for the words you typed.</p>
         <ul class="results search-fallback-list">${cards}</ul>
       </div>`;
     hydrateVisibleCards(list);
@@ -1343,13 +1363,18 @@
 
   function sendSearchFeedback(box, helpful, reason) {
     const status = box.querySelector(".search-feedback-status");
+    let refs = [];
+    try { refs = JSON.parse(box.getAttribute("data-refs") || "[]"); } catch (err) { refs = []; }
     const payload = {
       kind: "search",
       query: box.getAttribute("data-query") || "",
       intent: box.getAttribute("data-intent") || "",
+      category: box.getAttribute("data-category") || "",
       resultIds: String(box.getAttribute("data-results") || "").split(",").filter(Boolean),
+      resultRefs: Array.isArray(refs) ? refs : [],
       helpful: helpful,
       reason: reason || null,
+      comment: null,
       website: "",
     };
     if (status) status.textContent = "Sending…";
@@ -1366,6 +1391,13 @@
   }
 
   el.results.addEventListener("click", (e) => {
+    const suggest = e.target.closest("[data-suggest]");
+    if (suggest && el.search) {
+      el.search.value = suggest.getAttribute("data-suggest") || "";
+      render();
+      if (typeof revealScripture === "function") revealScripture();
+      return;
+    }
     const helpfulBtn = e.target.closest("[data-helpful]");
     if (helpfulBtn) {
       const box = helpfulBtn.closest(".search-feedback");

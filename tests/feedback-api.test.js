@@ -266,15 +266,26 @@ const base = (extra) => Object.assign({ verseId: VERSE, explanationVersion: VERS
 
   // —— Search-result signal: anonymous, separate from explanation ratings ——
   res = await call(h, req("POST", {
-    kind: "search", query: "I wish I was rich", intent: "wealth",
-    resultIds: ["disc-deu-8-18", "pro-10-22"], helpful: false, reason: "wrong_interpretation",
+    kind: "search", query: "I wish I was rich", intent: "wealth/desire",
+    category: "Financial prosperity and stewardship",
+    resultIds: ["disc-deu-8-18", "pro-10-22"],
+    resultRefs: ["Deuteronomy 8:17–18", "Proverbs 10:22"],
+    helpful: false, reason: "wrong_interpretation", comment: "too strong",
   }, { ip: "203.0.113.40" }));
   assert.equal(res.statusCode, 201, res.body);
-  assert.equal(rpc.searchRows[0].intent, "wealth");
+  assert.equal(rpc.searchRows[0].intent, "wealth/desire");
+  assert.equal(rpc.searchRows[0].category, "Financial prosperity and stewardship");
+  assert.deepEqual(rpc.searchRows[0].result_refs, ["Deuteronomy 8:17–18", "Proverbs 10:22"]);
   assert.equal(rpc.searchRows[0].helpful, false);
   assert.equal(rpc.searchRows[0].reason, "wrong_interpretation");
+  assert.equal(rpc.searchRows[0].comment, "too strong");
   res = await call(h, req("POST", {
-    kind: "search", query: "I wish I was rich", intent: "wealth",
+    kind: "search", query: "x".repeat(201), intent: "wealth/desire", category: "Money",
+    resultIds: ["pro-10-22"], resultRefs: ["Proverbs 10:22"], helpful: true,
+  }, { ip: "203.0.113.44" }));
+  assert.equal(res.statusCode, 400);
+  res = await call(h, req("POST", {
+    kind: "search", query: "I wish I was rich", intent: "wealth", category: "Money",
     resultIds: ["pro-10-22"], helpful: false,
   }, { ip: "203.0.113.41" }));
   assert.equal(res.statusCode, 400);

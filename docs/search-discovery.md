@@ -18,11 +18,11 @@ Postgres full-text search would still treat “I wish I was rich” as the token
 4. **Reranking.** Score is the passage’s directness times whether this intention treats that angle as direct, related, or off to the side. A shared word such as God or peace adds nothing. A distinctive alias (“power to get wealth”) can lift the passage that actually says it.
 5. **Why.** Each link carries one sentence about what the passage is doing. 2 Corinthians 8:9 says the “rich” is Christ’s grace, not a paycheck. Deuteronomy 28:11–12 says the bounty is a covenant blessing for Israel in the land.
 
-Direct results score at least 72. Related perspectives score at least 46 and below 72. Anything lower is dropped. There is no fixed count and no padding. A thin set says the search found limited matches. The comfort list from the previous release appears only when the query matches no subject (including a typo that still matches nothing). A understood topic such as wealth never uses that heading.
+Direct results score at least 72. Related perspectives score at least 46 and below 72. Anything lower is dropped. There is no fixed count and no padding. A thin set says the search found limited matches. When a query matches no subject, the page says the search was not understood and offers topic chips. A short list of familiar comfort passages may still appear underneath, labelled “Not a match for that search.” A understood topic, including distress that the engine recognizes, never uses that screen.
 
 Each card is labelled Promise, Principle, Instruction, Encouragement, or Related passage.
 
-“Did these results address your search?” posts to the existing `/api/feedback` as `kind: "search"` (query, intent, result ids, yes/no, optional reason). Anonymous cookies work the same way. Explanation ratings are unchanged. The new table is `hpd_feedback.search_feedback`, written only by `public.hpd_feedback_search_submit` (`service_role`). The migration is in the repo and is not applied to production by this change.
+“Did these results address your search?” posts to the existing `/api/feedback` as `kind: "search"`. The row stores the original query, intent, the heading, result ids and references in display order, yes/no, optional reason, optional comment (500 characters), an HMAC submitter key, an HMAC of the IP, the auth user id when a bearer token is present, and `created_at`. RLS is on with no policies. `anon` and `authenticated` cannot read, write, or execute `public.hpd_feedback_search_submit`. Limits match the explanation feedback design: 15 per submitter per 10 minutes, 30 per IP per 10 minutes, 300 per IP per day. The migration is in the repo and has not been applied to production.
 
 ## Keys, plan, and cost
 

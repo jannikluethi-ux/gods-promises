@@ -256,8 +256,8 @@
     if (!understood) {
       return {
         mode: "fallback",
-        heading: "For a hard moment",
-        intro: "",
+        heading: "This search wasn’t clear",
+        intro: "The search wasn’t understood well enough to choose scriptures for it.",
         note: "",
         conceptId: null,
         intentionId: null,

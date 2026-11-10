@@ -24,8 +24,8 @@ const CATEGORIES = Object.freeze({
     "no_application", "too_long", "unclear_meaning", "other"],
 });
 const BODY_KEYS = ["verseId", "explanationVersion", "language", "rating", "categories",
-  "comment", "localUserId", "source", "website", "kind", "query", "intent", "resultIds",
-  "helpful", "reason"];
+  "comment", "localUserId", "source", "website", "kind", "query", "intent", "category",
+  "resultIds", "resultRefs", "helpful", "reason"];
 const SEARCH_REASONS = ["missing_scripture", "wrong_category", "irrelevant", "wrong_interpretation", "other"];
 const SEARCH_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+){1,8}$/;
 const VERSE_ID_RE = /^[a-z0-9]+(?:-[0-9]+){2,3}$/;
@@ -84,13 +84,21 @@ function cleanComment(raw) {
 function validateSearchFeedback(body) {
   const query = typeof body.query === "string" ? body.query.trim() : "";
   const intent = typeof body.intent === "string" ? body.intent.trim() : "";
-  if (!query || query.length > 200) return { ok: false, field: "query" };
-  if (!intent || intent.length > 80) return { ok: false, field: "intent" };
+  const category = typeof body.category === "string" ? body.category.trim() : "";
+  if (!query || [...query].length > 200) return { ok: false, field: "query" };
+  if (!intent || [...intent].length > 80) return { ok: false, field: "intent" };
+  if (!category || [...category].length > 120) return { ok: false, field: "category" };
   if (!Array.isArray(body.resultIds) || body.resultIds.length < 1 || body.resultIds.length > 24) {
     return { ok: false, field: "resultIds" };
   }
+  if (!Array.isArray(body.resultRefs) || body.resultRefs.length !== body.resultIds.length) {
+    return { ok: false, field: "resultRefs" };
+  }
   for (const id of body.resultIds) {
     if (typeof id !== "string" || !SEARCH_ID_RE.test(id) || id.length > 40) return { ok: false, field: "resultIds" };
+  }
+  for (const ref of body.resultRefs) {
+    if (typeof ref !== "string" || !ref.trim() || [...ref].length > 80) return { ok: false, field: "resultRefs" };
   }
   if (typeof body.helpful !== "boolean") return { ok: false, field: "helpful" };
   let reason = null;
@@ -99,11 +107,23 @@ function validateSearchFeedback(body) {
     reason = body.reason;
   }
   if (!body.helpful && !reason) return { ok: false, field: "reason" };
+  const comment = cleanComment(body.comment);
+  if (!comment.ok) return { ok: false, field: "comment", code: comment.spam ? "spam" : undefined };
   if (body.website !== undefined && typeof body.website !== "string") return { ok: false, field: "website" };
   return {
     ok: true,
     honeypot: typeof body.website === "string" && body.website.trim() !== "",
-    value: { kind: "search", query, intent, resultIds: body.resultIds.slice(), helpful: body.helpful, reason },
+    value: {
+      kind: "search",
+      query,
+      intent,
+      category,
+      resultIds: body.resultIds.slice(),
+      resultRefs: body.resultRefs.map((ref) => ref.trim()),
+      helpful: body.helpful,
+      reason,
+      comment: comment.value,
+    },
   };
 }
 
@@ -384,11 +404,15 @@ function createHandler(deps) {
         out = await rpc("hpd_feedback_search_submit", {
           p_query: f.query,
           p_intent: f.intent,
+          p_category: f.category,
           p_result_ids: f.resultIds,
+          p_result_refs: f.resultRefs,
           p_helpful: f.helpful,
           p_reason: f.reason,
+          p_comment: f.comment,
           p_submitter_key: hmac(cfg.secret, "submitter", sessionToken),
           p_ip_key: ipKey,
+          p_auth_user_id: authUserId,
         });
         const searchStatus = out && out.status;
         if (searchStatus === "created") return send(res, 201, { ok: true, status: "created" }, extra);
