@@ -26,7 +26,7 @@ A separate test exercises acceptance/rejection of this shallow-checkout fallback
 - All 1,188 static verse pages independently match the old shipped WEB text and reference.
   Their explanation text matches the current raw `data/explanations.json` directly, so the
   coordinated explanation-review branch can supply its latest approved wording.
-- 13 auth/search/translation/privacy scripts are byte-identical to the historical baseline.
+- Auth, search, translation, and privacy scripts that this branch does not edit stay byte-identical to the historical baseline. `app.js`, `js/auth.js`, and `js/me-page.js` were re-pinned after the morning-email toggle, the shared Zurich verse picker, and removal of `js/host-notice.js`. The fixture hashes are the current bytes of those files.
   Every emitted app/JS script and existing stylesheet is also byte-identical to the current
   release source. `ui-shared.js` deliberately is not pinned to the old commit, since the
   explanation-review branch may intentionally update its explanation cache-version constant;

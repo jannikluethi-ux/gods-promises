@@ -10,7 +10,7 @@
  *   onAuthChange(callback) -> unsubscribe
  *   requestPasswordReset({ email }) -> Promise<void>
  *   updatePassword({ password }) -> Promise<void>
- *   updateProfile({ displayName?, preferredBibleVersion?, readingPrefs? }) -> Promise<user>
+ *   updateProfile({ displayName?, preferredBibleVersion?, readingPrefs?, dailyVerseEmail? }) -> Promise<user>
  *   deleteAccount({ confirmation }) -> Promise<void>
  *   getAccessToken() -> string | null
  *
@@ -25,7 +25,7 @@
   var LEGACY_EXACT = ["gp_auth_users_v1", "gp_auth_session_v1"];
   var LEGACY_PREFIX = "gp_favorites_v1_";
   var PROFILE_COLUMNS =
-    "id, email, display_name, account_status, preferred_bible_version, reading_prefs, " +
+    "id, email, display_name, account_status, preferred_bible_version, reading_prefs, daily_verse_email, " +
     "subscription_status, subscription_expires_at, subscription_canceled_at, created_at, updated_at";
   var VERSIONS = { web: 1, kjv: 1, asv: 1, ylt: 1, darby: 1, dra: 1 };
 
@@ -111,6 +111,7 @@
       readingPrefs: profile && profile.reading_prefs && typeof profile.reading_prefs === "object"
         ? profile.reading_prefs
         : {},
+      dailyVerseEmail: !!(profile && profile.daily_verse_email),
       createdAt: (profile && profile.created_at) || authUser.created_at || null,
       emailVerified: !!(authUser.email_confirmed_at || authUser.confirmed_at),
     };
@@ -385,6 +386,12 @@
         throw fail("Reading preferences must be a set of named options.", "INVALID_PREFS");
       }
       row.reading_prefs = patch.readingPrefs;
+    }
+    if (patch && Object.prototype.hasOwnProperty.call(patch, "dailyVerseEmail")) {
+      if (typeof patch.dailyVerseEmail !== "boolean") {
+        throw fail("Choose whether to receive the morning email.", "INVALID_PREFS");
+      }
+      row.daily_verse_email = patch.dailyVerseEmail;
     }
     if (!Object.keys(row).length) return current;
     var result = await client

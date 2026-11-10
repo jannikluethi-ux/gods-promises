@@ -24,6 +24,12 @@ begin
   if name <> 'One Reader' then raise exception 'display name not seeded from metadata label, got %', name; end if;
   select subscription_status into status from public.profiles where id = a;
   if status <> 'none' then raise exception 'signup must not grant a subscription, got %', status; end if;
+  if (select daily_verse_email from public.profiles where id = a) then
+    raise exception 'morning email must default off';
+  end if;
+  if (select daily_verse_email_updated_at from public.profiles where id = a) is not null then
+    raise exception 'consent timestamp must start empty';
+  end if;
 
   -- Duplicate insert does not create a second profile.
   insert into public.profiles (id, email, display_name)
@@ -55,6 +61,22 @@ begin
      or has_schema_privilege('authenticated', 'hpd_private', 'USAGE') then
     raise exception 'browser role has USAGE on hpd_private';
   end if;
+  if has_table_privilege('anon', 'public.daily_email_sends', 'SELECT')
+     or has_table_privilege('anon', 'public.daily_email_sends', 'INSERT')
+     or has_table_privilege('authenticated', 'public.daily_email_sends', 'SELECT')
+     or has_table_privilege('authenticated', 'public.daily_email_sends', 'INSERT') then
+    raise exception 'browser role can touch the email send log';
+  end if;
+  if has_column_privilege('anon', 'public.profiles', 'daily_verse_email', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.profiles', 'daily_verse_email_updated_at', 'UPDATE') then
+    raise exception 'consent column grants are too wide';
+  end if;
+  if not has_column_privilege('authenticated', 'public.profiles', 'daily_verse_email', 'UPDATE') then
+    raise exception 'owner cannot update the morning-email choice';
+  end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.daily_email_sends'::regclass) then
+    raise exception 'RLS disabled on the email send log';
+  end if;
   if not (select relrowsecurity from pg_class where oid = 'public.profiles'::regclass) then
     raise exception 'RLS disabled on profiles';
   end if;
@@ -85,6 +107,17 @@ begin
 
   update public.profiles set display_name = 'Renamed' where id = auth.uid();
   if not found then raise exception 'owner display-name update failed'; end if;
+
+  update public.profiles set daily_verse_email = true where id = auth.uid();
+  if not found then raise exception 'owner morning-email opt-in failed'; end if;
+  if (select daily_verse_email_updated_at from public.profiles where id = auth.uid()) is null then
+    raise exception 'consent timestamp was not recorded';
+  end if;
+  begin
+    update public.profiles set daily_verse_email_updated_at = now() where id = auth.uid();
+    raise exception 'client set the consent timestamp';
+  exception when insufficient_privilege then null;
+  end;
 
   begin
     update public.profiles set subscription_status = 'active' where id = auth.uid();

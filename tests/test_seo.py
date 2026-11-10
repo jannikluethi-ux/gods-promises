@@ -1,5 +1,6 @@
 """Run with: python3 -m unittest discover -s tests -p 'test_*.py'."""
 import contextlib
+import re
 from html.parser import HTMLParser
 import io
 from functools import partial
@@ -99,13 +100,14 @@ class StaticSeoTests(unittest.TestCase):
                 self.assertEqual(doc.values["blockquote"], [entry["text"]])
                 self.assertEqual(doc.values["explanation"], [entry["explanation"]])
                 self.assertEqual(doc.values["h1"], [entry["reference"]])
-                # JSON-LD plus exactly one deferred, content-hashed feedback widget script.
-                # No analytics or any other executable script on static verse pages.
+                # JSON-LD plus deferred share, feedback, and service-worker scripts.
+                # No analytics script on static verse pages.
                 self.assertTrue(doc.scripts)
                 external = [s for s in doc.scripts if "src" in s]
-                self.assertEqual(len(external), 1)
-                self.assertRegex(external[0]["src"], r"^/js/feedback\.js\?v=[0-9a-f]{12}$")
-                self.assertIn("defer", external[0])
+                self.assertEqual([s["src"].split("?")[0] for s in external],
+                                 ["/js/share.js", "/js/feedback.js", "/js/pwa.js"])
+                self.assertTrue(all(re.fullmatch(r"/js/(share|feedback|pwa)\.js\?v=[0-9a-f]{12}", s["src"]) for s in external))
+                self.assertTrue(all("defer" in s for s in external))
                 self.assertTrue(all(s.get("type") == "application/ld+json" for s in doc.scripts if "src" not in s))
                 widgets = [a for a in doc.attributes if a.get("class") == "fb"]
                 self.assertEqual(len(widgets), 1)
@@ -141,10 +143,18 @@ class StaticSeoTests(unittest.TestCase):
                 self.assertEqual(doc.metadata("twitter:title"), [title])
                 self.assertEqual(doc.metadata("twitter:description"), description)
                 self.assertEqual(doc.metadata("twitter:card"), ["summary_large_image"])
-                self.assertEqual(doc.metadata("og:image"), [site.ORIGIN + site.OG_IMAGE_PATH])
-                self.assertEqual(doc.metadata("twitter:image"), [site.ORIGIN + site.OG_IMAGE_PATH])
-                self.assertEqual(doc.metadata("og:image:width"), [str(site.OG_IMAGE_WIDTH)])
-                self.assertEqual(doc.metadata("og:image:height"), [str(site.OG_IMAGE_HEIGHT)])
+                if name.startswith("verses/") and name.endswith(".html"):
+                    image = site.ORIGIN + site.share_image_path({"id": name[len("verses/"):-len(".html")]})
+                    self.assertEqual(doc.metadata("og:image"), [image])
+                    self.assertEqual(doc.metadata("twitter:image"), [image])
+                    self.assertEqual(doc.metadata("og:image:width"), [str(site.SHARE_IMAGE_WIDTH)])
+                    self.assertEqual(doc.metadata("og:image:height"), [str(site.SHARE_IMAGE_HEIGHT)])
+                    self.assertNotIn("?", url)
+                else:
+                    self.assertEqual(doc.metadata("og:image"), [site.ORIGIN + site.OG_IMAGE_PATH])
+                    self.assertEqual(doc.metadata("twitter:image"), [site.ORIGIN + site.OG_IMAGE_PATH])
+                    self.assertEqual(doc.metadata("og:image:width"), [str(site.OG_IMAGE_WIDTH)])
+                    self.assertEqual(doc.metadata("og:image:height"), [str(site.OG_IMAGE_HEIGHT)])
 
     def test_all_pages_reachable_by_ordinary_links_and_assets_exist(self):
         seen, pending = set(), ["index.html"]
@@ -221,7 +231,16 @@ class StaticSeoTests(unittest.TestCase):
         self.assertEqual(verse_data["headline"], f"{entry['reference']} — His Promise Daily")
         self.assertEqual(verse_data["description"], expected_desc)
         self.assertEqual(verse_data["url"], site.canonical(site.verse_path(entry)))
+        self.assertEqual(verse_data["image"], site.ORIGIN + site.share_image_path(entry))
         self.assertEqual(verse_data["inLanguage"], "en")
+        home_html = (self.output / "index.html").read_text()
+        self.assertIn("Jannik Luethi", home_html)
+        self.assertNotIn("Made for Carlos", home_html)
+        self.assertNotIn("We’re moving", home_html)
+        self.assertNotIn("host-notice", home_html)
+        self.assertTrue((self.output / "manifest.webmanifest").is_file())
+        self.assertTrue((self.output / "sw.js").is_file())
+        self.assertTrue((self.output / "icons" / "icon-192.png").is_file())
         json.loads(json.dumps(verse_data))  # validates JSON round-trip
         self.assertTrue((self.output / "og-image.png").is_file())
 
@@ -275,8 +294,9 @@ class StaticSeoTests(unittest.TestCase):
     def test_build_uses_latest_sources_and_validates_counts(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            for name in site.SOURCE_PAGES + ("styles.css", "browse.css", "app.js", "promises.json", "og-image.png"):
+            for name in site.SOURCE_PAGES + ("styles.css", "browse.css", "app.js", "promises.json", "og-image.png", "sw.js", "manifest.webmanifest"):
                 shutil.copy2(site.ROOT / name, root / name)
+            shutil.copytree(site.ROOT / "icons", root / "icons")
             (root / "email").mkdir()
             shutil.copy2(site.ROOT / "email" / "hpd-wordmark.png", root / "email" / "hpd-wordmark.png")
             shutil.copytree(site.ROOT / "js", root / "js")

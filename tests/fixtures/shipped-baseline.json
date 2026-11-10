@@ -28,10 +28,10 @@
     "coverageNotes"
   ],
   "unchanged_script_sha256": {
-    "app.js": "9cfa1a5b8cd4b393285225e48c4c5cd1e13c037f05c0c068cbd27c905de5578f",
-    "js/auth.js": "e0291d7b0b7c1be5e972819512224abe2a186fe77cf3eca4f52f08e3a5724b7d",
+    "app.js": "3953b9e9005c39764d0c87a031782036e9dddf3725189abdb0ea6d2055bc214c",
+    "js/auth.js": "08f348002d9a5c58ef41477992b825e87d7ad7b25645a5b241fb81a04bc25138",
     "js/login-page.js": "665928db7aec2d2a9305aa0b8fd56ebe755014838ccfdcba7ea218f7e15693d7",
-    "js/me-page.js": "965774d2dcbdd3a132fef507aab58a8d6d68b49f89a12c37470a731661162e37",
+    "js/me-page.js": "e925c3882f7efea7287048b432162b7df07390c65f7119abde518b3e65933d86",
     "js/smart-search.js": "e21a3294dcb58869fd32036c24193c1ab28a127abf8f91fc3efc32ec6e0c4781",
     "js/relevance.js": "3eda9f82fd722e0b89667dffcc9b309cec3562885cbf75cec3df4e54f45376c9",
     "js/favorites.js": "e996cc6b1d8063702e50c30293301adc976db4df1ace64e8a78e4488abb72876",
@@ -39,7 +39,6 @@
     "js/config.js": "4bbf47459f1c38763d8086a59d0c7bc25efe458c4edc3b50c7ec38ccc424c768",
     "js/bible-versions.js": "bcc3645e23802e48f8479ca5a1b0ce2115411878d4bb65072b0e4f18f921293f",
     "js/analytics.js": "22611fd0b0b99df4f55da4be765c51933eba771eed36674ae311ae5c4fe434e3",
-    "js/safe-next.js": "9d04c2e6fb67a2258f7d91a6a470e67ff06550d2f945a125305851819cd8b5e1",
-    "js/host-notice.js": "d731ff18f820a27723092e52945b7b90283d325a93ae99da67db48d8b22e5767"
+    "js/safe-next.js": "9d04c2e6fb67a2258f7d91a6a470e67ff06550d2f945a125305851819cd8b5e1"
   }
 }

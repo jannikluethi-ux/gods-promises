@@ -32,6 +32,9 @@ Do not create a second Supabase project. Feedback (`hpd_feedback`) and accounts 
 | `SUPABASE_PUBLISHABLE_KEY` | Build-time fallback if `SUPABASE_ANON_KEY` is empty. |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Runtime, server only** (`api/feedback.js`, `api/account.js`). The build refuses to embed a service-role or `sb_secret_` value. |
 | `FEEDBACK_HASH_SECRET` | Runtime, server only. Unchanged. |
+| `RESEND_API_KEY` | Runtime, server only (`api/daily-email.js`). Not set until you add it. Missing key skips the send. |
+| `CRON_SECRET` | Runtime, server only. Vercel sends it as `Authorization: Bearer …` to the morning-email cron. |
+| `UNSUBSCRIBE_SECRET` | Runtime, server only. Signs the one-click unsubscribe link. See `docs/morning-email.md`. |
 
 `vercel.json` builds with `npm ci && python3 scripts/build_site.py --target production` and serves `dist`. Pages load `js/config.js`, then `js/supabase-public.js`, then `js/vendor/supabase.js` (the official UMD build copied from `node_modules`).
 
@@ -44,7 +47,8 @@ The source placeholder `js/supabase-public.js` stays empty and is safe to commit
 Apply these files, in order, on `ixxeidpdgktzvcbucosq` only. This change does **not** apply them to the live database.
 
 1. `supabase/migrations/20261109120000_explanation_feedback.sql` (already live)
-2. `supabase/migrations/20261110153000_profiles_favorites_auth.sql` (new)
+2. `supabase/migrations/20261110153000_profiles_favorites_auth.sql`
+3. `supabase/migrations/20261110210000_daily_verse_email.sql` (morning-email opt-in; not applied by this change)
 
 Use the Supabase CLI (`supabase db push`) or the SQL editor. Then run `node tests/run-sql.js` locally. That uses in-memory Postgres and does not connect to production.
 
@@ -144,7 +148,7 @@ On load, the client removes `gp_auth_users_v1`, `gp_auth_session_v1`, and keys s
 
 ## Manual steps still required
 
-1. Apply `20261110153000_profiles_favorites_auth.sql` on `ixxeidpdgktzvcbucosq`.
+1. Apply `20261110153000_profiles_favorites_auth.sql` on `ixxeidpdgktzvcbucosq`, then `20261110210000_daily_verse_email.sql` when you are ready for the morning email (`docs/morning-email.md`).
 2. Add `SUPABASE_ANON_KEY` to the Vercel project so the **build** can see it, then redeploy.
 3. Set the Auth site URL, redirect URLs, email confirmation, and minimum password length as listed above.
 4. After `/email/hpd-wordmark.png` is on https://hispromisedaily.com, paste the six templates and subjects from `supabase/templates/` into Authentication > Emails.

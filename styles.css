@@ -1493,8 +1493,16 @@ a:hover {
   max-width: 28rem;
 }
 
+.site-footer .footer-operator {
+  color: var(--ink-muted);
+}
+
 .site-footer .footer-links a {
   color: var(--ink-muted);
+}
+
+.site-footer .footer-support {
+  color: var(--ink-faint);
 }
 
 .local-beta-notice {
@@ -2005,10 +2013,94 @@ a:hover {
   margin: 1.75rem 0 0.5rem;
 }
 
-.host-notice {
-  max-width: 32rem;
-  margin: 0 auto 1rem;
-  font-size: 0.8rem;
-  color: var(--ink-muted);
-  overflow-wrap: anywhere;
+.card-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.share-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.25rem;
+  height: 3.35rem;
+  margin: 0;
+  padding: 0.35rem 0.7rem;
+  color: var(--accent);
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.share-btn:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-wash);
+}
+
+.share-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.share-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.catalog-share {
+  margin: 0.25rem 0 1.25rem;
+}
+
+.catalog-share .share-btn {
+  height: 2.6rem;
+  min-height: 2.6rem;
+}
+
+.share-status {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: min(28rem, calc(100% - 2rem));
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.85rem;
+  text-align: center;
+  z-index: 20;
+}
+
+.auth-form label.email-opt-in {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin: 1.1rem 0 0.35rem;
+  color: var(--ink);
+  font-size: 0.98rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.email-opt-in input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.15rem;
+  accent-color: var(--accent);
+  flex-shrink: 0;
 }
