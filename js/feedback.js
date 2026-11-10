@@ -145,12 +145,11 @@
     }
   }
 
-  function localUserId() {
+  function accessToken() {
     try {
       var auth = global.GodsPromisesAuth;
-      var u = auth && auth.getCurrentUser ? auth.getCurrentUser() : null;
-      var id = u && u.id;
-      return typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id) ? id : null;
+      var token = auth && auth.getAccessToken ? auth.getAccessToken() : null;
+      return typeof token === "string" && token.length >= 20 ? token : null;
     } catch (_) {
       return null;
     }
@@ -173,8 +172,6 @@
       source: box.getAttribute("data-fb-source") === "verse_page" ? "verse_page" : "card",
     };
     if (comment) body.comment = comment.slice(0, MAX_COMMENT);
-    var uid = localUserId();
-    if (uid) body.localUserId = uid;
     if (hp) body.website = hp;
     return body;
   }
@@ -268,10 +265,13 @@
     if (!global.fetch) return done(0, null);
     var ctrl = global.AbortController ? new global.AbortController() : null;
     var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 12000);
+    var headers = { "content-type": "application/json", accept: "application/json" };
+    var token = accessToken();
+    if (token) headers.authorization = "Bearer " + token;
     global.fetch(API, {
       method: "POST",
       credentials: "same-origin",
-      headers: { "content-type": "application/json", accept: "application/json" },
+      headers: headers,
       body: JSON.stringify(body),
       signal: ctrl ? ctrl.signal : undefined,
     }).then(function (r) {

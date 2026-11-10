@@ -1,7 +1,12 @@
 .DS_Store
 *.pyc
 __pycache__/
+node_modules/
 
 # Disposable host-specific static artifacts
 dist/
 pages-dist/
+
+# Public Supabase values are generated into dist at build time. Never commit env files.
+.env
+.env.*

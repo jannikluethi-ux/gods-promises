@@ -25,14 +25,14 @@ begin
         raise exception '% has privileges on %', r, obj;
       end if;
     end loop;
-    if has_function_privilege(r, 'public.hpd_feedback_submit(text, text, text, integer, integer, integer, text, text, text, text, text[], text, text, text, text, text)', 'EXECUTE') then
+    if has_function_privilege(r, 'public.hpd_feedback_submit(text, text, text, integer, integer, integer, text, text, text, text, text[], text, text, text, text, text, uuid)', 'EXECUTE') then
       raise exception '% can execute hpd_feedback_submit', r;
     end if;
     if has_function_privilege(r, 'public.hpd_feedback_status(text, text, text)', 'EXECUTE') then
       raise exception '% can execute hpd_feedback_status', r;
     end if;
   end loop;
-  if not has_function_privilege('service_role', 'public.hpd_feedback_submit(text, text, text, integer, integer, integer, text, text, text, text, text[], text, text, text, text, text)', 'EXECUTE') then
+  if not has_function_privilege('service_role', 'public.hpd_feedback_submit(text, text, text, integer, integer, integer, text, text, text, text, text[], text, text, text, text, text, uuid)', 'EXECUTE') then
     raise exception 'service_role cannot execute hpd_feedback_submit';
   end if;
   if not (select relrowsecurity from pg_class where oid = 'hpd_feedback.explanation_feedback'::regclass) then

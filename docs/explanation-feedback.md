@@ -13,7 +13,7 @@ explanation is ever rewritten or replaced automatically.
 | Card hook (widget under `.card-explain-text`, tied to `EXPLAIN_VERSION`) | `js/ui-shared.js` (`feedbackHtml`) |
 | Verse-page hook (placeholder + deferred, content-hashed script) | `scripts/build_site.py` (`verse_page`, `explain_version`) |
 | Server function `POST /api/feedback`, `GET /api/feedback?verseId=&v=` | `api/feedback.js`, `api/_lib/feedback-core.js` |
-| Database (table, RPCs, rate limits, analytics views) | `supabase/migrations/20261109120000_explanation_feedback.sql` |
+| Database (table, RPCs, rate limits, analytics views) | `supabase/migrations/20261109120000_explanation_feedback.sql` and `20261110153000_profiles_favorites_auth.sql` |
 
 The browser only talks to the same-origin `/api/feedback`. The function validates everything,
 derives book/chapter/verse/reference and the SHA-256 of the exact explanation text from the
@@ -26,7 +26,7 @@ required whenever `data/explanations.json` changes) lets readers rate the new ve
 
 | Name | Value |
 | --- | --- |
-| `SUPABASE_URL` | `https://<project-ref>.supabase.co` of a **dedicated** His Promise Daily project |
+| `SUPABASE_URL` | `https://ixxeidpdgktzvcbucosq.supabase.co` (existing project `his-promise-daily`, Zurich). Do not create another project. |
 | `SUPABASE_SERVICE_ROLE_KEY` | that project’s secret / service-role key (server only, never in client JS) |
 | `FEEDBACK_HASH_SECRET` | random string, ≥ 32 chars (e.g. `openssl rand -base64 48`); HMAC key for cookie and IP hashes |
 
@@ -34,12 +34,12 @@ Without all three the API fails closed with `503 {"error":"feedback_unavailable"
 shows a gentle “couldn’t be sent” message. Rotating `FEEDBACK_HASH_SECRET` resets duplicate
 detection for existing cookies (old rows stay).
 
-## Applying the migration
+## Applying the migrations
 
-Create a new Supabase project for His Promise Daily (do not reuse another app’s project), then
-run the migration with the Supabase CLI (`supabase db push`) or paste it into the SQL editor.
-It is idempotent. Afterwards, optionally verify on a **throwaway** copy:
-`psql "$DSN" -f tests/sql/explanation_feedback_checks.sql` (runs in a transaction and rolls back).
+Use only the existing project `his-promise-daily` (`ixxeidpdgktzvcbucosq`). Apply
+`supabase/migrations/` in filename order with the Supabase CLI (`supabase db push`) or the
+SQL editor. Do not apply them to any other project. Afterwards, on a **throwaway** database
+only: `node tests/run-sql.js` (in-memory Postgres; it does not touch production).
 
 ## Security model
 
@@ -51,9 +51,12 @@ It is idempotent. Afterwards, optionally verify on a **throwaway** copy:
 - Anonymous submitter = httpOnly, Secure, SameSite=Strict cookie `hpd_fb` (random 256-bit,
   scoped to `/api/feedback`), stored only as an HMAC. Unique `(submitter_key, verse_id,
   explanation_version)`; duplicates return `409 already_submitted`.
-- The local profile id from `js/auth.js` is attached when signed in on cards
-  (`local_user_id`), but it is unverified and never used for authorization or de-duplication.
-  Static verse pages do not load `auth.js`, so their rows carry no local profile id.
+- New rows store `local_user_id` as null. That column is historical only.
+- If the browser sends `Authorization: Bearer <access token>`, the server asks Supabase Auth
+  who that token is and stores that `auth.users` id in `auth_user_id`. A user id in the JSON
+  body is ignored. Anonymous submissions (no token, including static verse pages) still work
+  and store a null auth id. The id is not used for de-duplication or authorization of the
+  feedback itself. Deleting the account sets `auth_user_id` back to null and keeps the row.
 - Same-origin check (`Origin` = request host, `Sec-Fetch-Site`), JSON-only, 4 KB body cap,
   unknown fields rejected, category allowlists in server **and** database check constraints,
   comment ≤ 500 chars with control/bidi characters stripped and link-spam rejected, honeypot.

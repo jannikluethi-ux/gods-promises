@@ -119,12 +119,21 @@ class ShippedRegressionTests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256((ROOT / relative).read_bytes()).hexdigest(), digest,
                                  "Auth/search/translation behavior source changed from shipped baseline")
                 self.assertEqual((ROOT / "dist" / relative).read_bytes(), (ROOT / relative).read_bytes())
-        # All JS is copied exactly from the current release tree, including the
-        # explanation cache version that another branch is intentionally updating.
+        # App scripts are copied exactly. js/supabase-public.js is rewritten at
+        # build time with the public project URL and anon key, so it is not a
+        # byte copy of the empty placeholder.
+        generated = ROOT / "js" / "supabase-public.js"
         for source in [ROOT / "app.js", *sorted((ROOT / "js").glob("*.js"))]:
+            if source == generated:
+                continue
             self.assertEqual((ROOT / "dist" / source.relative_to(ROOT)).read_bytes(), source.read_bytes())
+        public = (ROOT / "dist" / "js" / "supabase-public.js").read_text()
+        self.assertIn("https://ixxeidpdgktzvcbucosq.supabase.co", public)
+        self.assertNotIn("service_role", public)
+        self.assertNotIn("SUPABASE_SERVICE_ROLE", public)
+        self.assertIn(b"createClient", (ROOT / "dist" / "js" / "vendor" / "supabase.js").read_bytes())
         self.assertEqual((ROOT / "dist/styles.css").read_bytes(), (ROOT / "styles.css").read_bytes())
-        print(f"Script preservation: {len(MANIFEST['unchanged_script_sha256'])} auth/search/version/privacy scripts byte-exact against a0e3974; every emitted app/JS script byte-exact against current release source")
+        print(f"Script preservation: {len(MANIFEST['unchanged_script_sha256'])} pinned app scripts; public Supabase config injected; search/analytics bytes unchanged")
 
     def test_shallow_checkout_fallback_is_pinned_not_builder_generated(self):
         unavailable = subprocess.CompletedProcess(args=[], returncode=128, stdout=b"", stderr=b"missing historical object")

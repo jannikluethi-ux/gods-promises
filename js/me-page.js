@@ -19,6 +19,13 @@
     upgrade: document.getElementById("upgrade-panel"),
     signout: document.getElementById("signout-btn"),
     version: document.getElementById("version-filter"),
+    status: document.getElementById("me-status"),
+    settings: document.getElementById("account-settings"),
+    name: document.getElementById("settings-name"),
+    email: document.getElementById("settings-email"),
+    settingsForm: document.getElementById("form-settings"),
+    deleteForm: document.getElementById("form-delete"),
+    deleteInput: document.getElementById("delete-confirm"),
   };
 
   const byId = new Map();
@@ -29,12 +36,17 @@
   /** @type {object[]} */
   let items = [];
   let currentIndex = 0;
-  /** Shared reading deck (same controller as the home page); bound once. */
-  const deck =
-    UI && UI.createReadingDeck ? UI.createReadingDeck(el.favorites) : null;
+  const deck = UI && UI.createReadingDeck ? UI.createReadingDeck(el.favorites) : null;
 
   function redirectLogin() {
     location.href = UI && UI.loginUrl ? UI.loginUrl("me.html") : "login.html?next=me.html";
+  }
+
+  function showStatus(msg, isError) {
+    if (!el.status) return;
+    el.status.hidden = !msg;
+    el.status.textContent = msg || "";
+    el.status.classList.toggle("auth-status--error", !!isError);
   }
 
   function clearDeck(html) {
@@ -73,7 +85,17 @@
     });
   }
 
-  function render() {
+  function fillAccount(user) {
+    if (!el.settings) return;
+    el.settings.hidden = false;
+    if (el.name && document.activeElement !== el.name) el.name.value = user.displayName || "";
+    if (el.email) el.email.textContent = user.email || "";
+    if (Versions && el.version && user.preferredBibleVersion && el.version.value !== user.preferredBibleVersion) {
+      el.version.value = user.preferredBibleVersion;
+    }
+  }
+
+  async function render() {
     const user = auth.getCurrentUser();
     if (!user) {
       redirectLogin();
@@ -82,13 +104,16 @@
 
     const canApp = !sub || sub.canAccessApp(user);
     const canFav = !sub || sub.canAccessFavorites(user);
+    fillAccount(user);
 
     if (!canApp || !canFav) {
       clearDeck("");
       el.upgrade.hidden = false;
       el.toolbar.hidden = true;
-      el.title.textContent = "My favorites";
-      el.lede.textContent = "A subscription will unlock your personal favorites.";
+      el.title.textContent = user.accountStatus === "disabled" ? "Account disabled" : "My favorites";
+      el.lede.textContent = user.accountStatus === "disabled"
+        ? "This account is disabled. You can sign out below."
+        : "A subscription will unlock your personal favorites.";
       if (location.hash === "#upgrade") {
         el.upgrade.scrollIntoView({ behavior: "smooth", block: "start" });
       }
@@ -97,23 +122,27 @@
 
     el.upgrade.hidden = true;
     el.toolbar.hidden = false;
-
     const name = user.displayName || user.email;
     el.title.textContent = `Welcome, ${name}`;
     el.lede.textContent = "Promises you’ve marked with the cross. Tap the cross again to remove.";
 
-    const ids = favs.list();
-    const previousId =
-      items[currentIndex] && items[currentIndex].id
-        ? items[currentIndex].id
-        : null;
+    let ids = [];
+    try {
+      ids = await favs.list();
+      showStatus("", false);
+    } catch (err) {
+      clearDeck("");
+      el.count.textContent = "";
+      showStatus((err && err.message) || "Could not load your favorites.", true);
+      return;
+    }
+
+    const previousId = items[currentIndex] && items[currentIndex].id ? items[currentIndex].id : null;
     items = ids.map((id) => byId.get(id)).filter(Boolean);
-    // Preserve saved order (list() order)
     const n = items.length;
-    el.count.innerHTML =
-      n === 0
-        ? "<strong>No favorites yet</strong>"
-        : `<strong>${n}</strong> favorite${n === 1 ? "" : "s"}`;
+    el.count.innerHTML = n === 0
+      ? "<strong>No favorites yet</strong>"
+      : `<strong>${n}</strong> favorite${n === 1 ? "" : "s"}`;
 
     if (n === 0) {
       clearDeck(`
@@ -133,7 +162,6 @@
     } else {
       currentIndex = Math.min(currentIndex, n - 1);
     }
-
     paintDeck();
   }
 
@@ -154,8 +182,45 @@
     Versions.fillSelect(el.version);
     el.version.addEventListener("change", function () {
       Versions.setCurrent(el.version.value);
-      // Same card, new translation — position is kept.
       if (items.length && deck) deck.refresh();
+    });
+    if (Versions.onChange) {
+      Versions.onChange(function (id) {
+        if (el.version.value !== id) el.version.value = id;
+      });
+    }
+  }
+
+  if (el.settingsForm) {
+    el.settingsForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      showStatus("");
+      const button = el.settingsForm.querySelector('button[type="submit"]');
+      if (button) button.disabled = true;
+      try {
+        await auth.updateProfile({ displayName: el.name.value });
+        showStatus("Settings saved.", false);
+        render();
+      } catch (err) {
+        showStatus((err && err.message) || "Could not save your settings.", true);
+      }
+      if (button) button.disabled = false;
+    });
+  }
+
+  if (el.deleteForm) {
+    el.deleteForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      showStatus("");
+      const button = el.deleteForm.querySelector('button[type="submit"]');
+      if (button) button.disabled = true;
+      try {
+        await auth.deleteAccount({ confirmation: el.deleteInput.value.trim() });
+        redirectLogin();
+      } catch (err) {
+        showStatus((err && err.message) || "Could not delete the account.", true);
+        if (button) button.disabled = false;
+      }
     });
   }
 
@@ -167,5 +232,15 @@
     render();
   });
 
-  render();
+  showStatus("Restoring your session…", false);
+  auth.whenReady().then((user) => {
+    if (!user) {
+      redirectLogin();
+      return;
+    }
+    const profileError = auth.getProfileError && auth.getProfileError();
+    if (profileError) showStatus("Your account is signed in, but the profile could not be loaded.", true);
+    else showStatus("", false);
+    return render();
+  });
 })();

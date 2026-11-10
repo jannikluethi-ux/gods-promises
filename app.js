@@ -1151,18 +1151,25 @@
     UI.bindFavoriteClicks(el.results);
   }
 
+  function renderWhenReady(opts) {
+    const auth = window.GodsPromisesAuth;
+    const favs = window.GodsPromisesFavorites;
+    Promise.resolve(auth && auth.whenReady ? auth.whenReady() : null)
+      .then(() => (favs && favs.whenReady ? favs.whenReady() : null))
+      .then(() => render(opts))
+      .catch(() => render(opts));
+  }
+
   const auth = window.GodsPromisesAuth;
   if (auth && auth.onAuthChange) {
-    auth.onAuthChange(() =>
-      render({ preserveLimit: true, preserveIndex: true })
-    );
+    auth.onAuthChange(() => renderWhenReady({ preserveLimit: true, preserveIndex: true }));
   }
 
   initFiltersToggle();
   initFilters();
   initSmartGuide();
   syncTestamentButtons();
-  render();
+  renderWhenReady();
 
   // Roll the daily verse over at midnight Zurich while the tab stays open.
   window.setInterval(checkDailyRollover, 60 * 1000);

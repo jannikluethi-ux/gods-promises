@@ -122,7 +122,7 @@
   function renderPromiseCard(p, opts) {
     const interactiveTags = !opts || opts.interactiveTags !== false;
     const favs = global.GodsPromisesFavorites;
-    const isFav = favs && favs.isFavorite ? favs.isFavorite(p.id) : false;
+    const isFav = favs && favs.isFavoriteNow ? favs.isFavoriteNow(p.id) : false;
     const relevanceLabel = opts && opts.relevanceLabel;
 
     const themeTags = (p.themes || [])
@@ -231,11 +231,11 @@
           `<span class="favorite-btn-label">${pressed ? "Saved" : "Save"}</span>`;
         if (opts && typeof opts.onChange === "function") opts.onChange(id, pressed);
       } catch (err) {
-        if (err && err.code === "AUTH_REQUIRED") {
+        if (err && (err.code === "AUTH_REQUIRED" || err.code === "AUTH_UNCONFIGURED")) {
           location.href = loginUrl("me.html");
           return;
         }
-        if (err && err.code === "SUBSCRIPTION_REQUIRED") {
+        if (err && (err.code === "SUBSCRIPTION_REQUIRED" || err.code === "ACCOUNT_DISABLED")) {
           location.href = "me.html#upgrade";
           return;
         }
@@ -252,6 +252,7 @@
     if (!nav) return;
     const auth = global.GodsPromisesAuth;
     const user = auth && auth.getCurrentUser ? auth.getCurrentUser() : null;
+    nav.removeAttribute("aria-busy");
 
     if (user) {
       const name = escapeHtml(user.displayName || user.email);
@@ -268,11 +269,18 @@
   }
 
   function initAuthNav() {
-    refreshAuthNav();
+    const nav = document.querySelector(".js-auth-nav");
     const auth = global.GodsPromisesAuth;
-    if (auth && auth.onAuthChange) {
-      auth.onAuthChange(refreshAuthNav);
+    if (nav) {
+      nav.setAttribute("aria-busy", "true");
+      nav.innerHTML = "";
     }
+    const paint = () => {
+      refreshAuthNav();
+    };
+    if (auth && auth.whenReady) auth.whenReady().then(paint, paint);
+    else paint();
+    if (auth && auth.onAuthChange) auth.onAuthChange(paint);
   }
 
 

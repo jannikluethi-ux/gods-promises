@@ -14,6 +14,8 @@ function memoryStorage(map = new Map()) {
     setItem: (key, value) => map.set(String(key), String(value)),
     removeItem: key => map.delete(String(key)),
     clear: () => map.clear(),
+    key: index => Array.from(map.keys())[index] ?? null,
+    get length() { return map.size; },
     map,
   };
 }
@@ -21,6 +23,7 @@ function runtime(directory, overrides = {}) {
   return vm.createContext({ console, URL, TextEncoder, crypto: webcrypto,
     btoa: text => Buffer.from(text, 'binary').toString('base64'),
     atob: text => Buffer.from(text, 'base64').toString('binary'),
+    setTimeout, clearTimeout,
     localStorage: memoryStorage(), sessionStorage: memoryStorage(),
     fetch: () => { throw new Error('Unstubbed network is forbidden in this test'); },
     ...overrides, __directory: directory });
@@ -36,54 +39,90 @@ function catalog(directory) {
 }
 
 async function authAndFavorites(directory) {
+  const { createWorld, install } = require('./helpers/fake-supabase');
   const storage = memoryStorage();
+  storage.setItem('gp_auth_users_v1', JSON.stringify({ old: { email: 'old@example.invalid', passwordHash: 'hash', salt: 'salt' } }));
+  storage.setItem('gp_auth_session_v1', JSON.stringify({ userId: 'old-local-user' }));
+  storage.setItem('gp_favorites_v1_old-local-user', JSON.stringify(['gen-1-1']));
+  storage.setItem('hpd.feedback.v1', '{"keep":true}');
+  storage.setItem('gods-promises-version', 'kjv');
+  const world = createWorld({ confirmEmail: true });
   const context = runtime(directory, { localStorage: storage });
-  for (const file of ['js/config.js', 'js/subscription.js', 'js/auth.js', 'js/favorites.js']) load(context, file);
+  load(context, 'js/config.js');
+  load(context, 'js/subscription.js');
+  context.GodsPromisesConfig.supabaseUrl = 'https://ixxeidpdgktzvcbucosq.supabase.co';
+  context.GodsPromisesConfig.supabaseAnonKey = 'sb_publishable_test_only_value';
+  install(context, world);
+  load(context, 'js/auth.js');
+  load(context, 'js/favorites.js');
   const auth = context.GodsPromisesAuth;
   const favorites = context.GodsPromisesFavorites;
+  assert.equal(await auth.whenReady(), null);
   assert.equal(auth.getCurrentUser(), null);
+  assert.equal(storage.getItem('gp_auth_users_v1'), null, 'Legacy account database is removed');
+  assert.equal(storage.getItem('gp_auth_session_v1'), null, 'Legacy session is removed');
+  assert.equal(storage.getItem('gp_favorites_v1_old-local-user'), null, 'Legacy favorites are removed');
+  assert.equal(storage.getItem('hpd.feedback.v1'), '{"keep":true}', 'Feedback UX cache is left alone');
+  assert.equal(storage.getItem('gods-promises-version'), 'kjv');
+  await assert.rejects(auth.signIn({ email: 'old@example.invalid', password: 'hash' }), /Incorrect/);
   await assert.rejects(auth.signUp({ email: 'invalid', password: 'test-only-password' }), /valid email/);
   await assert.rejects(auth.signUp({ email: 'test-user@example.invalid', password: 'short' }), /8 characters/);
   await assert.rejects(favorites.toggle('gen-1-28'), error => error.code === 'AUTH_REQUIRED');
   const events = [];
   const unsubscribe = auth.onAuthChange(user => events.push(user ? user.email : null));
-  const user = await auth.signUp({ email: '  TEST-USER@EXAMPLE.INVALID  ', password: 'test-only-password', displayName: ' Test Reader ' });
-  assert.equal(user.email, 'test-user@example.invalid');
-  assert.equal(user.displayName, 'Test Reader');
+  const pending = await auth.signUp({ email: '  TEST-USER@EXAMPLE.INVALID  ', password: 'test-only-password', displayName: ' Test Reader ' });
+  assert.equal(pending.email, 'test-user@example.invalid');
+  assert.equal(pending.displayName, 'Test Reader');
+  assert.equal(pending.needsVerification, true);
+  assert.equal(pending.subscriptionStatus, 'none');
+  assert.equal('passwordHash' in pending, false);
+  assert.equal(auth.getCurrentUser(), null, 'Unverified signup does not start a session');
+  assert.ok(!JSON.stringify([...storage.map.values()]).includes('test-only-password'), 'Password must not be stored in the browser');
+  await assert.rejects(auth.signIn({ email: pending.email, password: 'test-only-password' }), /Confirm your email/);
+  world.confirmEmail(pending.email);
+  await assert.rejects(auth.signUp({ email: pending.email, password: 'test-only-password' }), /already exists/);
+  await assert.rejects(auth.signIn({ email: pending.email, password: 'wrong-test-password' }), /Incorrect/);
+  await assert.rejects(auth.signIn({ email: 'missing@example.invalid', password: 'test-only-password' }), /Incorrect/);
+  const user = await auth.signIn({ email: ' TEST-USER@example.invalid ', password: 'test-only-password' });
+  assert.equal(user.id, pending.id);
   assert.equal(user.subscriptionStatus, 'none');
-  assert.equal('passwordHash' in user, false);
   assert.equal(auth.getCurrentUser().id, user.id);
-  const record = Object.values(JSON.parse(storage.getItem('gp_auth_users_v1')))[0];
-  assert.ok(record.salt && record.passwordHash);
-  assert.ok(!JSON.stringify(record).includes('test-only-password'), 'Never persist plaintext test passwords');
-  await assert.rejects(auth.signUp({ email: user.email, password: 'test-only-password' }), /already exists/);
+  const denied = await auth.getClient().from('profiles').update({ subscription_status: 'active' }).eq('id', user.id).maybeSingle();
+  assert.equal(denied.error.code, '42501');
+  assert.equal(auth.getCurrentUser().subscriptionStatus, 'none');
+  await assert.rejects(auth.updateProfile({ subscriptionStatus: 'active' }), error => error.code === 'FORBIDDEN');
   assert.equal((await favorites.toggle('gen-1-28')).favorited, true);
-  assert.equal(favorites.isFavorite('gen-1-28'), true);
-  assert.deepEqual(plain(favorites.list()), ['gen-1-28']);
+  assert.equal(await favorites.isFavorite('gen-1-28'), true);
+  assert.deepEqual(plain(await favorites.list()), ['gen-1-28']);
   await auth.signOut();
   assert.equal(auth.getCurrentUser(), null);
-  assert.deepEqual(plain(favorites.list()), []);
-  await assert.rejects(auth.signIn({ email: user.email, password: 'wrong-test-password' }), /Incorrect/);
-  await assert.rejects(auth.signIn({ email: 'missing@example.invalid', password: 'test-only-password' }), /Incorrect/);
+  assert.deepEqual(plain(await favorites.list()), []);
   const restored = runtime(directory, { localStorage: storage });
-  for (const file of ['js/config.js', 'js/subscription.js', 'js/auth.js', 'js/favorites.js']) load(restored, file);
+  load(restored, 'js/config.js');
+  load(restored, 'js/subscription.js');
+  restored.GodsPromisesConfig.supabaseUrl = 'https://ixxeidpdgktzvcbucosq.supabase.co';
+  restored.GodsPromisesConfig.supabaseAnonKey = 'sb_publishable_test_only_value';
+  install(restored, world);
+  load(restored, 'js/auth.js');
+  load(restored, 'js/favorites.js');
   await restored.GodsPromisesAuth.signIn({ email: ' TEST-USER@example.invalid ', password: 'test-only-password' });
   assert.equal(restored.GodsPromisesAuth.getCurrentUser().id, user.id);
-  assert.equal(restored.GodsPromisesFavorites.isFavorite('gen-1-28'), true);
+  assert.equal(await restored.GodsPromisesFavorites.isFavorite('gen-1-28'), true);
   assert.equal((await restored.GodsPromisesFavorites.toggle('gen-1-28')).favorited, false);
   await restored.GodsPromisesFavorites.toggle('gen-1-28');
   await restored.GodsPromisesAuth.signOut();
-  const second = await restored.GodsPromisesAuth.signUp({ email: 'other-test@example.invalid', password: 'different-test-only-password' });
+  const secondPending = await restored.GodsPromisesAuth.signUp({ email: 'other-test@example.invalid', password: 'different-test-only-password' });
+  world.confirmEmail(secondPending.email);
+  const second = await restored.GodsPromisesAuth.signIn({ email: secondPending.email, password: 'different-test-only-password' });
   assert.notEqual(second.id, user.id);
-  assert.deepEqual(plain(restored.GodsPromisesFavorites.list()), [], 'Favorites stay per profile');
+  assert.deepEqual(plain(await restored.GodsPromisesFavorites.list()), [], 'Favorites stay per profile');
   assert.deepEqual(events, ['test-user@example.invalid', null]);
   unsubscribe();
   await auth.signOut();
   assert.equal(events.length, 2);
   storage.setItem('gp_auth_session_v1', JSON.stringify({ userId: 'missing-user' }));
   assert.equal(auth.getCurrentUser(), null);
-  assert.equal(storage.getItem('gp_auth_session_v1'), null);
-  return 'signup/signin/signout, PBKDF2 persistence, validation/errors, sessions, observers and per-profile favorites';
+  return 'signup/verify/signin/signout, Supabase session restore, validation/errors, no local passwords, per-profile favorites';
 }
 
 function search(directory, data) {
@@ -218,5 +257,5 @@ function analytics(directory) {
   assert.deepEqual(search(directories[1], newData), search(ROOT, oldData), 'Search plans and all ranked IDs/scores must be unchanged');
   assert.deepEqual(await versions(directories[1], newData), await versions(ROOT, oldData));
   for (const directory of directories) analytics(directory);
-  console.log('Non-browser functional regression: source and dist both pass auth/favorites lifecycle; 15 search queries plus clarification have identical full ranked IDs/scores; all 6 translation modes, on-demand requests/caches/fallbacks unchanged; analytics beforeSend rejects all new paths and strips allowed URL queries/hashes');
+  console.log('Non-browser functional regression: source and dist both pass Supabase auth/favorites lifecycle; 15 search queries plus clarification have identical full ranked IDs/scores; all 6 translation modes, on-demand requests/caches/fallbacks unchanged; analytics beforeSend rejects all new paths and strips allowed URL queries/hashes');
 })().catch(error => { console.error(error); process.exitCode = 1; });

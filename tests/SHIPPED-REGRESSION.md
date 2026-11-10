@@ -44,7 +44,7 @@ Other translations remain the existing on-demand client feature, not prerendered
 contexts using memory-only fake profiles/storage, real Web Crypto and stubbed fetch.
 No actual account, browser, external API or real credential is involved.
 
-- Auth: validation, signup, PBKDF2 hash storage without plaintext, duplicate/wrong/missing-user
+- Auth: validation, email verification, sign-in, session restore, no browser password storage, duplicate/wrong/missing-user, favorites per account
   errors, normalized email, session persistence/reload, signout, auth observers/unsubscribe,
   favorites toggle/persistence and per-profile isolation.
 - Search: 15 queries covering empty, themes, feelings, statements, reference, book and no-match,

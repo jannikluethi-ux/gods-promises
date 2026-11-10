@@ -12,18 +12,19 @@ People often arrive by **how they feel** (lonely, angry, anxious…), not only b
 
 Data is embedded in `promises-data.js`, so no server is required.
 
-**Live site:** https://jannikluethi-ux.github.io/gods-promises/
+**Live site:** https://hispromisedaily.com (Vercel). The old GitHub Pages address is a move notice only.
 
 > **Hard-cache note:** GitHub Pages (and browsers) may cache `promises-data.js`. If the count looks old after a deploy, do a hard refresh (Ctrl/Cmd+Shift+R) or open the site in a private window.
 
-**Optional local server:**
+**Local server with sign-in:**
 
 ```bash
-cd /workspace/gods-promises
-python3 -m http.server 8080
+npm ci
+python3 scripts/build_site.py --target production
+python3 -m http.server 8080 --directory dist
 ```
 
-Then visit `http://localhost:8080/`.
+Then visit `http://localhost:8080/`. Set `SUPABASE_ANON_KEY` (or `SUPABASE_PUBLISHABLE_KEY`) in the environment before the build if you want sign-in to work. See `docs/supabase-auth.md`. Opening the source `index.html` still browses the catalog; the production client library is copied into `dist` by the build.
 
 ## How to search
 
@@ -35,7 +36,7 @@ Then visit `http://localhost:8080/`.
 - Click a feeling or theme tag on a result card to apply that filter.
 - With an empty search and no filters, the page shows the **daily verse**, which changes at midnight Zurich time (Europe/Zurich). Press **Esc** in the search box to return to it.
 - The daily verse is a **carousel of past days**: today shows first; swipe right, drag with the mouse, press ←, or tap **‹ Earlier** to step back to yesterday and earlier days (up to 60 days back). **Later ›** / → moves forward again, never past today. Each card is labelled “Today”, “Yesterday”, or its date (e.g. “Saturday 17 October”). Past days use the same deterministic Zurich-date picker, so each shows exactly the verse it showed on that day. Favorites and the Version filter work on every card.
-- The site was renamed from “God’s Promises” to “Daily Promises” and then to **His Promise Daily** (domain hispromisedaily.com owned, not yet connected); the repo and URL stay `gods-promises`, and existing `localStorage` keys (accounts, favorites, version choice) are unchanged.
+- The site was renamed from “God’s Promises” to “Daily Promises” and then to **His Promise Daily**. Accounts and favorites now live in Supabase and are not copied from older browser-only saves. A chosen Bible version still has a device cache (`gods-promises-version`) and, while you are signed in, is stored on your profile.
 
 Try: `lonely`, `angry`, `anxious`, `guilty`, `weary`, or themes like `covenant`, `presence`.
 
@@ -120,9 +121,9 @@ Historicals beyond Davidic covenant threads, Mark (vs Matthew/Luke/John), some w
 
 Browse/search stays **open to everyone** (no login required).
 
-- **Sign up / sign in:** `login.html` — email + password. Auth is **local for now** (`localStorage` + Web Crypto salted PBKDF2 hashes). Plaintext passwords are never stored.
-- **Personal page:** `me.html` — welcome + **your favorited promises** (primary content).
-- **Favorite control:** a Christian **cross** icon on each promise card (catalog + personal page). Outline = not saved; filled/emphasized = saved. Accessible `aria-pressed` with “Save favorite” / “Remove favorite”.
+- **Sign up / sign in:** `login.html` — email + password through Supabase Auth, including email verification and password reset. The Supabase client keeps the session. Passwords are not stored by this site.
+- **Personal page:** `me.html` — name, email, Bible version, favorites, sign out, and account deletion. Signed-out visits go to sign-in.
+- **Favorite control:** a Christian **cross** icon on each promise card (catalog + personal page). Outline = not saved; filled/emphasized = saved. Accessible `aria-pressed` with “Save favorite” / “Remove favorite”. Saved verses are rows in `public.favorites`.
 - If you tap the cross while signed out, you’re sent to sign in.
 
 ### Subscription seam (no payments yet)
@@ -130,15 +131,15 @@ Browse/search stays **open to everyone** (no login required).
 Config lives in `js/config.js`:
 
 ```js
-subscriptionRequired: false  // flip to true later
-supabaseUrl: ""
-supabaseAnonKey: ""
+subscriptionRequired: false  // stays false until a real payment integration exists
 ```
 
+`supabaseUrl` and `supabaseAnonKey` are filled at build time in `dist/js/supabase-public.js`. See `docs/supabase-auth.md`.
+
 - `js/subscription.js` exposes `canAccessFavorites(user)` and `canAccessApp(user)`.
-- While `subscriptionRequired` is `false`, both always allow access.
-- When you set it to `true`, access requires `user.subscriptionStatus === "active"` (field already on the local user profile).
-- Later: plug **Supabase Auth** into `js/auth.js` (same API: `signUp`, `signIn`, `signOut`, `getCurrentUser`, `onAuthChange`), remote favorites into `js/favorites.js` (`toggle`, `list`, `isFavorite`), and **Stripe** (or similar) to set `subscriptionStatus`.
+- While `subscriptionRequired` is `false`, a signed-in person can use favorites. A disabled account cannot.
+- The profile stores `none`, `inactive`, `active`, `canceled`, and `expired`. A canceled plan is treated as active only until `subscriptionExpiresAt`. The browser cannot change these fields.
+- Payments are not implemented. A later server-side job may call `hpd_private.set_subscription`.
 
 ## Files
 
@@ -149,10 +150,12 @@ supabaseAnonKey: ""
 | `me.html` | Personal favorites landing |
 | `styles.css` | Layout and calm typography |
 | `app.js` | Search / filter / pagination + favorite buttons |
-| `js/config.js` | App name, `subscriptionRequired`, Supabase placeholders |
+| `js/config.js` | App name and `subscriptionRequired` (stays false) |
+| `js/supabase-public.js` | Placeholder overwritten in `dist` with the public Supabase URL and anon key |
 | `js/subscription.js` | Access checks for favorites / personal area |
-| `js/auth.js` | Local auth (API ready for Supabase swap) |
-| `js/favorites.js` | Per-user favorite IDs (API ready for remote table) |
+| `js/auth.js` | Supabase Auth (`signUp`, `signIn`, `signOut`, `getCurrentUser`, `onAuthChange`, `whenReady`) |
+| `js/favorites.js` | Per-user favorites in Supabase (`toggle`, `list`, `isFavorite`, all async) |
+| `api/account.js` | Signed-in account deletion (service role stays on the server) |
 | `js/ui-shared.js` | Cross icon, cards, auth nav helpers |
 | `promises-data.js` | Embedded data (loaded by the page) |
 | `promises.json` | Same data as structured JSON — **edit via catalog, then regenerate** |

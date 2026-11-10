@@ -2,7 +2,8 @@
 
 ## Two deliberately separate artifacts
 
-- Production: `python3 scripts/build_site.py --target production` → `dist/`.
+- Production stays on **Vercel** at https://hispromisedaily.com. Do not move it to Cloudflare Pages.
+- Production: `npm ci && python3 scripts/build_site.py --target production` → `dist/`.
   `vercel.json` builds and serves **only** this directory. No SPA catch-all rewrite is added;
   unknown verse URLs remain 404s. The existing homepage and account/search/support scripts are retained.
 - Old GitHub Pages demo: `python3 scripts/build_site.py --target migration` → `pages-dist/`.
@@ -76,9 +77,16 @@ Google crawling/indexing/ranking and canonical selection are separate, unconfirm
 From the release checkout:
 
 ```sh
+npm ci
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 node tests/analytics.test.js
 node tests/safe-next.test.js
+node tests/feedback-api.test.js
+node tests/feedback-widget.test.js
+node tests/account-api.test.js
+node tests/auth-cloud.test.js
+node tests/run-sql.js
+node tests/behavior-regression.test.js
 python3 scripts/build_site.py --target production
 python3 scripts/build_site.py --target migration
 git diff --check

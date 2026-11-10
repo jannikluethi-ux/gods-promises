@@ -1,7 +1,12 @@
 /**
- * Subscription access seam. No real payments yet.
- * When GodsPromisesConfig.subscriptionRequired is false, access is fully open.
- * When true, requires user.subscriptionStatus === "active".
+ * Subscription access seam. No payments are implemented.
+ * subscriptionRequired stays false, so the catalog and favorites stay open
+ * to every signed-in person. The check below is the model a later payment
+ * integration will use. Status is read from the profile row; the browser
+ * cannot grant it.
+ *
+ * Active means status "active", or "canceled" while subscriptionExpiresAt
+ * is still in the future. "none", "inactive", and "expired" are not active.
  */
 (function (global) {
   "use strict";
@@ -11,7 +16,13 @@
   }
 
   function isActive(user) {
-    return !!(user && user.subscriptionStatus === "active");
+    if (!user || user.accountStatus === "disabled") return false;
+    if (user.subscriptionStatus === "active") return true;
+    if (user.subscriptionStatus === "canceled" && user.subscriptionExpiresAt) {
+      var expires = Date.parse(user.subscriptionExpiresAt);
+      return Number.isFinite(expires) && expires > Date.now();
+    }
+    return false;
   }
 
   /**
@@ -19,22 +30,25 @@
    * @returns {boolean}
    */
   function canAccessFavorites(user) {
+    if (user && user.accountStatus === "disabled") return false;
     if (!cfg().subscriptionRequired) return true;
     return isActive(user);
   }
 
   /**
-   * Whole personal area / app shell beyond public catalog.
+   * Personal page beyond the public catalog.
    * @param {object|null|undefined} user
    * @returns {boolean}
    */
   function canAccessApp(user) {
+    if (user && user.accountStatus === "disabled") return false;
     if (!cfg().subscriptionRequired) return true;
     return isActive(user);
   }
 
   global.GodsPromisesSubscription = {
-    canAccessFavorites,
-    canAccessApp,
+    isActive: isActive,
+    canAccessFavorites: canAccessFavorites,
+    canAccessApp: canAccessApp,
   };
 })(typeof window !== "undefined" ? window : globalThis);
