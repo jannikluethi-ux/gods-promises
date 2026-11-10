@@ -87,7 +87,7 @@ begin
     select 1 from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prosecdef
-      and p.proname not in ('hpd_feedback_submit', 'hpd_feedback_status')
+      and p.proname not in ('hpd_feedback_submit', 'hpd_feedback_status', 'hpd_feedback_search_submit')
   ) then
     raise exception 'unexpected security definer function in public';
   end if;

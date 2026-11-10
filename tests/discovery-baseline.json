@@ -1,0 +1,29 @@
+{
+  "recordedFrom": "982c29d1394e4cf4e96655f87210dc4b9aea0051",
+  "note": "Tops from the keyword engine on main before the discovery engine. Empty tops fell through to the comfort fallback.",
+  "queries": {
+    "I wish I was rich": { "n": 0, "top": [] },
+    "How can I become wealthy?": { "n": 0, "top": [] },
+    "God gives the power to get wealth": { "n": 0, "top": [] },
+    "I need financial blessings": { "n": 1184, "top": ["Philippians 4:19", "Matthew 6:31–34", "Matthew 6:25–26", "Matthew 6:27–30", "Psalm 23:1–4"] },
+    "I am struggling with money": { "n": 8, "top": ["Philippians 4:19", "Hebrews 13:5–6", "2 Corinthians 9:6–8", "Malachi 3:10–11", "Proverbs 3:9–10"] },
+    "How does God want us to handle money?": { "n": 0, "top": [] },
+    "Is it wrong to want to be rich?": { "n": 0, "top": [] },
+    "I want to become financially independent": { "n": 0, "top": [] },
+    "I want God to bless my work": { "n": 6, "top": ["Revelation 14:12–13", "2 Corinthians 9:6–8", "Titus 2:11–14", "Deuteronomy 2:7", "Deuteronomy 30:8–10"] },
+    "How can I be content with what I have?": { "n": 3, "top": ["Philippians 4:11–13", "Hebrews 13:5–6", "Psalm 16:8–11"] },
+    "I feel frustrated": { "n": 359, "top": ["Psalm 37:7–8", "John 16:33", "Ephesians 4:32", "James 1:19–20", "Proverbs 15:1"] },
+    "I am overwhelmed": { "n": 806, "top": ["Philippians 4:6–7", "Isaiah 41:8–10", "1 Peter 5:6–7", "Matthew 6:25–26", "Matthew 6:27–30"] },
+    "I am losing my patience": { "n": 0, "top": [] },
+    "I get angry too easily": { "n": 353, "top": ["Ephesians 4:32", "Proverbs 15:1", "James 1:19–20", "Ephesians 4:26–27", "Colossians 3:12–15"] },
+    "I need to calm down": { "n": 1162, "top": ["Psalm 34:15–18", "2 Corinthians 1:3–4", "Psalm 147:3", "Psalm 23:1–4", "Matthew 11:28–30"] },
+    "I am tired of waiting": { "n": 417, "top": ["Matthew 11:28–30", "Philippians 4:11–13", "Isaiah 41:8–10", "Isaiah 40:28–31", "Psalm 23:1–4"] },
+    "I cannot control my emotions": { "n": 0, "top": [] },
+    "I need peace in my mind": { "n": 411, "top": ["John 16:33", "Isaiah 26:3–4", "John 14:27", "Philippians 4:6–7", "Colossians 3:12–15"] },
+    "I feel exhausted": { "n": 417, "top": ["Matthew 11:28–30", "Philippians 4:11–13", "Isaiah 41:8–10", "Isaiah 40:28–31", "Psalm 23:1–4"] },
+    "I need strength to keep going": { "n": 0, "top": [] },
+    "I want to become wealthy": { "n": 0, "top": [] },
+    "How can God bless me financially?": { "n": 0, "top": [] },
+    "I am worried about losing my money": { "n": 866, "top": ["Philippians 4:6–7", "Isaiah 41:8–10", "1 Peter 5:6–7", "Matthew 6:25–26", "Matthew 6:27–30"] }
+  }
+}

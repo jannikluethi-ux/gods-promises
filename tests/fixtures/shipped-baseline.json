@@ -28,7 +28,7 @@
     "coverageNotes"
   ],
   "unchanged_script_sha256": {
-    "app.js": "e2c9a8148a5344d97126204620686ace551a1a7daa7843392484c15d237edecb",
+    "app.js": "8bfec73138437caf0890e3ba272dac300f755a4cbfb7a4f1ae12c71f2a30f2bb",
     "js/auth.js": "08f348002d9a5c58ef41477992b825e87d7ad7b25645a5b241fb81a04bc25138",
     "js/login-page.js": "665928db7aec2d2a9305aa0b8fd56ebe755014838ccfdcba7ea218f7e15693d7",
     "js/me-page.js": "e925c3882f7efea7287048b432162b7df07390c65f7119abde518b3e65933d86",

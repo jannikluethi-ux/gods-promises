@@ -398,21 +398,189 @@
     currentIndex = 0;
   }
 
+  function isBookOnlyQuery(q) {
+    const n = normalize(q).trim();
+    if (!n) return false;
+    if (n === "psalm" || n === "psalms" || n === "song of solomon") return true;
+    return promises.some((p) => String(p.book).toLowerCase() === n);
+  }
+
+  function discoveryKeep(row) {
+    const testament = activeTestament;
+    const book = el.book.value;
+    const theme = el.theme.value;
+    const feeling = el.feeling.value;
+    if (testament && testamentOf(row.book) !== testament) return false;
+    if (book && row.book !== book) return false;
+    if (theme && !(row.themes || []).includes(theme)) return false;
+    if (feeling && !(row.feelings || []).includes(feeling)) return false;
+    return true;
+  }
+
+  function cardShell(p) {
+    const html = renderCard(p, null).trim();
+    return html.replace(/^<li\b/, "<div").replace(/<\/li>\s*$/, "</div>");
+  }
+
+  function supplementCard(row) {
+    return `<div class="card" data-id="${escapeHtml(row.id)}">
+      <div class="card-top"><div class="card-ref-wrap"><h3 class="card-ref">${escapeHtml(row.reference)}</h3></div></div>
+      <blockquote class="card-text">${escapeHtml(row.text)}</blockquote>
+      <p class="card-version-note" hidden></p>
+    </div>`;
+  }
+
+  function discoveryArticle(row) {
+    const body = row.promise ? cardShell(row.promise) : supplementCard(row);
+    return `<article class="discovery-item">
+      <p class="discovery-role"><span>${escapeHtml(row.roleLabel)}</span></p>
+      <p class="discovery-why">${escapeHtml(row.why)}</p>
+      ${body}
+    </article>`;
+  }
+
+  function discoveryGroup(title, rows) {
+    if (!rows.length) return "";
+    return `<h3 class="discovery-group">${escapeHtml(title)}</h3>
+      <div class="discovery-group-list">${rows.map(discoveryArticle).join("")}</div>`;
+  }
+
+  function searchFeedbackHtml(found, rows) {
+    const ids = rows.map((row) => row.id).join(",");
+    const refs = rows.map((row) => row.reference);
+    return `<div class="search-feedback" data-query="${escapeHtml(found.query || "")}" data-intent="${escapeHtml((found.conceptId || "") + "/" + (found.intentionId || ""))}" data-category="${escapeHtml(found.heading || "")}" data-results="${escapeHtml(ids)}" data-refs="${escapeHtml(JSON.stringify(refs))}">
+      <p>Did these results address your search?</p>
+      <div class="search-feedback-actions">
+        <button type="button" data-helpful="yes">Yes</button>
+        <button type="button" data-helpful="no">No</button>
+      </div>
+      <div class="search-feedback-reasons" hidden>
+        <p>What was off?</p>
+        <button type="button" data-reason="missing_scripture">Missing scripture</button>
+        <button type="button" data-reason="wrong_category">Wrong category</button>
+        <button type="button" data-reason="irrelevant">Irrelevant</button>
+        <button type="button" data-reason="wrong_interpretation">Wrong interpretation</button>
+      </div>
+      <p class="search-feedback-status" role="status"></p>
+    </div>`;
+  }
+
+  function renderDiscovery(found) {
+    if (deck) deck.reset();
+    el.results.classList.remove("results-host--reading");
+    document.body.classList.remove("reading-active");
+    const direct = (found.direct || []).filter(discoveryKeep);
+    const related = (found.related || []).filter(discoveryKeep);
+    const rows = direct.concat(related);
+    const notes = [];
+    if (activeTestament === "OT") notes.push("Old Testament");
+    if (activeTestament === "NT") notes.push("New Testament");
+    if (el.feeling && el.feeling.value) notes.push("feeling: " + el.feeling.value);
+    if (el.theme && el.theme.value) notes.push("theme: " + el.theme.value);
+    if (el.book && el.book.value) notes.push("book: " + el.book.value);
+    const noteStr = notes.length ? " · " + notes.join(" · ") : "";
+    const correction = found.corrected
+      ? ` <span class="search-corrected">Showing results for “${escapeHtml(found.corrected)}”</span>`
+      : "";
+    const n = rows.length;
+    el.count.innerHTML = n
+      ? `<strong>${n}</strong> passage${n === 1 ? "" : "s"}${noteStr}${correction}`
+      : `<strong>No matches</strong>${noteStr}`;
+    updateFiltersBadge();
+    lastRankedMeta = null;
+    lastFiltered = rows.map((row) => row.promise || {
+      id: row.id,
+      reference: row.reference,
+      book: row.book,
+      chapter: row.chapter,
+      verseStart: row.verseStart,
+      verseEnd: row.verseEnd,
+      text: row.text,
+    });
+    if (!n) {
+      showEmptyResults(`
+        <div class="empty" role="status">
+          <h2>No promises found</h2>
+          <p>Try another feeling or theme, or choose “All” in the filters.</p>
+        </div>`);
+      return;
+    }
+    const note = found.note ? `<p class="discovery-note">${escapeHtml(found.note)}</p>` : "";
+    el.results.innerHTML = `<div class="discovery" data-discovery="1">
+      <header class="discovery-lead">
+        <h2>${escapeHtml(found.heading || "Passages")}</h2>
+        <p>${escapeHtml(found.intro || "")}</p>
+        ${note}
+      </header>
+      ${discoveryGroup("Directly relevant", direct)}
+      ${discoveryGroup("Related biblical perspectives", related)}
+      ${searchFeedbackHtml(found, rows)}
+    </div>`;
+    hydrateVisibleCards(lastFiltered);
+    if (currentIndex >= n) currentIndex = 0;
+  }
+
+  function renderComfortFallback() {
+    const testament = activeTestament;
+    const book = el.book.value;
+    const theme = el.theme.value;
+    const feeling = el.feeling.value;
+    const comfort = Smart && Smart.comfortPromises ? Smart.comfortPromises(promises) : [];
+    const comfortItems = comfort
+      .map((p) => indexed.find((item) => item.p.id === p.id))
+      .filter(Boolean);
+    const narrowed = comfortItems.filter((item) =>
+      matches(item, [], testament, book, theme, feeling, null)
+    );
+    const chosen = (narrowed.length ? narrowed : comfortItems).map((item) => item.p);
+    const notes = [];
+    if (testament === "OT") notes.push("Old Testament");
+    if (testament === "NT") notes.push("New Testament");
+    if (feeling) notes.push("feeling: " + feeling);
+    if (theme) notes.push("theme: " + theme);
+    if (book) notes.push("book: " + book);
+    const noteStr = notes.length ? " · " + notes.join(" · ") : "";
+    el.count.innerHTML = `<strong>Not understood</strong>${noteStr}`;
+    updateFiltersBadge();
+    lastFiltered = chosen;
+    lastRankedMeta = null;
+    showSearchFallback(chosen);
+  }
+
   function showSearchFallback(list) {
     if (deck) deck.reset();
     el.results.classList.remove("results-host--reading");
     document.body.classList.remove("reading-active");
-    const note =
-      Smart && Smart.COMFORT_NOTE
-        ? Smart.COMFORT_NOTE
-        : "We don't have that exact word, but here are promises that have comforted others in hard moments.";
+    const suggestions = [
+      ["I feel anxious", "Anxiety"],
+      ["I feel exhausted", "Exhaustion"],
+      ["I need peace in my mind", "Peace of mind"],
+      ["I need strength to continue", "Strength to continue"],
+      ["I wish I was rich", "Money"],
+      ["I am worried about money", "Money worries"],
+      ["I feel frustrated", "Frustration"],
+      ["I am grieving", "Grief"],
+      ["I can't forgive", "Forgiveness"],
+      ["I want a stronger marriage", "Marriage"],
+      ["I need guidance", "A decision"],
+      ["I feel alone", "Loneliness"],
+    ];
+    const chips = suggestions
+      .map(
+        (pair) =>
+          `<button type="button" class="search-suggest" data-suggest="${escapeHtml(pair[0])}">${escapeHtml(pair[1])}</button>`
+      )
+      .join("");
     const cards = list.map((p) => renderCard(p, null)).join("");
     el.results.innerHTML = `
       <div class="search-fallback" data-fallback="1" role="status">
         <div class="search-fallback-lead">
-          <h2>For a hard moment</h2>
-          <p>${escapeHtml(note)}</p>
+          <h2>This search wasn’t clear</h2>
+          <p>The search wasn’t understood well enough to choose scriptures for it. Try a suggestion, or say the situation in a few ordinary words.</p>
+          <div class="search-suggests" role="group" aria-label="Suggested searches">${chips}</div>
         </div>
+        <h3 class="discovery-group">Not a match for that search</h3>
+        <p class="discovery-why">These are promises people often find comforting. They are not a result for the words you typed.</p>
         <ul class="results search-fallback-list">${cards}</ul>
       </div>`;
     hydrateVisibleCards(list);
@@ -738,6 +906,25 @@
     document.body.classList.remove("is-landing");
     // Leaving the landing: next time it opens on today's verse.
     dailyOffset = 0;
+
+    const earlyQuery = el.search.value.trim();
+    const earlyScripture = Smart && Smart.looksLikeScriptureRef(earlyQuery);
+    if (
+      earlyQuery &&
+      !earlyScripture &&
+      !isBookOnlyQuery(earlyQuery) &&
+      window.GodsPromisesDiscovery
+    ) {
+      const found = window.GodsPromisesDiscovery.discover(earlyQuery, promises);
+      if (found.mode === "results" || found.mode === "limited") {
+        renderDiscovery(found);
+        return;
+      }
+      if (found.mode === "fallback") {
+        renderComfortFallback();
+        return;
+      }
+    }
 
     let plan = currentPlan();
     const rawTokens = tokensFromQuery(el.search.value);
@@ -1174,7 +1361,60 @@
     });
   }
 
+  function sendSearchFeedback(box, helpful, reason) {
+    const status = box.querySelector(".search-feedback-status");
+    let refs = [];
+    try { refs = JSON.parse(box.getAttribute("data-refs") || "[]"); } catch (err) { refs = []; }
+    const payload = {
+      kind: "search",
+      query: box.getAttribute("data-query") || "",
+      intent: box.getAttribute("data-intent") || "",
+      category: box.getAttribute("data-category") || "",
+      resultIds: String(box.getAttribute("data-results") || "").split(",").filter(Boolean),
+      resultRefs: Array.isArray(refs) ? refs : [],
+      helpful: helpful,
+      reason: reason || null,
+      comment: null,
+      website: "",
+    };
+    if (status) status.textContent = "Sending…";
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(payload),
+    }).then((res) => {
+      if (status) status.textContent = res.ok ? "Thank you. That helps the reading stay honest." : "Thanks. That couldn’t be sent just now.";
+    }).catch(() => {
+      if (status) status.textContent = "Thanks. That couldn’t be sent just now.";
+    });
+  }
+
   el.results.addEventListener("click", (e) => {
+    const suggest = e.target.closest("[data-suggest]");
+    if (suggest && el.search) {
+      el.search.value = suggest.getAttribute("data-suggest") || "";
+      render();
+      if (typeof revealScripture === "function") revealScripture();
+      return;
+    }
+    const helpfulBtn = e.target.closest("[data-helpful]");
+    if (helpfulBtn) {
+      const box = helpfulBtn.closest(".search-feedback");
+      const helpful = helpfulBtn.getAttribute("data-helpful") === "yes";
+      if (!helpful) {
+        const reasons = box && box.querySelector(".search-feedback-reasons");
+        if (reasons) reasons.hidden = false;
+      }
+      if (helpful) sendSearchFeedback(box, true, null);
+      return;
+    }
+    const reasonBtn = e.target.closest("[data-reason]");
+    if (reasonBtn) {
+      const box = reasonBtn.closest(".search-feedback");
+      sendSearchFeedback(box, false, reasonBtn.getAttribute("data-reason"));
+      return;
+    }
     if (e.target.closest(".favorite-btn")) return;
     if (e.target.closest(".reading-nav")) return;
     const feelingTag = e.target.closest(".tag-feeling");

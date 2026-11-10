@@ -12,6 +12,20 @@ function createFakeRpc() {
     if (fn === "hpd_feedback_status") {
       return { submitted: rows.some((r) => r.submitter_key === a.p_submitter_key && r.verse_id === a.p_verse_id && r.explanation_version === a.p_explanation_version) };
     }
+    if (fn === "hpd_feedback_search_submit") {
+      if (!/^[0-9a-f]{64}$/.test(a.p_submitter_key) || !/^[0-9a-f]{64}$/.test(a.p_ip_key)) throw new Error("bad key");
+      if (typeof a.p_helpful !== "boolean") throw new Error("bad helpful");
+      if (!a.p_helpful && !a.p_reason) throw new Error("bad reason");
+      if (!Array.isArray(a.p_result_refs) || a.p_result_refs.length !== a.p_result_ids.length) throw new Error("bad refs");
+      const row = {
+        query: a.p_query, intent: a.p_intent, category: a.p_category,
+        result_ids: a.p_result_ids, result_refs: a.p_result_refs,
+        helpful: a.p_helpful, reason: a.p_reason, comment: a.p_comment,
+        auth_user_id: a.p_auth_user_id || null,
+      };
+      rpc.searchRows.push(row);
+      return { status: "created", id: crypto.randomUUID() };
+    }
     if (fn !== "hpd_feedback_submit") throw new Error("unknown rpc " + fn);
     for (const k of ["p_submitter_key", "p_ip_key", "p_explanation_sha256"]) if (!/^[0-9a-f]{64}$/.test(a[k])) throw new Error("bad " + k);
     if (!a.p_categories.every((c) => CATEGORIES[a.p_rating].includes(c))) throw new Error("check_violation categories");
@@ -36,6 +50,7 @@ function createFakeRpc() {
     return { status: "created", id: row.id };
   }
   rpc.rows = rows;
+  rpc.searchRows = [];
   return rpc;
 }
 

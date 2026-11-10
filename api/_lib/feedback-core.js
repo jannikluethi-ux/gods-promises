@@ -24,7 +24,10 @@ const CATEGORIES = Object.freeze({
     "no_application", "too_long", "unclear_meaning", "other"],
 });
 const BODY_KEYS = ["verseId", "explanationVersion", "language", "rating", "categories",
-  "comment", "localUserId", "source", "website"];
+  "comment", "localUserId", "source", "website", "kind", "query", "intent", "category",
+  "resultIds", "resultRefs", "helpful", "reason"];
+const SEARCH_REASONS = ["missing_scripture", "wrong_category", "irrelevant", "wrong_interpretation", "other"];
+const SEARCH_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+){1,8}$/;
 const VERSE_ID_RE = /^[a-z0-9]+(?:-[0-9]+){2,3}$/;
 const VERSION_RE = /^[a-z0-9][a-z0-9._-]{0,39}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -78,9 +81,57 @@ function cleanComment(raw) {
 /**
  * @returns {{ok:true, value:object}|{ok:false, field:string, code?:string}}
  */
+function validateSearchFeedback(body) {
+  const query = typeof body.query === "string" ? body.query.trim() : "";
+  const intent = typeof body.intent === "string" ? body.intent.trim() : "";
+  const category = typeof body.category === "string" ? body.category.trim() : "";
+  if (!query || [...query].length > 200) return { ok: false, field: "query" };
+  if (!intent || [...intent].length > 80) return { ok: false, field: "intent" };
+  if (!category || [...category].length > 120) return { ok: false, field: "category" };
+  if (!Array.isArray(body.resultIds) || body.resultIds.length < 1 || body.resultIds.length > 24) {
+    return { ok: false, field: "resultIds" };
+  }
+  if (!Array.isArray(body.resultRefs) || body.resultRefs.length !== body.resultIds.length) {
+    return { ok: false, field: "resultRefs" };
+  }
+  for (const id of body.resultIds) {
+    if (typeof id !== "string" || !SEARCH_ID_RE.test(id) || id.length > 40) return { ok: false, field: "resultIds" };
+  }
+  for (const ref of body.resultRefs) {
+    if (typeof ref !== "string" || !ref.trim() || [...ref].length > 80) return { ok: false, field: "resultRefs" };
+  }
+  if (typeof body.helpful !== "boolean") return { ok: false, field: "helpful" };
+  let reason = null;
+  if (body.reason !== undefined && body.reason !== null) {
+    if (typeof body.reason !== "string" || !SEARCH_REASONS.includes(body.reason)) return { ok: false, field: "reason" };
+    reason = body.reason;
+  }
+  if (!body.helpful && !reason) return { ok: false, field: "reason" };
+  const comment = cleanComment(body.comment);
+  if (!comment.ok) return { ok: false, field: "comment", code: comment.spam ? "spam" : undefined };
+  if (body.website !== undefined && typeof body.website !== "string") return { ok: false, field: "website" };
+  return {
+    ok: true,
+    honeypot: typeof body.website === "string" && body.website.trim() !== "",
+    value: {
+      kind: "search",
+      query,
+      intent,
+      category,
+      resultIds: body.resultIds.slice(),
+      resultRefs: body.resultRefs.map((ref) => ref.trim()),
+      helpful: body.helpful,
+      reason,
+      comment: comment.value,
+    },
+  };
+}
+
 function validateSubmission(body, catalog) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return { ok: false, field: "body" };
   for (const k of Object.keys(body)) if (!BODY_KEYS.includes(k)) return { ok: false, field: k };
+  if (body.kind === "search") return validateSearchFeedback(body);
+  if (body.kind !== undefined) return { ok: false, field: "kind" };
   const { verseId, explanationVersion, rating } = body;
   if (typeof verseId !== "string" || !VERSE_ID_RE.test(verseId) || verseId.length > 40) return { ok: false, field: "verseId" };
   const verse = catalog.verses.get(verseId);
@@ -349,6 +400,26 @@ function createHandler(deps) {
     const f = v.value;
     let out;
     try {
+      if (f.kind === "search") {
+        out = await rpc("hpd_feedback_search_submit", {
+          p_query: f.query,
+          p_intent: f.intent,
+          p_category: f.category,
+          p_result_ids: f.resultIds,
+          p_result_refs: f.resultRefs,
+          p_helpful: f.helpful,
+          p_reason: f.reason,
+          p_comment: f.comment,
+          p_submitter_key: hmac(cfg.secret, "submitter", sessionToken),
+          p_ip_key: ipKey,
+          p_auth_user_id: authUserId,
+        });
+        const searchStatus = out && out.status;
+        if (searchStatus === "created") return send(res, 201, { ok: true, status: "created" }, extra);
+        if (searchStatus === "rate_limited") return send(res, 429, { error: "rate_limited" }, Object.assign({ "retry-after": "600" }, extra || {}));
+        log("feedback: unexpected search rpc result");
+        return send(res, 502, { error: "storage_error" }, extra);
+      }
       out = await rpc("hpd_feedback_submit", {
         p_verse_id: f.verseId,
         p_reference: f.verse.reference,
@@ -382,6 +453,6 @@ function createHandler(deps) {
 }
 
 module.exports = {
-  createHandler, validateSubmission, cleanComment, loadCatalog, originAllowed, readConfig,
-  verifiedAuthUserId, parseCookies, memoryLimiter, CATEGORIES, COOKIE_NAME, MAX_COMMENT, UUID_RE,
+  createHandler, validateSubmission, validateSearchFeedback, cleanComment, loadCatalog, originAllowed, readConfig,
+  verifiedAuthUserId, parseCookies, memoryLimiter, CATEGORIES, COOKIE_NAME, MAX_COMMENT, UUID_RE, SEARCH_REASONS,
 };
