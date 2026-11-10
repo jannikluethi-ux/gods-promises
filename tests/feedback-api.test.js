@@ -264,6 +264,23 @@ const base = (extra) => Object.assign({ verseId: VERSE, explanationVersion: VERS
   assert.equal(authed.length, 3, "invalid session must not submit feedback");
   assert.ok(!sent[0].init.body.includes("203.0.113.7"), "raw IP must not be sent to storage");
 
+  // —— Search-result signal: anonymous, separate from explanation ratings ——
+  res = await call(h, req("POST", {
+    kind: "search", query: "I wish I was rich", intent: "wealth",
+    resultIds: ["disc-deu-8-18", "pro-10-22"], helpful: false, reason: "wrong_interpretation",
+  }, { ip: "203.0.113.40" }));
+  assert.equal(res.statusCode, 201, res.body);
+  assert.equal(rpc.searchRows[0].intent, "wealth");
+  assert.equal(rpc.searchRows[0].helpful, false);
+  assert.equal(rpc.searchRows[0].reason, "wrong_interpretation");
+  res = await call(h, req("POST", {
+    kind: "search", query: "I wish I was rich", intent: "wealth",
+    resultIds: ["pro-10-22"], helpful: false,
+  }, { ip: "203.0.113.41" }));
+  assert.equal(res.statusCode, 400);
+  res = await call(h, req("POST", base({ kind: "not-search" }), { ip: "203.0.113.42" }));
+  assert.equal(res.statusCode, 400);
+
   // —— Client bundle never contains server secrets or Supabase endpoints ——
   for (const f of ["js/feedback.js", "js/ui-shared.js", "js/config.js"]) {
     const src = fs.readFileSync(path.join(ROOT, f), "utf8");

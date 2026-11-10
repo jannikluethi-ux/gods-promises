@@ -24,6 +24,7 @@ function sql(name) {
     'supabase/migrations/20261109120000_explanation_feedback.sql',
     'supabase/migrations/20261110153000_profiles_favorites_auth.sql',
     'supabase/migrations/20261110210000_daily_verse_email.sql',
+    'supabase/migrations/20261110223000_search_feedback.sql',
     'tests/sql/explanation_feedback_checks.sql',
     'tests/sql/profiles_favorites_rls.sql',
   ];

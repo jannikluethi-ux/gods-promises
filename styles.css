@@ -1409,6 +1409,121 @@ a:hover {
   color: #3d5470;
 }
 
+.discovery {
+  max-width: 40rem;
+  margin: 0.15rem auto 1.75rem;
+}
+
+.discovery-lead,
+.search-feedback {
+  margin: 0 0 1.15rem;
+  padding: 1.25rem 1.3rem 1.15rem;
+  text-align: center;
+  background: #e1e9f1;
+  border: 1px solid rgba(61, 84, 112, 0.28);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+.discovery-lead h2,
+.search-fallback-lead h2 {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-script);
+  font-size: clamp(1.85rem, 4.2vw, 2.4rem);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.15;
+  color: #3d5470;
+}
+
+.discovery-lead p,
+.discovery-note,
+.search-feedback p {
+  margin: 0.35rem auto 0;
+  max-width: 36em;
+  font-family: var(--font-verse);
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: #3d5470;
+}
+
+.discovery-group {
+  margin: 1.15rem 0 0.55rem;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #3d5470;
+}
+
+.discovery-item {
+  margin: 0 0 1rem;
+}
+
+.discovery-role {
+  margin: 0 0 0.3rem;
+}
+
+.discovery-role span {
+  display: inline-block;
+  padding: 0.12rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: rgba(61, 84, 112, 0.1);
+  color: #3d5470;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.discovery-why {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-verse);
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.4;
+  color: #3d5470;
+}
+
+.search-feedback-actions,
+.search-feedback-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.search-feedback button {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: #3d5470;
+  background: #fbfcfd;
+  border: 1px solid rgba(61, 84, 112, 0.28);
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.search-feedback-status:empty {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .discovery-lead,
+  .search-feedback,
+  .search-fallback-lead {
+    padding: 1rem 0.9rem;
+  }
+
+  .discovery-why {
+    font-size: 0.92rem;
+  }
+}
+
 @media (max-width: 560px) {
   .reading-stage {
     padding: 0.15rem 0 1rem;
