@@ -1,6 +1,6 @@
 # His Promise Daily — searchable web tool
 
-**His Promise Daily** is a calm, offline-friendly single-page app for exploring God’s promises from Genesis through Revelation. Built for Carlos with a **comprehensive, curated catalog** (1186 promise units) anchored in the public-domain **World English Bible (WEB)**.
+**His Promise Daily** is a calm, offline-friendly single-page app for exploring God’s promises from Genesis through Revelation. It is run by Jannik Luethi and keeps a **comprehensive, curated catalog** (1186 promise units) anchored in the public-domain **World English Bible (WEB)**.
 
 People often arrive by **how they feel** (lonely, angry, anxious…), not only by theological themes—so every promise carries pastoral `feelings` tags alongside themes.
 
@@ -122,7 +122,7 @@ Historicals beyond Davidic covenant threads, Mark (vs Matthew/Luke/John), some w
 Browse/search stays **open to everyone** (no login required).
 
 - **Sign up / sign in:** `login.html` — email + password through Supabase Auth, including email verification and password reset. The Supabase client keeps the session. Passwords are not stored by this site.
-- **Personal page:** `me.html` — name, email, Bible version, favorites, sign out, and account deletion. Signed-out visits go to sign-in.
+- **Personal page:** `me.html` — name, email, Bible version, an opt-in for one promise by email each morning, favorites, sign out, and account deletion. Signed-out visits go to sign-in. The morning email is described in `docs/morning-email.md`.
 - **Favorite control:** a Christian **cross** icon on each promise card (catalog + personal page). Outline = not saved; filled/emphasized = saved. Accessible `aria-pressed` with “Save favorite” / “Remove favorite”. Saved verses are rows in `public.favorites`.
 - If you tap the cross while signed out, you’re sent to sign in.
 

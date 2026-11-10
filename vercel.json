@@ -11,8 +11,25 @@
     },
     "api/account.js": {
       "maxDuration": 10
+    },
+    "api/daily-email.js": {
+      "maxDuration": 60,
+      "includeFiles": "{promises.json,data/explanations.json,js/daily-verse.js,assets/fonts/*.ttf}"
+    },
+    "api/og.js": {
+      "maxDuration": 15,
+      "includeFiles": "{promises.json,data/explanations.json,assets/fonts/*.ttf}"
+    },
+    "api/unsubscribe.js": {
+      "maxDuration": 10
     }
   },
+  "crons": [
+    {
+      "path": "/api/daily-email",
+      "schedule": "0 5 * * *"
+    }
+  ],
   "redirects": [
     { "source": "/index.html", "destination": "/", "permanent": true }
   ]

@@ -36,6 +36,8 @@ HOME_DESCRIPTION = ("A free daily Bible verse and searchable catalog of God's pr
 OG_IMAGE_PATH = "/og-image.png"
 OG_IMAGE_WIDTH = 1200
 OG_IMAGE_HEIGHT = 630
+SHARE_IMAGE_WIDTH = 1080
+SHARE_IMAGE_HEIGHT = 1080
 META_DESCRIPTION_LIMIT = 155
 
 
@@ -90,8 +92,19 @@ def website_json_ld():
     }
 
 
-def verse_json_ld(entry, title, description, path):
-    return {
+def share_image_path(entry, root=ROOT):
+    """Public PNG for one verse. The query does not change the verse page URL."""
+    return f"/api/og?id={entry['id']}&v={explain_version(root)}"
+
+
+def absolute_url(path):
+    if not path.startswith("/") or "#" in path or path.startswith("//"):
+        raise ValueError(f"Invalid public path: {path}")
+    return ORIGIN + path
+
+
+def verse_json_ld(entry, title, description, path, image=None):
+    data = {
         "@context": "https://schema.org",
         "@type": "Article",
         "headline": title,
@@ -102,6 +115,9 @@ def verse_json_ld(entry, title, description, path):
         "isPartOf": {"@type": "WebSite", "name": NAME, "url": ORIGIN + "/"},
         "publisher": publisher_org(),
     }
+    if image:
+        data["image"] = image
+    return data
 
 
 
@@ -152,9 +168,12 @@ def load_records(root=ROOT):
     return catalog, records
 
 
-def metadata(title, description, path, noindex=False, website=False, json_ld=None, og_type="website"):
+def metadata(title, description, path, noindex=False, website=False, json_ld=None, og_type="website",
+              image_path=None, image_width=None, image_height=None):
     url = canonical(path)
-    image = canonical(OG_IMAGE_PATH)
+    image = absolute_url(image_path or OG_IMAGE_PATH)
+    image_width = OG_IMAGE_WIDTH if image_width is None else image_width
+    image_height = OG_IMAGE_HEIGHT if image_height is None else image_height
     tags = [f'<title>{html(title)}</title>',
             f'<meta name="description" content="{html(description)}" />',
             f'<link rel="canonical" href="{html(url)}" />',
@@ -165,8 +184,8 @@ def metadata(title, description, path, noindex=False, website=False, json_ld=Non
             f'<meta property="og:description" content="{html(description)}" />',
             f'<meta property="og:url" content="{html(url)}" />',
             f'<meta property="og:image" content="{html(image)}" />',
-            f'<meta property="og:image:width" content="{OG_IMAGE_WIDTH}" />',
-            f'<meta property="og:image:height" content="{OG_IMAGE_HEIGHT}" />',
+            f'<meta property="og:image:width" content="{image_width}" />',
+            f'<meta property="og:image:height" content="{image_height}" />',
             '<meta name="twitter:card" content="summary_large_image" />',
             f'<meta name="twitter:title" content="{html(title)}" />',
             f'<meta name="twitter:description" content="{html(description)}" />',
@@ -214,7 +233,7 @@ def groups_for(records):
 
 
 def page_shell(title, description, path, heading, content, root=ROOT, json_ld=None, og_type="website",
-               scripts=()):
+               scripts=(), image_path=None, image_width=None, image_height=None):
     source = (root / "index.html").read_text(encoding="utf-8")
     # Reuse the existing font and favicon, while cache-busting each changed stylesheet by content.
     links = re.findall(r"<link\b[^>]*>", source, re.S)
@@ -222,14 +241,17 @@ def page_shell(title, description, path, heading, content, root=ROOT, json_ld=No
              or "fonts.googleapis.com/css" in link]
     for name in ("styles.css", "browse.css"):
         links.append(f'<link rel="stylesheet" href="/{name}?v={asset_digest(root, name)}" />')
-    # Deferred, content-hashed page scripts (verse pages: the explanation feedback widget only).
+    links.append('<link rel="manifest" href="/manifest.webmanifest" />')
+    links.append('<meta name="theme-color" content="#e1e9f1" />')
+    links.append('<link rel="apple-touch-icon" href="/icons/icon-192.png" />')
+    # Deferred page scripts. Verse pages load share, feedback, and the service worker.
     links.extend(f'<script src="/{name}?v={asset_digest(root, name)}" defer></script>' for name in scripts)
     return f'''<!DOCTYPE html>
 <html lang="en" class="theme-light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {metadata(title, description, path, json_ld=json_ld, og_type=og_type)}
+    {metadata(title, description, path, json_ld=json_ld, og_type=og_type, image_path=image_path, image_width=image_width, image_height=image_height)}
     {chr(10).join(links)}
   </head>
   <body class="page-browse">
@@ -243,8 +265,9 @@ def page_shell(title, description, path, heading, content, root=ROOT, json_ld=No
       {content}
     </main>
     <footer class="site-footer">
+      <p class="footer-operator">His Promise Daily · Jannik Luethi</p>
       <p>Scripture: World English Bible (WEB, public domain). Explanations are original short summaries, informed by public-domain commentaries.</p>
-      <p><a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a> · <a href="/contact.html">Contact</a> · <a href="/support.html">Support this site</a></p>
+      <p class="footer-links"><a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a> · <a href="/contact.html">Contact</a> · <a class="footer-support" href="/support.html">Support this site</a></p>
     </footer>
   </body>
 </html>
@@ -270,6 +293,7 @@ def verse_page(entry, books, root=ROOT):
       <article class="catalog-verse">
         <h2 class="card-ref">World English Bible (WEB)</h2>
         <blockquote class="card-text">{html(entry['text'])}</blockquote>
+        <p class="catalog-share"><button type="button" class="share-btn" data-share-id="{html(entry['id'])}" data-share-ref="{html(reference)}">Share</button></p>
         <section aria-labelledby="explanation-heading"><h2 id="explanation-heading">Explanation</h2>
           <p class="card-explain-text">{html(entry['explanation'])}</p>
           <section class="fb" data-fb-verse="{html(entry['id'])}" data-fb-version="{html(explain_version(root))}" data-fb-source="verse_page" aria-label="Feedback on this explanation"></section></section>
@@ -278,9 +302,13 @@ def verse_page(entry, books, root=ROOT):
       </article>
       <nav class="catalog-pagination" aria-label="More promises in this book">{' · '.join(adjacent)}</nav>'''
     path = verse_path(entry)
-    schema = verse_json_ld(entry, title, description, path)
+    image = absolute_url(share_image_path(entry, root))
+    schema = verse_json_ld(entry, title, description, path, image=image)
     return page_shell(title, description, path, reference, content, root,
-                      json_ld=schema, og_type="article", scripts=("js/feedback.js",))
+                      json_ld=schema, og_type="article",
+                      scripts=("js/share.js", "js/feedback.js", "js/pwa.js"),
+                      image_path=share_image_path(entry, root),
+                      image_width=SHARE_IMAGE_WIDTH, image_height=SHARE_IMAGE_HEIGHT)
 
 
 def listing_page(kind, value, entries, page, root=ROOT):
@@ -455,8 +483,9 @@ def build(target="production", root=ROOT):
     if target == "production":
         for name in SOURCE_PAGES:
             (output / name).write_text(source_page(name, root), encoding="utf-8")
-        for name in ("styles.css", "browse.css", "app.js", "og-image.png"):
+        for name in ("styles.css", "browse.css", "app.js", "og-image.png", "sw.js", "manifest.webmanifest"):
             shutil.copy2(root / name, output / name)
+        shutil.copytree(root / "icons", output / "icons")
         copy_email_wordmark(output, root)
         shutil.copytree(root / "js", output / "js")
         write_supabase_public(output)

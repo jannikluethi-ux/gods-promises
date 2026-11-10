@@ -24,6 +24,7 @@
     name: document.getElementById("settings-name"),
     email: document.getElementById("settings-email"),
     settingsForm: document.getElementById("form-settings"),
+    dailyEmail: document.getElementById("daily-email-toggle"),
     deleteForm: document.getElementById("form-delete"),
     deleteInput: document.getElementById("delete-confirm"),
   };
@@ -90,6 +91,9 @@
     el.settings.hidden = false;
     if (el.name && document.activeElement !== el.name) el.name.value = user.displayName || "";
     if (el.email) el.email.textContent = user.email || "";
+    if (el.dailyEmail && document.activeElement !== el.dailyEmail) {
+      el.dailyEmail.checked = !!user.dailyVerseEmail;
+    }
     if (Versions && el.version && user.preferredBibleVersion && el.version.value !== user.preferredBibleVersion) {
       el.version.value = user.preferredBibleVersion;
     }
@@ -198,13 +202,33 @@
       const button = el.settingsForm.querySelector('button[type="submit"]');
       if (button) button.disabled = true;
       try {
-        await auth.updateProfile({ displayName: el.name.value });
+        await auth.updateProfile({
+          displayName: el.name.value,
+          dailyVerseEmail: !!(el.dailyEmail && el.dailyEmail.checked),
+        });
         showStatus("Settings saved.", false);
         render();
       } catch (err) {
         showStatus((err && err.message) || "Could not save your settings.", true);
       }
       if (button) button.disabled = false;
+    });
+  }
+
+  if (el.dailyEmail) {
+    el.dailyEmail.addEventListener("change", async () => {
+      showStatus("");
+      el.dailyEmail.disabled = true;
+      try {
+        await auth.updateProfile({ dailyVerseEmail: el.dailyEmail.checked });
+        showStatus(el.dailyEmail.checked
+          ? "You’ll get one promise each morning."
+          : "Morning email turned off.", false);
+      } catch (err) {
+        el.dailyEmail.checked = !el.dailyEmail.checked;
+        showStatus((err && err.message) || "Could not save that choice.", true);
+      }
+      el.dailyEmail.disabled = false;
     });
   }
 

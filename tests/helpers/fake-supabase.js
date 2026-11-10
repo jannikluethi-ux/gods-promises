@@ -106,6 +106,7 @@ function install(context, world) {
             account_status: "active",
             preferred_bible_version: null,
             reading_prefs: {},
+            daily_verse_email: false,
             subscription_status: "none",
             subscription_expires_at: null,
             subscription_canceled_at: null,

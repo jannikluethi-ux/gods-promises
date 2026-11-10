@@ -38,6 +38,16 @@
    * @param {string} promiseId
    * @param {boolean} isFav
    */
+  function shareButtonHtml(promiseId, reference) {
+    return (
+      `<button type="button" class="share-btn" data-share-id="${escapeHtml(promiseId)}" data-share-ref="${escapeHtml(
+        reference || ""
+      )}">` +
+      `<span class="share-btn-label">Share</span>` +
+      `</button>`
+    );
+  }
+
   function favoriteButtonHtml(promiseId, isFav) {
     const pressed = isFav ? "true" : "false";
     const label = isFav ? "Remove favorite" : "Save favorite";
@@ -169,7 +179,7 @@
             <h3 class="card-ref">${escapeHtml(p.reference)}</h3>
             ${badge}
           </div>
-          ${favoriteButtonHtml(p.id, isFav)}
+          <div class="card-actions">${shareButtonHtml(p.id, p.reference)}${favoriteButtonHtml(p.id, isFav)}</div>
         </div>
         <blockquote class="card-text">${escapeHtml(p.text)}</blockquote>
         <p class="card-version-note" hidden></p>
@@ -324,7 +334,7 @@
     const isTypingTarget =
       (hostOpts && hostOpts.isTypingTarget) || defaultIsTypingTarget;
     const ignoreSel =
-      ".favorite-btn, .tag, .reading-nav, a, input, select, textarea, label, .fb";
+      ".favorite-btn, .share-btn, .tag, .reading-nav, a, input, select, textarea, label, .fb";
 
     let cfg = null;
     let index = 0;

@@ -3,7 +3,11 @@
   "private": true,
   "description": "His Promise Daily static site. Auth uses @supabase/supabase-js in the browser; the service-role key stays on the server.",
   "dependencies": {
-    "@supabase/supabase-js": "2.119.0"
+    "@resvg/resvg-js": "^2.6.2",
+    "@supabase/supabase-js": "2.119.0",
+    "react": "^18.3.1",
+    "resend": "^6.37.0",
+    "satori": "^0.18.4"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.16"

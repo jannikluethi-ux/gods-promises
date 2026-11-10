@@ -99,100 +99,56 @@
     browseModes: document.getElementById("browse-modes"),
   };
 
-  /* —— Daily verse (changes at midnight Europe/Zurich) —— */
+  /* —— Daily verse (changes at midnight Europe/Zurich). Shared with the morning email. —— */
 
-  const DAILY_TZ = "Europe/Zurich";
-  /** Short enough to read in one breath on the landing card. */
-  const DAILY_MAX_TEXT = 320;
-  /** Prime step so consecutive days walk the pool without repeating. */
-  const DAILY_STEP = 7919;
-  const dailyPool = (function () {
-    const short = promises.filter(
-      (p) => p && p.text && p.text.length <= DAILY_MAX_TEXT
-    );
-    return short.length ? short : promises.slice();
-  })();
+  const Daily = window.GodsPromisesDaily;
+  if (!Daily) throw new Error("Daily verse module did not load");
+  const DAILY_TZ = Daily.TIME_ZONE;
+  const dailyPool = Daily.dailyPool(promises);
 
-  /** Calendar date in Zurich as "YYYY-MM-DD" (DST handled by Intl). */
   function zurichDateKey(now) {
-    const d = now || new Date();
-    try {
-      const parts = new Intl.DateTimeFormat("en-CA", {
-        timeZone: DAILY_TZ,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).formatToParts(d);
-      const get = (t) => (parts.find((x) => x.type === t) || {}).value;
-      return get("year") + "-" + get("month") + "-" + get("day");
-    } catch (e) {
-      // Very old engines: approximate with CET (UTC+1).
-      const z = new Date(d.getTime() + 60 * 60 * 1000);
-      return z.toISOString().slice(0, 10);
-    }
+    return Daily.zurichDateKey(now);
   }
 
-  function gcd(a, b) {
-    while (b) {
-      const t = b;
-      b = a % b;
-      a = t;
-    }
-    return a;
-  }
-
-  /**
-   * Deterministic verse for a Zurich date key: whole days since 1970-01-01
-   * times a prime step, modulo the pool. Each new Zurich day gives a
-   * different verse until the whole pool has been shown once.
-   */
   function dailyPromiseFor(key) {
-    const n = dailyPool.length;
-    if (!n) return null;
-    const [y, m, d] = key.split("-").map(Number);
-    const day = Math.floor(Date.UTC(y, m - 1, d) / 86400000);
-    const step = gcd(DAILY_STEP % n || 1, n) === 1 ? DAILY_STEP % n || 1 : 1;
-    const idx = (((day % n) * step) % n + n) % n;
-    return dailyPool[idx];
+    return Daily.promiseForPool(dailyPool, key);
   }
 
   function dailyDateLabel(key) {
-    const [y, m, d] = key.split("-").map(Number);
-    try {
-      return new Intl.DateTimeFormat("en-GB", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        timeZone: "UTC",
-      }).format(new Date(Date.UTC(y, m - 1, d, 12)));
-    } catch (e) {
-      return key;
-    }
+    return Daily.dateLabel(key);
   }
 
   /** How many past days the daily carousel can reach (today is offset 0). */
   const DAILY_MAX_BACK = 60;
 
-  /** Zurich date key `offset` days before `key` (calendar math in UTC). */
   function shiftDateKey(key, offset) {
-    const [y, m, d] = key.split("-").map(Number);
-    const t = Date.UTC(y, m - 1, d) - offset * 86400000;
-    return new Date(t).toISOString().slice(0, 10);
+    return Daily.shiftDateKey(key, offset);
   }
 
   function daysBetweenKeys(a, b) {
-    const toDay = (k) => {
-      const [y, m, d] = k.split("-").map(Number);
-      return Math.round(Date.UTC(y, m - 1, d) / 86400000);
-    };
-    return toDay(b) - toDay(a);
+    return Daily.daysBetweenKeys(a, b);
   }
 
-  /** "Today", "Yesterday", else e.g. "Saturday 17 October". */
   function dailyRelativeLabel(offset, key) {
-    if (offset === 0) return "Today";
-    if (offset === 1) return "Yesterday";
-    return dailyDateLabel(key);
+    return Daily.relativeLabel(offset, key);
+  }
+
+  /** Keep a small offline copy of the verse this Zurich day is showing. */
+  function rememberDailyVerse(key, promise) {
+    const pwa = window.GodsPromisesPwa;
+    if (!pwa || !pwa.rememberDaily || !promise) return;
+    const send = () => {
+      const node = document.querySelector('[data-daily-date="' + key + '"] .card-explain-text');
+      pwa.rememberDaily({
+        date: key,
+        id: promise.id,
+        reference: promise.reference,
+        text: promise.text,
+        explanation: node && node.textContent ? node.textContent : "",
+      });
+    };
+    send();
+    setTimeout(send, 1600);
   }
 
   let dailyKeyShown = "";
@@ -668,6 +624,7 @@
       showEmptyResults("");
       return;
     }
+    rememberDailyVerse(todayKey, promiseAt(DAILY_MAX_BACK));
     document.body.classList.add("reading-active");
     const cardFor = (i) => {
       const key = keyAt(i);
