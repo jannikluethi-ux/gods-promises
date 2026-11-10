@@ -1,0 +1,63 @@
+His Promise Daily — Supabase Auth email subjects and notes
+===========================================================
+
+Suggested subjects (paste into the matching Supabase Auth email template):
+
+1. Confirm signup
+   Subject: Confirm your email for His Promise Daily
+   File:    confirm-signup.html
+
+2. Reset password
+   Subject: Reset your His Promise Daily password
+   File:    reset-password.html
+
+3. Change email address
+   Subject: Confirm your new email for His Promise Daily
+   File:    change-email.html
+
+4. Magic link
+   Subject: Your His Promise Daily sign-in link
+   File:    magic-link.html
+
+5. Invite user
+   Subject: You’re invited to His Promise Daily
+   File:    invite-user.html
+
+6. Reauthentication
+   Subject: Your His Promise Daily confirmation code
+   File:    reauthentication.html
+
+Templates use these Supabase variables:
+  {{ .ConfirmationURL }}  — action button and plain fallback link
+  {{ .Email }}            — available, not shown in the body
+  {{ .SiteURL }}          — available; footer and wordmark link to https://hispromisedaily.com
+  {{ .NewEmail }}         — change-email.html only
+  {{ .Token }}            — reauthentication.html (the confirmation code)
+  {{ .Data.display_name }} — used in the greeting when present
+
+Greeting / display_name
+  js/auth.js signUp() writes user_metadata.display_name via
+  options.data = { display_name }. Supabase exposes that as {{ .Data.display_name }}.
+  Templates fall back to “Hello,” or “Welcome to His Promise Daily.” when it is empty.
+  updateProfile() saves a later name change only to public.profiles, not to
+  user_metadata, so later emails may still use the name from signup.
+
+Wordmark image
+  Production src: https://hispromisedaily.com/email/hpd-wordmark.png
+  Local file:     hpd-wordmark.png  (1200×320, 2x+ retina, shown at 360×96)
+  Background:     #e9eff5 (matches the email header). Alt text: His Promise Daily.
+  This PNG is not on the live site yet. Host it at that path before these
+  templates are applied in Supabase, or the wordmark will appear broken.
+
+Verse (public-domain World English Bible, verified on Bible Gateway WEB):
+  “His mercies don’t fail. They are new every morning.”
+  Lamentations 3:22–23 (WEB)
+  Full verses: “It is because of Yahweh’s loving kindnesses that we are not
+  consumed, because his mercies don’t fail. They are new every morning.
+  Great is your faithfulness.”
+
+Link expiry
+  Copy says “one hour,” which matches Supabase’s default Email OTP Expiration
+  (3600 seconds). Change the line if that setting is different.
+
+These files were designed only. They have not been applied to Supabase, Vercel, or the repo.

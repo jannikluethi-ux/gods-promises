@@ -421,6 +421,19 @@ def copy_supabase_library(output, root):
     shutil.copy2(source, destination)
 
 
+def copy_email_wordmark(output, root):
+    """Publish the Auth email wordmark at /email/hpd-wordmark.png.
+
+    It is a static file, not a page, so public_paths() and the sitemap omit it.
+    """
+    source = root / "email" / "hpd-wordmark.png"
+    if not source.is_file():
+        raise ValueError("Missing email/hpd-wordmark.png")
+    destination = output / "email" / "hpd-wordmark.png"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+
+
 def prepare_output(output, root):
     # Only replace this build's two named disposable artifact directories.
     allowed = {root / "dist", root / "pages-dist"}
@@ -444,6 +457,7 @@ def build(target="production", root=ROOT):
             (output / name).write_text(source_page(name, root), encoding="utf-8")
         for name in ("styles.css", "browse.css", "app.js", "og-image.png"):
             shutil.copy2(root / name, output / name)
+        copy_email_wordmark(output, root)
         shutil.copytree(root / "js", output / "js")
         write_supabase_public(output)
         copy_supabase_library(output, root)

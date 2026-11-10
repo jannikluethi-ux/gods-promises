@@ -79,6 +79,23 @@ In the Supabase dashboard for this project:
 - Minimum password length: 8.
 - Add a Vercel preview origin only if you need email links to return there. The client uses `location.origin` for `*.vercel.app` and localhost, and `https://hispromisedaily.com` otherwise.
 
+## Auth emails
+
+The six branded messages in `supabase/templates/` are the source to paste into Supabase Dashboard > Authentication > Emails for `ixxeidpdgktzvcbucosq` ([Email templates](https://supabase.com/dashboard/project/ixxeidpdgktzvcbucosq/auth/templates)). Hosted Auth reads the subject and HTML from that screen. The site build publishes the wordmark and leaves the HTML in the repo.
+
+Each template’s `<img>` src is `https://hispromisedaily.com/email/hpd-wordmark.png`. `scripts/build_site.py` copies `email/hpd-wordmark.png` to `dist/email/hpd-wordmark.png` for the production target. Sitemap entries come from public pages, so this file stays out of `sitemap.xml`. `robots.txt` allows `/`, and `vercel.json` has no header or rewrite on `/email/hpd-wordmark.png`. A long cache on that file is fine.
+
+Paste the body of each file and the subject below. Further notes (Go template variables and the one-hour link copy) are in `supabase/templates/subjects.txt`.
+
+| Dashboard template | Subject | File |
+| --- | --- | --- |
+| Confirm signup | Confirm your email for His Promise Daily | `confirm-signup.html` |
+| Reset password | Reset your His Promise Daily password | `reset-password.html` |
+| Change email address | Confirm your new email for His Promise Daily | `change-email.html` |
+| Magic link | Your His Promise Daily sign-in link | `magic-link.html` |
+| Invite user | You’re invited to His Promise Daily | `invite-user.html` |
+| Reauthentication | Your His Promise Daily confirmation code | `reauthentication.html` |
+
 ## Vercel
 
 Keep the existing project. Do not add Cloudflare Pages.
@@ -130,6 +147,7 @@ On load, the client removes `gp_auth_users_v1`, `gp_auth_session_v1`, and keys s
 1. Apply `20261110153000_profiles_favorites_auth.sql` on `ixxeidpdgktzvcbucosq`.
 2. Add `SUPABASE_ANON_KEY` to the Vercel project so the **build** can see it, then redeploy.
 3. Set the Auth site URL, redirect URLs, email confirmation, and minimum password length as listed above.
-4. Send a real verification email and a password-reset email on the production URL. The automated tests use a fake client and do not call the live Auth service.
+4. After `/email/hpd-wordmark.png` is on https://hispromisedaily.com, paste the six templates and subjects from `supabase/templates/` into Authentication > Emails.
+5. Send a real verification email and a password-reset email on the production URL. The automated tests use a fake client and do not call the live Auth service.
 
 Until steps 1 and 2 are done, the catalog and anonymous feedback keep working, and sign-in cannot succeed in production.

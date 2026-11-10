@@ -187,6 +187,9 @@ class StaticSeoTests(unittest.TestCase):
         self.assertIn("Allow: /", robots)
         self.assertNotIn("Disallow", robots, "Crawlers must be able to read login/profile noindex")
         self.assertIn(site.ORIGIN + "/sitemap.xml", robots)
+        wordmark = self.output / "email" / "hpd-wordmark.png"
+        self.assertEqual(wordmark.read_bytes(), (site.ROOT / "email" / "hpd-wordmark.png").read_bytes())
+        self.assertNotIn(site.ORIGIN + "/email/hpd-wordmark.png", urls)
         for name, doc in self.documents.items():
             if name.startswith(("browse/books/", "browse/topics/")):
                 verse_links = [href for href in doc.anchors if href.startswith("/verses/")]
@@ -274,6 +277,8 @@ class StaticSeoTests(unittest.TestCase):
             root = Path(temp)
             for name in site.SOURCE_PAGES + ("styles.css", "browse.css", "app.js", "promises.json", "og-image.png"):
                 shutil.copy2(site.ROOT / name, root / name)
+            (root / "email").mkdir()
+            shutil.copy2(site.ROOT / "email" / "hpd-wordmark.png", root / "email" / "hpd-wordmark.png")
             shutil.copytree(site.ROOT / "js", root / "js")
             (root / "data").mkdir()
             (root / "scripts").mkdir()
@@ -290,6 +295,8 @@ class StaticSeoTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 summary = site.build("production", root)
             self.assertEqual(summary["verses"], 2)
+            self.assertEqual((root / "dist/email/hpd-wordmark.png").read_bytes(),
+                             (site.ROOT / "email/hpd-wordmark.png").read_bytes())
             doc = Document((root / "dist/verses/gen-1-28.html").read_text())
             self.assertEqual(doc.values["explanation"], [explanations[ids[0]]])
             self.assertEqual(doc.values["blockquote"], [web["Genesis|1|28"]])
@@ -332,6 +339,7 @@ class StaticSeoTests(unittest.TestCase):
                        ("/styles.css", "text/css"), ("/browse.css", "text/css"),
                        ("/app.js", "javascript"), ("/data/explanations.json", "application/json"),
                        ("/og-image.png", "image/png"),
+                       ("/email/hpd-wordmark.png", "image/png"),
                        ("/robots.txt", "text/plain"), ("/sitemap.xml", "xml")]
             for path, content_type in samples:
                 with urlopen(base + path, timeout=5) as response:
