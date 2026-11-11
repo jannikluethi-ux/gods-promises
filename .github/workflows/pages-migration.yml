@@ -33,6 +33,7 @@ jobs:
           node tests/behavior-regression.test.js
           node tests/discovery.test.js
           node tests/discovery-meanings.test.js
+          node tests/filter-presentation.test.js
       - name: Build migration artifact (never upload production dist)
         run: python3 scripts/build_site.py --target migration
       - uses: actions/upload-pages-artifact@v3

@@ -28,3 +28,4 @@ jobs:
       - run: node tests/behavior-regression.test.js
       - run: node tests/discovery.test.js
       - run: node tests/discovery-meanings.test.js
+      - run: node tests/filter-presentation.test.js

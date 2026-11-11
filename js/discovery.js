@@ -438,10 +438,54 @@ function understand(query) {
     };
   }
 
+  function studyResult(study, promises) {
+    const list = promises || [];
+    const parts = study.parts && study.parts.length
+      ? study.parts
+      : [{ concept: study.concept, intention: study.intention, group: "direct" }];
+    const direct = [];
+    const related = [];
+    const seen = new Set();
+    parts.forEach((part) => {
+      const ranked = rankLinks({ text: "", conceptId: part.concept, intentionId: part.intention }, list);
+      ranked.sort((a, b) => b.score - a.score || b.verseStart - a.verseStart);
+      ranked.forEach((row) => {
+        if (seen.has(row.id) || row.score < RELATED_MIN) return;
+        if (part.book && row.book !== part.book) return;
+        if (part.chapter && Number(row.chapter) !== Number(part.chapter)) return;
+        seen.add(row.id);
+        const placeRelated = part.group === "related" || row.score < DIRECT_MIN;
+        if (placeRelated) related.push(row);
+        else direct.push(row);
+      });
+    });
+    direct.sort((a, b) => b.score - a.score || b.verseStart - a.verseStart);
+    related.sort((a, b) => b.score - a.score || b.verseStart - a.verseStart);
+    while (direct.length + related.length > 24) {
+      if (related.length) related.pop();
+      else direct.pop();
+    }
+    const primary = parts[0] || {};
+    const n = direct.length + related.length;
+    return {
+      mode: n ? "results" : "limited",
+      heading: study.heading,
+      intro: study.intro,
+      note: study.note || (n && n < 3 ? "The search found limited matches. Only passages that clearly belong are shown." : ""),
+      conceptId: study.concept || primary.concept || "filter",
+      intentionId: study.intention || primary.intention || "filter",
+      query: study.query || "",
+      filterStudy: true,
+      direct: direct,
+      related: related,
+    };
+  }
+
   global.GodsPromisesDiscovery = {
     discover: discover,
     understand: understand,
     correctQuery: correctQuery,
+    studyResult: studyResult,
     ROLE_LABELS: ROLE_LABELS,
     DIRECT_MIN: DIRECT_MIN,
     RELATED_MIN: RELATED_MIN,
