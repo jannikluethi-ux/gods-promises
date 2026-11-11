@@ -117,24 +117,111 @@
     return scored;
   }
 
-  function pickIntention(concept, text) {
-    const list = concept.intentions || [];
-    for (let i = 0; i < list.length; i++) {
-      const intent = list[i];
-      if (!intent.when || !intent.when.length) return intent;
-      for (let j = 0; j < intent.when.length; j++) {
-        if (hasWord(text, intent.when[j])) return intent;
-      }
+function pickIntention(concept, text) {
+  const list = concept.intentions || [];
+  for (let i = 0; i < list.length; i++) {
+    const intent = list[i];
+    if (!intent.when || !intent.when.length) return intent;
+    for (let j = 0; j < intent.when.length; j++) {
+      if (hasWord(text, intent.when[j])) return intent;
     }
-    return list[list.length - 1] || { id: "default", heading: "Passages that may speak to this", intro: "", direct: [], related: [] };
   }
+  return list[list.length - 1] || { id: "default", heading: "Passages that may speak to this", intro: "", direct: [], related: [] };
+}
+
+function intentionById(concept, id) {
+  const list = (concept && concept.intentions) || [];
+  for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+  return null;
+}
+
+function mentionsMoney(text) {
+  return hasWord(text, "money") || hasWord(text, "bills") || hasWord(text, "debt") || hasWord(text, "rich") || hasWord(text, "wealth") || hasWord(text, "broke") || hasWord(text, "rent");
+}
+
+function fearWords(text) {
+  return hasWord(text, "fear") || hasWord(text, "afraid") || hasWord(text, "anxiety") || hasWord(text, "anxious") || hasWord(text, "scared") || hasWord(text, "worry") || hasWord(text, "worried") || hasWord(text, "panic");
+}
+
+function comingNext(text) {
+  return hasWord(text, "what comes next") || hasWord(text, "what's next") || hasWord(text, "what is next") || hasWord(text, "what is coming") || hasWord(text, "what's coming") || hasWord(text, "comes next");
+}
+
+function blockedLoss(text) {
+  return hasWord(text, "lost someone") || hasWord(text, "lost my money") || hasWord(text, "lost my job") || hasWord(text, "lost my patience") || hasWord(text, "lost my temper") || hasWord(text, "died") || hasWord(text, "death") || hasWord(text, "passed away") || hasWord(text, "funeral") || hasWord(text, "wallet") || hasWord(text, "keys") || hasWord(text, "job") || hasWord(text, "money");
+}
+
+function reading(concept, intention, also, note) {
+  return { concept: concept, intention: intention, also: also || [], note: note || "" };
+}
+
+/**
+ * Context-sensitive phrases. First match wins. A phrase locks one subject and
+ * one intention; `also` may add a second already-curated intention. It does
+ * not copy a synonym into every category, and it does not change a passage's
+ * label or why-line.
+ */
+function readMeaning(text) {
+  const overwhelmed = hasWord(text, "overwhelmed");
+  const stressed = hasWord(text, "stressed") || hasWord(text, "stress") || hasWord(text, "under pressure");
+  if ((overwhelmed || stressed) && mentionsMoney(text)) return reading("wealth", "worry");
+  if ((overwhelmed || stressed) && fearWords(text)) return reading("fear", comingNext(text) || hasWord(text, "future") || hasWord(text, "tomorrow") ? "future" : "anxiety");
+  if (fearWords(text) && comingNext(text)) return reading("fear", "future");
+  if (overwhelmed && (hasWord(text, "work") || hasWord(text, "job") || hasWord(text, "career") || hasWord(text, "boss") || hasWord(text, "deadline") || hasWord(text, "workload"))) {
+    return reading("composure", "rest");
+  }
+  if (overwhelmed && (hasWord(text, "everything") || hasWord(text, "life") || hasWord(text, "it all") || hasWord(text, "all of it"))) {
+    return reading("composure", "rest", [{ concept: "hardship", intention: "hard" }], "Because the weight is life as a whole, passages about help in a hard season are included after the rest passages. They do not say the season will be short.");
+  }
+  if (hasWord(text, "can't cope") || hasWord(text, "cannot cope") || hasWord(text, "cant cope")) {
+    return reading("composure", "strength", [{ concept: "composure", intention: "rest" }], "Not being able to cope is heard as a need for strength to continue, with rest for a heavy load beside it. Neither says the load will vanish.");
+  }
+  if (!mentionsMoney(text) && (hasWord(text, "on my shoulders") || hasWord(text, "on my shoulder") || hasWord(text, "too much to carry") || hasWord(text, "carrying too much") || hasWord(text, "feel burdened") || hasWord(text, "feeling burdened") || hasWord(text, "i am burdened") || hasWord(text, "i'm burdened") || hasWord(text, "im burdened") || hasWord(text, "so burdened"))) {
+    return reading("composure", "rest");
+  }
+  if (hasWord(text, "giving up") || hasWord(text, "give up") || hasWord(text, "can't go on") || hasWord(text, "cannot go on") || hasWord(text, "cant go on")) {
+    return reading("composure", "strength");
+  }
+  if (!mentionsMoney(text) && (hasWord(text, "drained") || hasWord(text, "burnt out") || hasWord(text, "burned out") || hasWord(text, "wiped out") || hasWord(text, "running on empty"))) {
+    return reading("composure", "rest");
+  }
+  if ((hasWord(text, "exhausted") || hasWord(text, "weary") || hasWord(text, "worn out")) && (hasWord(text, "strength") || hasWord(text, "keep going"))) {
+    return reading("composure", "rest", [{ concept: "composure", intention: "strength" }], "The words ask for rest and for strength to continue. Rest is listed first. The strength passages are included with it, and they are not a promise that you will feel rested or that you will succeed.");
+  }
+  if (hasWord(text, "running out of strength") || hasWord(text, "out of strength") || hasWord(text, "no strength left")) {
+    return reading("composure", "strength", [{ concept: "composure", intention: "rest" }]);
+  }
+  if (hasWord(text, "lost") && !blockedLoss(text) && (hasWord(text, "feel") || hasWord(text, "feeling") || hasWord(text, "i am lost") || hasWord(text, "i'm lost") || hasWord(text, "im lost") || hasWord(text, "so lost") || hasWord(text, "lost my way"))) {
+    return reading("guidance", "decision");
+  }
+  if (stressed && !mentionsMoney(text) && !fearWords(text)) return reading("composure", "rest");
+  return null;
+}
 
   const EMOTIONS = { composure: 1, fear: 1, loneliness: 1, grief: 1, doubt: 1 };
 
-  function understand(query) {
-    const text = normalize(query);
-    if (!text) return null;
-    const scored = scoreConcepts(text);
+function understand(query) {
+  const text = normalize(query);
+  if (!text) return null;
+  const phrase = readMeaning(text);
+  if (phrase && DATA.CONCEPTS[phrase.concept]) {
+    const intention = intentionById(DATA.CONCEPTS[phrase.concept], phrase.intention);
+    if (intention) {
+      return {
+        text: text,
+        conceptId: phrase.concept,
+        intentionId: intention.id,
+        ambiguous: false,
+        heading: intention.heading,
+        intro: phrase.note ? intention.intro + " " + phrase.note : intention.intro,
+        direct: intention.direct || [],
+        related: intention.related || [],
+        score: 12,
+        also: phrase.also,
+      };
+    }
+  }
+  const scored = scoreConcepts(text);
     if (!scored.length || scored[0].score < 3) return null;
     let primary = scored[0];
     let second = scored[1];
@@ -158,6 +245,7 @@
         direct: intention.direct || [],
         related: intention.related || [],
         score: primary.score,
+        also: [],
       };
     }
     return {
@@ -170,7 +258,46 @@
       direct: intention.direct || [],
       related: intention.related || [],
       score: primary.score,
+      also: [],
     };
+  }
+
+  function rankLinks(understood, list) {
+    const ranked = [];
+    const seen = new Set();
+    DATA.LINKS.forEach((link) => {
+      if (link.concept !== understood.conceptId) return;
+      const resolved = resolveLink(link, list);
+      if (!resolved) return;
+      const scored = scoreLink(link, understood, resolved.text);
+      const row = {
+        id: resolved.id,
+        reference: resolved.reference,
+        book: resolved.book,
+        chapter: resolved.chapter,
+        verseStart: resolved.verseStart,
+        verseEnd: resolved.verseEnd,
+        text: resolved.text,
+        themes: resolved.themes,
+        feelings: resolved.feelings,
+        supplement: resolved.supplement,
+        promise: resolved.promise,
+        role: link.role,
+        roleLabel: ROLE_LABELS[link.role] || "Related passage",
+        why: link.why,
+        angle: link.angle,
+        score: Math.round(scored.score * 10) / 10,
+        band: scored.band,
+      };
+      const prev = seen.has(row.id) ? ranked.find((r) => r.id === row.id) : null;
+      if (prev) {
+        if (row.score > prev.score) ranked[ranked.indexOf(prev)] = row;
+        return;
+      }
+      seen.add(row.id);
+      ranked.push(row);
+    });
+    return ranked;
   }
 
   function overlaps(p, link) {
@@ -267,41 +394,16 @@
         query: query,
       };
     }
-    const ranked = [];
-    const seen = new Set();
-    DATA.LINKS.forEach((link) => {
-      if (link.concept !== understood.conceptId) return;
-      const resolved = resolveLink(link, list);
-      if (!resolved) return;
-      const scored = scoreLink(link, understood, resolved.text);
-      const row = {
-        id: resolved.id,
-        reference: resolved.reference,
-        book: resolved.book,
-        chapter: resolved.chapter,
-        verseStart: resolved.verseStart,
-        verseEnd: resolved.verseEnd,
-        text: resolved.text,
-        themes: resolved.themes,
-        feelings: resolved.feelings,
-        supplement: resolved.supplement,
-        promise: resolved.promise,
-        role: link.role,
-        roleLabel: ROLE_LABELS[link.role] || "Related passage",
-        why: link.why,
-        angle: link.angle,
-        score: Math.round(scored.score * 10) / 10,
-        band: scored.band,
-      };
-      const prev = seen.has(row.id) ? ranked.find((r) => r.id === row.id) : null;
-      if (prev) {
-        if (row.score > prev.score) {
-          ranked[ranked.indexOf(prev)] = row;
-        }
-        return;
-      }
-      seen.add(row.id);
-      ranked.push(row);
+    const ranked = rankLinks(understood, list);
+    (understood.also || []).forEach((extra) => {
+      if (!extra || extra.concept === understood.conceptId && extra.intention === understood.intentionId) return;
+      const more = rankLinks({ text: understood.text, conceptId: extra.concept, intentionId: extra.intention }, list);
+      more.forEach((row) => {
+        row.score = Math.round(row.score * 0.9 * 10) / 10;
+        const prev = ranked.find((item) => item.id === row.id);
+        if (!prev) ranked.push(row);
+        else if (row.score > prev.score) ranked[ranked.indexOf(prev)] = row;
+      });
     });
     ranked.sort((a, b) => b.score - a.score || b.verseStart - a.verseStart);
     const direct = ranked.filter((r) => r.score >= DIRECT_MIN);
