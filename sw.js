@@ -6,7 +6,7 @@
  */
 "use strict";
 
-var CACHE = "hpd-shell-v4";
+var CACHE = "hpd-shell-v5";
 var DAILY_CACHE = "hpd-daily-v1";
 var SHELL = [
   "/",
@@ -28,6 +28,7 @@ var SHELL = [
   "/js/relevance.js",
   "/js/discovery-data.js",
   "/js/discovery.js",
+  "/js/filter-studies.js",
   "/js/daily-verse.js",
   "/js/share.js",
   "/js/pwa.js",

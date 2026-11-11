@@ -405,13 +405,14 @@
     return promises.some((p) => String(p.book).toLowerCase() === n);
   }
 
-  function discoveryKeep(row) {
+  function discoveryKeep(row, found) {
     const testament = activeTestament;
     const book = el.book.value;
     const theme = el.theme.value;
     const feeling = el.feeling.value;
     if (testament && testamentOf(row.book) !== testament) return false;
     if (book && row.book !== book) return false;
+    if (found && found.filterStudy) return true;
     if (theme && !(row.themes || []).includes(theme)) return false;
     if (feeling && !(row.feelings || []).includes(feeling)) return false;
     return true;
@@ -469,8 +470,8 @@
     if (deck) deck.reset();
     el.results.classList.remove("results-host--reading");
     document.body.classList.remove("reading-active");
-    const direct = (found.direct || []).filter(discoveryKeep);
-    const related = (found.related || []).filter(discoveryKeep);
+    const direct = (found.direct || []).filter((row) => discoveryKeep(row, found));
+    const related = (found.related || []).filter((row) => discoveryKeep(row, found));
     const rows = direct.concat(related);
     const notes = [];
     if (activeTestament === "OT") notes.push("Old Testament");
@@ -922,6 +923,20 @@
       }
       if (found.mode === "fallback") {
         renderComfortFallback();
+        return;
+      }
+    }
+
+    if (
+      !earlyQuery &&
+      (el.feeling.value || el.theme.value) &&
+      window.GodsPromisesFilterStudies &&
+      window.GodsPromisesDiscovery &&
+      window.GodsPromisesDiscovery.studyResult
+    ) {
+      const study = window.GodsPromisesFilterStudies.forFilters(el.feeling.value, el.theme.value);
+      if (study) {
+        renderDiscovery(window.GodsPromisesDiscovery.studyResult(study, promises));
         return;
       }
     }
