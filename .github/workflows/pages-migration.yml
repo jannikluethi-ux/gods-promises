@@ -31,6 +31,8 @@ jobs:
           node tests/auth-cloud.test.js
           node tests/run-sql.js
           node tests/behavior-regression.test.js
+          node tests/discovery.test.js
+          node tests/discovery-meanings.test.js
       - name: Build migration artifact (never upload production dist)
         run: python3 scripts/build_site.py --target migration
       - uses: actions/upload-pages-artifact@v3
