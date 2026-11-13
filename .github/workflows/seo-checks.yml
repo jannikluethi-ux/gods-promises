@@ -29,3 +29,6 @@ jobs:
       - run: node tests/discovery.test.js
       - run: node tests/discovery-meanings.test.js
       - run: node tests/filter-presentation.test.js
+      - run: node tests/kjv-parity.test.js
+      - run: node tests/kjv-preference.test.js
+      - run: node tests/kjv-access.test.js

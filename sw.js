@@ -6,8 +6,11 @@
  */
 "use strict";
 
-var CACHE = "hpd-shell-v5";
+var CACHE = "hpd-shell-v6";
 var DAILY_CACHE = "hpd-daily-v1";
+// Fetched only after the UK gate allows KJV, then cached here for offline.
+// It is not in SHELL, so the install step does not download it for everyone.
+var KJV_ON_DEMAND = ["/data/kjv-spans.json"];
 var SHELL = [
   "/",
   "/styles.css",
@@ -165,7 +168,7 @@ if (typeof self !== "undefined" && typeof self.addEventListener === "function" &
       var key = shellKey(url.pathname);
       try {
         var fresh = await fetch(request);
-        if (fresh && fresh.ok && !fresh.redirected && SHELL.indexOf(key) !== -1) {
+        if (fresh && fresh.ok && !fresh.redirected && (SHELL.indexOf(key) !== -1 || KJV_ON_DEMAND.indexOf(key) !== -1)) {
           await cache.put(key, fresh.clone());
         }
         return fresh;
@@ -179,5 +182,5 @@ if (typeof self !== "undefined" && typeof self.addEventListener === "function" &
 }
 
 if (typeof module === "object" && module.exports) {
-  module.exports = { bypassRequest, SHELL, CACHE, DAILY_CACHE, escapeHtml };
+  module.exports = { bypassRequest, SHELL, CACHE, DAILY_CACHE, KJV_ON_DEMAND, escapeHtml };
 }

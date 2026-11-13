@@ -171,23 +171,40 @@
     return result.data || null;
   }
 
+  function readDeviceVersion() {
+    try {
+      var stored = global.localStorage && global.localStorage.getItem("gods-promises-version");
+      if (stored && VERSIONS[stored]) return stored;
+    } catch (_) {
+      /* ignore */
+    }
+    return "web";
+  }
+
+  /**
+   * A profile value wins. An empty profile stays empty and displays WEB for
+   * this session. The device value is never written onto the account.
+   */
+  function decideBiblePreference(profileVersion) {
+    if (profileVersion && VERSIONS[profileVersion]) {
+      return { display: profileVersion, save: false };
+    }
+    return { display: "web", save: false };
+  }
+
+  var deviceVersionAtLogin = null;
+
   function applyBiblePreference(user) {
     var Versions = global.GodsPromisesVersions;
     if (!Versions || !user) return;
-    if (user.preferredBibleVersion && Versions.getCurrentId && Versions.getCurrentId() !== user.preferredBibleVersion) {
-      applyingRemote = true;
-      try {
-        Versions.setCurrent(user.preferredBibleVersion);
-      } finally {
-        applyingRemote = false;
-      }
-      return;
-    }
-    if (!user.preferredBibleVersion && Versions.getCurrentId) {
-      var local = Versions.getCurrentId();
-      if (local && VERSIONS[local]) {
-        updateProfile({ preferredBibleVersion: local }).catch(function () {});
-      }
+    if (deviceVersionAtLogin == null) deviceVersionAtLogin = readDeviceVersion();
+    var decision = decideBiblePreference(user.preferredBibleVersion);
+    if (!Versions.setCurrent || (Versions.getCurrentId && Versions.getCurrentId() === decision.display)) return;
+    applyingRemote = true;
+    try {
+      Versions.setCurrent(decision.display);
+    } finally {
+      applyingRemote = false;
     }
   }
 
@@ -333,6 +350,8 @@
   }
 
   async function signOut() {
+    var restore = deviceVersionAtLogin || readDeviceVersion();
+    deviceVersionAtLogin = null;
     if (client) {
       try {
         await client.auth.signOut();
@@ -342,6 +361,10 @@
     }
     recovery = false;
     await applySession(null, { event: "SIGNED_OUT", recovery: false });
+    var Versions = global.GodsPromisesVersions;
+    if (Versions && typeof Versions.restoreAnonymous === "function") {
+      Versions.restoreAnonymous(restore);
+    }
   }
 
   async function requestPasswordReset(opts) {
@@ -471,6 +494,7 @@
     signUp: signUp,
     signIn: signIn,
     signOut: signOut,
+    decideBiblePreference: decideBiblePreference,
     getCurrentUser: getCurrentUser,
     onAuthChange: onAuthChange,
     requestPasswordReset: requestPasswordReset,
