@@ -10,3 +10,9 @@ pages-dist/
 # Public Supabase values are generated into dist at build time. Never commit env files.
 .env
 .env.*
+
+# King James master and the generated span file. Fetched at build time.
+# The span file is bundled into the serverless function, not served as a static asset.
+scripts/kjv_index.json
+data/kjv-spans.json
+api/_lib/kjv-spans.generated.json

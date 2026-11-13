@@ -34,6 +34,9 @@ jobs:
           node tests/discovery.test.js
           node tests/discovery-meanings.test.js
           node tests/filter-presentation.test.js
+          node tests/kjv-parity.test.js
+          node tests/kjv-preference.test.js
+          node tests/kjv-access.test.js
       - name: Build migration artifact (never upload production dist)
         run: python3 scripts/build_site.py --target migration
       - uses: actions/upload-pages-artifact@v3

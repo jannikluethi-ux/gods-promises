@@ -161,7 +161,26 @@ function reading(concept, intention, also, note) {
  * not copy a synonym into every category, and it does not change a passage's
  * label or why-line.
  */
+function archaicReading(text) {
+  if (hasWord(text, "fret not thyself") || hasWord(text, "fret not yourself")) return reading("composure", "patience");
+  if (hasWord(text, "fear thou not") || hasWord(text, "fear ye not")) return reading("fear", "anxiety");
+  if (hasWord(text, "be of good courage")) return reading("fear", "future");
+  if (hasWord(text, "be of good cheer")) return reading("hardship", "hard");
+  if (hasWord(text, "wait upon the lord") || hasWord(text, "wait on the lord")) return reading("composure", "strength");
+  if (hasWord(text, "cast thy burden") || hasWord(text, "cast your burden")) return reading("fear", "anxiety");
+  if (hasWord(text, "thou art with me")) return reading("loneliness", "alone");
+  if (hasWord(text, "lo i am with you")) return reading("loneliness", "alone");
+  if (hasWord(text, "take no thought for the morrow")) return reading("fear", "future");
+  if ((hasWord(text, "mine heart is overwhelmed") || hasWord(text, "my heart is overwhelmed")) && !fearWords(text)) {
+    return reading("composure", "rest");
+  }
+  if (hasWord(text, "my soul is cast down")) return reading("grief", "grief");
+  return null;
+}
+
 function readMeaning(text) {
+  const archaic = archaicReading(text);
+  if (archaic) return archaic;
   const overwhelmed = hasWord(text, "overwhelmed");
   const stressed = hasWord(text, "stressed") || hasWord(text, "stress") || hasWord(text, "under pressure");
   if ((overwhelmed || stressed) && mentionsMoney(text)) return reading("wealth", "worry");
