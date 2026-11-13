@@ -271,7 +271,13 @@
   function requestKjv(ids) {
     var url = "/api/kjv";
     if (ids && ids.length) url += "?ids=" + encodeURIComponent(ids.join(","));
-    return fetch(url, { credentials: "same-origin", cache: "no-store" }).then(function (res) {
+    var pending;
+    try {
+      pending = fetch(url, { credentials: "same-origin", cache: "no-store" });
+    } catch (err) {
+      return Promise.reject(err);
+    }
+    return pending.then(function (res) {
       if (!res.ok) {
         var httpError = new Error("kjv " + res.status);
         httpError.http = true;

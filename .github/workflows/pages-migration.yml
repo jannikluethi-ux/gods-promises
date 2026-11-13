@@ -19,6 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: python3 scripts/check_kjv_exposure.py --git
       - run: npm ci
       - name: Verify production and migration artifacts
         run: |

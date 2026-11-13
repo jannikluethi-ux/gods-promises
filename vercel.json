@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "npm ci && python3 scripts/import_kjv.py --fetch && python3 scripts/build_site.py --target production",
+  "buildCommand": "npm ci && python3 scripts/check_kjv_exposure.py --git && python3 scripts/import_kjv.py --fetch && python3 scripts/build_site.py --target production && python3 scripts/check_kjv_exposure.py --root dist --public",
   "outputDirectory": "dist",
   "cleanUrls": false,
   "functions": {
