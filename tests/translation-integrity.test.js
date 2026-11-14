@@ -25,7 +25,9 @@ function runtime(overrides = {}) {
   });
 }
 function load(context) {
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/bible-versions.js'), 'utf8'), context, { filename: 'js/bible-versions.js' });
+  for (const file of ['js/scripture-books.js', 'js/translation-registry.js', 'js/scripture-text.js', 'js/bible-versions.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, file), 'utf8'), context, { filename: file });
+  }
   return context.GodsPromisesVersions;
 }
 function catalog() {
