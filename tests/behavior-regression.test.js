@@ -294,18 +294,21 @@ async function versions(directory, data) {
   const context = runtime(directory, { localStorage, sessionStorage, fetch });
   load(context, 'js/bible-versions.js');
   const api = context.GodsPromisesVersions;
-  assert.deepEqual(plain(api.VERSIONS.map(v => v.id)), ['web', 'asv', 'ylt', 'darby', 'dra']);
+  assert.deepEqual(plain(api.VERSIONS.map(v => v.id)), ['web', 'asv', 'darby', 'dra']);
   assert.equal(calls.length, 0, 'Translations must not fetch on load');
   const ot = data.promises.find(p => p.book === 'Genesis');
   const nt = data.promises.find(p => p.book === 'John');
   assert.deepEqual(plain(await api.resolveText(ot, 'web')), { text: ot.text, source: 'web' });
   assert.equal(calls.length, 0, 'WEB is offline and exact');
-  const yltOT = await api.resolveText(ot, 'ylt');
-  assert.equal(yltOT.text, ot.text);
-  assert.equal(yltOT.source, 'web');
-  assert.match(yltOT.note, /New Testament only/);
-  assert.equal(calls.length, 0);
-  for (const id of ['asv', 'ylt', 'darby', 'dra']) {
+  for (const book of [ot, nt]) {
+    const before = calls.length;
+    const ylt = await api.resolveText(book, 'ylt');
+    assert.equal(ylt.text, book.text);
+    assert.equal(ylt.source, 'web');
+    assert.match(ylt.note, /YLT unavailable, showing WEB/);
+    assert.equal(calls.length, before, 'YLT must not request bible-api.com');
+  }
+  for (const id of ['asv', 'darby', 'dra']) {
     const before = calls.length;
     const one = api.resolveText(nt, id);
     const two = api.resolveText(nt, id);
@@ -381,5 +384,5 @@ function analytics(directory) {
   feelingCoverage(directories[1], newData);
   assert.deepEqual(await versions(directories[1], newData), await versions(ROOT, oldData));
   for (const directory of directories) analytics(directory);
-  console.log('Non-browser functional regression: source and dist both pass Supabase auth/favorites lifecycle; 15 search queries plus clarification have identical full ranked IDs/scores; WEB plus ASV, YLT, Darby, and Douay-Rheims on-demand requests/caches/fallbacks unchanged; analytics beforeSend rejects all new paths and strips allowed URL queries/hashes');
+  console.log('Non-browser functional regression: source and dist both pass Supabase auth/favorites lifecycle; 15 search queries plus clarification have identical full ranked IDs/scores; WEB plus ASV, Darby, and Douay-Rheims on-demand requests/caches/fallbacks unchanged; YLT is not requested and falls back to WEB; analytics beforeSend rejects all new paths and strips allowed URL queries/hashes');
 })().catch(error => { console.error(error); process.exitCode = 1; });
