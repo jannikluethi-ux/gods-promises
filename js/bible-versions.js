@@ -1,7 +1,6 @@
 /**
- * Bible version selection. WEB text is embedded in the catalog (offline-first).
- * ASV, Darby, and Douay-Rheims load on demand from bible-api.com and cache
- * in memory + sessionStorage. Young's Literal Translation is not offered:
+ * Bible version selection. Passage text is loaded by js/scripture-text.js.
+ * Young's Literal Translation is not offered:
  * bible-api.com no longer serves it, so a saved "ylt" preference shows WEB
  * and a notice, and is not requested. That saved id stays in storage until the reader picks an offered version.
  * A legacy stored id does the same and is not requested. A selected
@@ -12,9 +11,6 @@
   "use strict";
 
   var STORAGE_KEY = "gods-promises-version";
-  var CACHE_PREFIX = "gods-promises-verse:";
-  var API_BASE = "https://bible-api.com/";
-
   /** @type {{ id: string, label: string, short: string, api: string|null, ntOnly?: boolean }[]} */
   var VERSIONS = [
     {
@@ -43,31 +39,6 @@
     },
   ];
 
-  var BOOK_IDS = {
-    Genesis: "GEN", Exodus: "EXO", Leviticus: "LEV", Numbers: "NUM", Deuteronomy: "DEU",
-    Joshua: "JOS", Judges: "JDG", Ruth: "RUT", "1 Samuel": "1SA", "2 Samuel": "2SA",
-    "1 Kings": "1KI", "2 Kings": "2KI", "1 Chronicles": "1CH", "2 Chronicles": "2CH",
-    Ezra: "EZR", Nehemiah: "NEH", Esther: "EST", Job: "JOB", Psalms: "PSA",
-    Proverbs: "PRO", Ecclesiastes: "ECC", "Song of Solomon": "SNG", Isaiah: "ISA",
-    Jeremiah: "JER", Lamentations: "LAM", Ezekiel: "EZK", Daniel: "DAN", Hosea: "HOS",
-    Joel: "JOL", Amos: "AMO", Obadiah: "OBA", Jonah: "JON", Micah: "MIC", Nahum: "NAM",
-    Habakkuk: "HAB", Zephaniah: "ZEP", Haggai: "HAG", Zechariah: "ZEC", Malachi: "MAL",
-    Matthew: "MAT", Mark: "MRK", Luke: "LUK", John: "JHN", Acts: "ACT", Romans: "ROM",
-    "1 Corinthians": "1CO", "2 Corinthians": "2CO", Galatians: "GAL", Ephesians: "EPH",
-    Philippians: "PHP", Colossians: "COL", "1 Thessalonians": "1TH", "2 Thessalonians": "2TH",
-    "1 Timothy": "1TI", "2 Timothy": "2TI", Titus: "TIT", Philemon: "PHM", Hebrews: "HEB",
-    James: "JAS", "1 Peter": "1PE", "2 Peter": "2PE", "1 John": "1JN", "2 John": "2JN",
-    "3 John": "3JN", Jude: "JUD", Revelation: "REV",
-  };
-
-  /** @type {Map<string, string>} */
-  var memoryCache = new Map();
-  /** @type {Map<string, Promise<{ text: string, source: string, note?: string }>>} */
-  var inflight = new Map();
-  var currentId = "web";
-  /** @type {Array<function(string): void>} */
-  var listeners = [];
-
   /** Legacy id kept only so a saved preference can be recognized and not requested. */
   var REMOVED_VERSION_ID = "kjv";
   /** bible-api.com stopped serving this id. Not offered and not requested. */
@@ -76,16 +47,9 @@
   var REMOVED_NOTE = "A saved Bible version is no longer offered. Showing the World English Bible (WEB).";
   var unavailableFallback = false;
   var removedNotice = false;
-  var REQUEST_LIMIT = global.GODS_PROMISES_REQUEST_LIMIT || 12;
-  var REQUEST_WINDOW_MS = global.GODS_PROMISES_REQUEST_WINDOW_MS || 30000;
-  /** @type {number[]} */
-  var requestTimes = [];
-  var requestQueue = [];
-  var requestPausedUntil = 0;
-  var requestPumpTimer = 0;
-  /** @type {Map<string, { translation: string, bookId: string, chapter: number, bookName: string, waiters: Array<{ start: number, end: number, resolve: function }> }>} */
-  var chapterBuckets = new Map();
-  var chapterFlushTimer = 0;
+  var currentId = "web";
+  /** @type {Array<function(string): void>} */
+  var listeners = [];
 
   function isRemovedVersion(id) {
     var token = String(id == null ? "" : id).trim().toLowerCase();
@@ -240,223 +204,6 @@
     return "";
   }
 
-  function buildApiPath(p) {
-    var book = p.book || "";
-    var chapter = p.chapter;
-    var start = p.verseStart;
-    var end = p.verseEnd;
-    if (!book || chapter == null || start == null) return "";
-    var ref = book + " " + chapter + ":" + start;
-    if (end != null && end !== start) ref += "-" + end;
-    return encodeURIComponent(ref);
-  }
-
-  function cacheKey(versionId, p) {
-    return (
-      versionId +
-      "|" +
-      (p.id || "") +
-      "|" +
-      (p.book || "") +
-      "|" +
-      p.chapter +
-      ":" +
-      p.verseStart +
-      "-" +
-      (p.verseEnd != null ? p.verseEnd : p.verseStart)
-    );
-  }
-
-  function readSession(key) {
-    try {
-      return sessionStorage.getItem(CACHE_PREFIX + key);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function writeSession(key, text) {
-    try {
-      sessionStorage.setItem(CACHE_PREFIX + key, text);
-    } catch (e) {
-      /* quota — ignore */
-    }
-  }
-
-  function normalizeApiText(raw) {
-    return String(raw || "")
-      .replace(/\r\n/g, "\n")
-      .replace(/[ \t]+\n/g, "\n")
-      .replace(/\n+/g, " ")
-      .replace(/[ \t]{2,}/g, " ")
-      .trim();
-  }
-
-  function passageEnd(p) {
-    return p && p.verseEnd != null ? Number(p.verseEnd) : Number(p && p.verseStart);
-  }
-
-  function sameBook(left, right) {
-    var a = String(left || "").replace(/\s+/g, " ").trim().toLowerCase();
-    var b = String(right || "").replace(/\s+/g, " ").trim().toLowerCase();
-    if (a === "psalm") a = "psalms";
-    if (b === "psalm") b = "psalms";
-    return a === b;
-  }
-
-  function referenceMatches(p, reference) {
-    var ref = String(reference || "").replace(/[\u2013\u2014]/g, "-").trim();
-    var match = ref.match(/^(.*)\s+(\d+):(\d+)(?:-(\d+))?$/);
-    if (!match || !p) return false;
-    if (!sameBook(match[1], p.book)) return false;
-    var end = match[4] != null ? Number(match[4]) : Number(match[3]);
-    return Number(match[2]) === Number(p.chapter) && Number(match[3]) === Number(p.verseStart) && end === passageEnd(p);
-  }
-
-  function failureResult(meta, note) {
-    return {
-      text: "",
-      source: meta.id,
-      note: note,
-      error: true,
-    };
-  }
-
-  function draPsalmResult(meta) {
-    return {
-      text: "",
-      source: meta.id,
-      note: "Douay-Rheims numbers the Psalms differently from this reference, so this passage isn’t shown.",
-      withheld: true,
-    };
-  }
-
-  function pumpRequests() {
-    requestPumpTimer = 0;
-    var now = Date.now();
-    if (now < requestPausedUntil) {
-      requestPumpTimer = setTimeout(pumpRequests, requestPausedUntil - now);
-      return;
-    }
-    requestTimes = requestTimes.filter(function (stamp) { return now - stamp < REQUEST_WINDOW_MS; });
-    while (requestQueue.length && requestTimes.length < REQUEST_LIMIT) {
-      var job = requestQueue.shift();
-      requestTimes.push(Date.now());
-      try {
-        job();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    if (requestQueue.length && !requestPumpTimer) {
-      var wait = REQUEST_WINDOW_MS - (Date.now() - requestTimes[0]) + 25;
-      requestPumpTimer = setTimeout(pumpRequests, wait);
-    }
-  }
-
-  function enqueueRequest(job) {
-    requestQueue.push(job);
-    if (!requestPumpTimer) requestPumpTimer = setTimeout(pumpRequests, 0);
-  }
-
-  function pauseRequests(ms) {
-    var until = Date.now() + ms;
-    if (until > requestPausedUntil) requestPausedUntil = until;
-  }
-
-  function headerValue(res, name) {
-    if (!res || !res.headers || typeof res.headers.get !== "function") return "";
-    return res.headers.get(name) || "";
-  }
-
-  function versesInRange(verses, chapter, start, end) {
-    var byNumber = {};
-    for (var i = 0; i < verses.length; i++) {
-      var verse = verses[i];
-      if (Number(verse.chapter) === Number(chapter)) byNumber[Number(verse.verse)] = verse.text;
-    }
-    var parts = [];
-    for (var n = start; n <= end; n++) {
-      if (byNumber[n] == null || !String(byNumber[n]).trim()) return "";
-      parts.push(byNumber[n]);
-    }
-    return normalizeApiText(parts.join(" "));
-  }
-
-  function flushChapters() {
-    chapterFlushTimer = 0;
-    var buckets = [];
-    chapterBuckets.forEach(function (bucket) { buckets.push(bucket); });
-    chapterBuckets = new Map();
-    for (var i = 0; i < buckets.length; i++) enqueueRequest(fetchBucket(buckets[i]));
-  }
-
-  function scheduleChapters() {
-    if (chapterFlushTimer) return;
-    chapterFlushTimer = setTimeout(flushChapters, 0);
-  }
-
-  function fetchBucket(bucket) {
-    return function () {
-      var single = bucket.waiters.length === 1 ? bucket.waiters[0] : null;
-      var url;
-      if (single) {
-        var ref = bucket.bookName + " " + bucket.chapter + ":" + single.start;
-        if (single.end !== single.start) ref += "-" + single.end;
-        url = API_BASE + encodeURIComponent(ref) + "?translation=" + encodeURIComponent(bucket.translation);
-      } else {
-        url = API_BASE + "data/" + encodeURIComponent(bucket.translation) + "/" + encodeURIComponent(bucket.bookId) + "/" + encodeURIComponent(String(bucket.chapter));
-      }
-      fetch(url)
-        .then(function (res) {
-          if (res && res.status === 429) {
-            var retryAfter = parseInt(headerValue(res, "retry-after"), 10);
-            pauseRequests((retryAfter > 0 ? retryAfter : 30) * 1000);
-            throw new Error("429");
-          }
-          if (!res || !res.ok) throw new Error("HTTP " + (res && res.status));
-          return res.json();
-        })
-        .then(function (data) {
-          if (!data || data.error) throw new Error("not found");
-          var translationId = data.translation_id || (data.translation && (data.translation.identifier || data.translation.id)) || "";
-          if (String(translationId).toLowerCase() !== bucket.translation) throw new Error("translation");
-          for (var i = 0; i < bucket.waiters.length; i++) {
-            var waiter = bucket.waiters[i];
-            if (single) {
-              if (!referenceMatches(waiter.passage, data.reference)) {
-                waiter.resolve(failureResult(waiter.meta, waiter.meta.short + " text couldn't load right now."));
-                continue;
-              }
-              var one = normalizeApiText(data.text);
-              if (!one) {
-                waiter.resolve(failureResult(waiter.meta, waiter.meta.short + " text couldn't load right now."));
-                continue;
-              }
-              memoryCache.set(waiter.key, one);
-              writeSession(waiter.key, one);
-              waiter.resolve({ text: one, source: waiter.meta.id });
-              continue;
-            }
-            var joined = versesInRange(data.verses || [], bucket.chapter, waiter.start, waiter.end);
-            if (!joined) {
-              waiter.resolve(failureResult(waiter.meta, waiter.meta.short + " text couldn't load right now."));
-              continue;
-            }
-            memoryCache.set(waiter.key, joined);
-            writeSession(waiter.key, joined);
-            waiter.resolve({ text: joined, source: waiter.meta.id });
-          }
-        })
-        .catch(function () {
-          for (var i = 0; i < bucket.waiters.length; i++) {
-            var waiter = bucket.waiters[i];
-            waiter.resolve(failureResult(waiter.meta, waiter.meta.short + " text couldn't load right now."));
-          }
-        });
-    };
-  }
-
   /**
    * Resolve scripture text for a promise in the selected (or given) version.
    * WEB uses the catalog. Another translation is shown only when bible-api.com
@@ -483,50 +230,11 @@
     if (!meta.api || isRemovedVersion(meta.id) || isRemovedVersion(meta.api) || isUnavailableVersion(meta.api)) {
       return Promise.resolve({ text: webText, source: "web" });
     }
-    if (meta.id === "dra" && p && sameBook(p.book, "Psalms")) {
-      return Promise.resolve(draPsalmResult(meta));
+    var textApi = global.GodsPromisesScriptureText;
+    if (!textApi || typeof textApi.resolve !== "function") {
+      return Promise.resolve({ text: "", source: meta.id, note: meta.short + " text couldn't load right now.", error: true });
     }
-    if (!p || !BOOK_IDS[p.book] || p.chapter == null || p.verseStart == null) {
-      return Promise.resolve(failureResult(meta, meta.short + " text couldn't load right now."));
-    }
-
-    var key = cacheKey(meta.id, p);
-    if (memoryCache.has(key)) {
-      return Promise.resolve({ text: memoryCache.get(key), source: meta.id });
-    }
-    var sessionHit = readSession(key);
-    if (sessionHit) {
-      memoryCache.set(key, sessionHit);
-      return Promise.resolve({ text: sessionHit, source: meta.id });
-    }
-    if (inflight.has(key)) return inflight.get(key);
-
-    var promise = new Promise(function (resolve) {
-      var bucketKey = meta.api + "|" + BOOK_IDS[p.book] + "|" + p.chapter;
-      var bucket = chapterBuckets.get(bucketKey);
-      if (!bucket) {
-        bucket = {
-          translation: meta.api,
-          bookId: BOOK_IDS[p.book],
-          chapter: Number(p.chapter),
-          bookName: p.book,
-          waiters: [],
-        };
-        chapterBuckets.set(bucketKey, bucket);
-        scheduleChapters();
-      }
-      bucket.waiters.push({
-        start: Number(p.verseStart),
-        end: passageEnd(p),
-        passage: p,
-        meta: meta,
-        key: key,
-        resolve: resolve,
-      });
-    });
-    inflight.set(key, promise);
-    promise.then(function () { inflight.delete(key); }, function () { inflight.delete(key); });
-    return promise;
+    return textApi.resolve(p, meta.id);
   }
 
   function escapeHtml(str) {
