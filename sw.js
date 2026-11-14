@@ -6,7 +6,7 @@
  */
 "use strict";
 
-var CACHE = "hpd-shell-v6";
+var CACHE = "hpd-shell-v7";
 var DAILY_CACHE = "hpd-daily-v1";
 var SHELL = [
   "/",

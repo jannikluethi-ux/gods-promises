@@ -29,7 +29,7 @@ Then visit `http://localhost:8080/`. Set `SUPABASE_ANON_KEY` (or `SUPABASE_PUBLI
 ## How to search
 
 - Type in the search box — filters live across reference, paraphrase, Scripture text, **feelings**, themes, and extra keywords (including feeling synonyms like *abandoned*, *grief*, *worried*).
-- Open the filters icon in the search bar for the **Feeling**, **Theme**, **Book**, and **Version** dropdowns (and **Testament** buttons). Version choices are public-domain only (WEB default; ASV, YLT, Darby, Douay-Rheims). Non-WEB text loads from bible-api.com and is cached in the session.
+- Open the filters icon in the search bar for the **Feeling**, **Theme**, **Book**, and **Version** dropdowns (and **Testament** buttons). Version choices are public-domain only (WEB default; ASV, Darby, Douay-Rheims). Young's Literal Translation is not offered. Non-WEB text loads from bible-api.com and is cached in the session.
 - Tap the **cross** on a result card to save a personal favorite (sign in required).
 - Across filter types, results must satisfy **all** active constraints.
 - Results paginate (**Show more**) so large catalogs stay responsive.

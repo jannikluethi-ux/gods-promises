@@ -1,8 +1,11 @@
 /**
  * Bible version selection. WEB text is embedded in the catalog (offline-first).
- * ASV, YLT, Darby, and Douay-Rheims load on demand from bible-api.com and cache
- * in memory + sessionStorage. A legacy stored id that is no longer offered
- * displays WEB, is never requested, and is left untouched in storage.
+ * ASV, Darby, and Douay-Rheims load on demand from bible-api.com and cache
+ * in memory + sessionStorage. Young's Literal Translation is not offered:
+ * bible-api.com no longer serves it, so a saved "ylt" preference shows WEB
+ * and a notice, and is not requested. That saved id stays in storage until
+ * the reader picks an offered version. A legacy stored id that is no longer
+ * offered displays WEB, is never requested, and is left untouched in storage.
  */
 (function (global) {
   "use strict";
@@ -24,13 +27,6 @@
       label: "American Standard Version (ASV)",
       short: "ASV",
       api: "asv",
-    },
-    {
-      id: "ylt",
-      label: "Young's Literal Translation (YLT)",
-      short: "YLT",
-      api: "ylt",
-      ntOnly: true,
     },
     {
       id: "darby",
@@ -98,6 +94,10 @@
 
   /** Legacy id kept only so a saved preference can be recognized and not requested. */
   var REMOVED_VERSION_ID = "kjv";
+  /** bible-api.com stopped serving this id. Not offered and not requested. */
+  var UNAVAILABLE_VERSION_ID = "ylt";
+  var UNAVAILABLE_NOTE = "YLT unavailable, showing WEB.";
+  var unavailableFallback = false;
 
   function isRemovedVersion(id) {
     var token = String(id == null ? "" : id).trim().toLowerCase();
@@ -108,6 +108,10 @@
       return false;
     }
     return token === REMOVED_VERSION_ID;
+  }
+
+  function isUnavailableVersion(id) {
+    return String(id == null ? "" : id).trim().toLowerCase() === UNAVAILABLE_VERSION_ID;
   }
 
   function getVersionMeta(id) {
@@ -121,8 +125,12 @@
   function loadStored() {
     try {
       var stored = localStorage.getItem(STORAGE_KEY);
-      // Display WEB. Do not write storage: a saved legacy id must stay as stored.
+      // Display WEB. Do not write storage: a saved legacy or unavailable id must stay as stored.
       if (isRemovedVersion(stored)) return "web";
+      if (isUnavailableVersion(stored)) {
+        unavailableFallback = true;
+        return "web";
+      }
       if (stored && getVersionMeta(stored).id === stored) return stored;
     } catch (e) {
       /* ignore */
@@ -148,25 +156,7 @@
     return getVersionMeta(currentId);
   }
 
-  function setCurrent(id) {
-    // A legacy or crafted id displays WEB and must not rewrite localStorage or the profile.
-    if (isRemovedVersion(id)) {
-      if (currentId !== "web") {
-        currentId = "web";
-        for (var j = 0; j < listeners.length; j++) {
-          try {
-            listeners[j](currentId);
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      }
-      return "web";
-    }
-    var meta = getVersionMeta(id);
-    if (meta.id === currentId) return currentId;
-    currentId = meta.id;
-    persist(currentId);
+  function notifyListeners() {
     for (var i = 0; i < listeners.length; i++) {
       try {
         listeners[i](currentId);
@@ -174,6 +164,66 @@
         console.error(e);
       }
     }
+  }
+
+  function ensureUnavailableNote(select) {
+    if (!select || !select.parentNode || typeof document === "undefined" || !document.createElement) return;
+    var note = null;
+    if (typeof select.parentNode.querySelector === "function") {
+      note = select.parentNode.querySelector(".version-unavailable-note");
+    }
+    if (!note) {
+      note = document.createElement("span");
+      note.className = "version-unavailable-note";
+      note.setAttribute("role", "status");
+      if (typeof select.insertAdjacentElement !== "function") return;
+      select.insertAdjacentElement("afterend", note);
+    }
+    if (unavailableFallback) {
+      note.hidden = false;
+      note.textContent = UNAVAILABLE_NOTE;
+    } else {
+      note.hidden = true;
+      note.textContent = "";
+    }
+  }
+
+  function syncUnavailableUi() {
+    if (typeof document === "undefined" || !document || typeof document.getElementById !== "function") return;
+    var label = document.getElementById("version-meta-label");
+    if (label) label.textContent = versionLabelForMeta();
+    if (typeof document.querySelectorAll !== "function") return;
+    var selects = document.querySelectorAll("#version-filter");
+    for (var i = 0; i < selects.length; i++) ensureUnavailableNote(selects[i]);
+  }
+
+  function setCurrent(id) {
+    // A legacy or crafted id displays WEB and must not rewrite localStorage or the profile.
+    if (isRemovedVersion(id)) {
+      if (currentId !== "web") {
+        currentId = "web";
+        notifyListeners();
+      }
+      return "web";
+    }
+    // Saved YLT displays WEB and must not be requested or written back as "ylt".
+    if (isUnavailableVersion(id)) {
+      unavailableFallback = true;
+      if (currentId !== "web") {
+        currentId = "web";
+        notifyListeners();
+      }
+      syncUnavailableUi();
+      return "web";
+    }
+    var meta = getVersionMeta(id);
+    if (meta.id === currentId && !unavailableFallback) return currentId;
+    var changed = meta.id !== currentId;
+    unavailableFallback = false;
+    currentId = meta.id;
+    persist(currentId);
+    if (changed) notifyListeners();
+    syncUnavailableUi();
     return currentId;
   }
 
@@ -250,10 +300,14 @@
    * @returns {Promise<{ text: string, source: string, note?: string, loading?: boolean }>}
    */
   function resolveText(p, versionId) {
-    var vid = versionId || currentId;
+    var explicit = versionId != null && versionId !== "";
+    var vid = explicit ? versionId : currentId;
     var webText = p && p.text ? String(p.text) : "";
     if (isRemovedVersion(vid)) {
       return Promise.resolve({ text: webText, source: "web" });
+    }
+    if (isUnavailableVersion(vid) || (!explicit && unavailableFallback)) {
+      return Promise.resolve({ text: webText, source: "web", note: UNAVAILABLE_NOTE });
     }
     var meta = getVersionMeta(vid);
 
@@ -296,6 +350,9 @@
     var translation = meta.api;
     if (isRemovedVersion(translation)) {
       return Promise.resolve({ text: webText, source: "web" });
+    }
+    if (isUnavailableVersion(translation)) {
+      return Promise.resolve({ text: webText, source: "web", note: UNAVAILABLE_NOTE });
     }
     var url = API_BASE + path + "?translation=" + encodeURIComponent(translation);
     var promise = fetch(url)
@@ -368,8 +425,13 @@
       if (!meta.api) {
         block.textContent = p.text || "";
         block.classList.remove("card-text--loading");
-        noteEl.hidden = true;
-        noteEl.textContent = "";
+        if (unavailableFallback) {
+          noteEl.hidden = false;
+          noteEl.textContent = UNAVAILABLE_NOTE;
+        } else {
+          noteEl.hidden = true;
+          noteEl.textContent = "";
+        }
         return;
       }
 
@@ -414,9 +476,12 @@
     }).join("");
     select.innerHTML = html;
     select.value = isRemovedVersion(currentId) ? "web" : currentId;
+    ensureUnavailableNote(select);
+    syncUnavailableUi();
   }
 
   function versionLabelForMeta() {
+    if (unavailableFallback) return "WEB · " + UNAVAILABLE_NOTE;
     var m = getCurrent();
     return m.short + " · public domain";
   }
@@ -434,6 +499,9 @@
     hydrateCards: hydrateCards,
     fillSelect: fillSelect,
     versionLabelForMeta: versionLabelForMeta,
+    unavailableNotice: function () {
+      return unavailableFallback ? UNAVAILABLE_NOTE : "";
+    },
     getVersionMeta: getVersionMeta,
   };
 })(typeof window !== "undefined" ? window : globalThis);
