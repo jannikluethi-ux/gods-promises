@@ -1343,20 +1343,24 @@
       setTestament(btn.dataset.testament || "");
     });
   }
+  function applyVersionToScreen() {
+    if (Versions && Versions.fillSelect && el.version) Versions.fillSelect(el.version);
+    updateVersionMeta();
+    if (deck && deck.getCount()) {
+      deck.refresh();
+      return;
+    }
+    if (lastFiltered && lastFiltered.length) hydrateVisibleCards(lastFiltered);
+  }
+
+  if (Versions && Versions.onChange) Versions.onChange(applyVersionToScreen);
+
   if (el.version) {
     el.version.addEventListener("change", () => {
-      if (Versions && Versions.setCurrent) {
-        Versions.setCurrent(el.version.value);
-      }
-      updateVersionMeta();
-      // Re-render the current card in place: same deck, same position.
-      if (deck && deck.getCount()) {
-        deck.refresh();
-      } else if (isLanding()) {
-        render({ preserveIndex: true });
-      } else if (el.results && el.results.querySelector("[data-fallback]")) {
-        hydrateVisibleCards(lastFiltered);
-      }
+      if (Versions && Versions.setCurrent) Versions.setCurrent(el.version.value);
+      // setCurrent notifies onChange, which keeps the search, category,
+      // explanation, and feedback and only replaces the verse text.
+      if (!Versions || !Versions.onChange) applyVersionToScreen();
     });
   }
   el.book.addEventListener("change", render);

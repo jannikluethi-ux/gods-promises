@@ -287,7 +287,17 @@ async function versions(directory, data) {
   const sessionStorage = memoryStorage();
   let fail = false;
   const fetch = async url => {
-    calls.push(url);
+    calls.push(String(url));
+    if (String(url).includes('/api/kjv')) {
+      if (fail && String(url).includes('ids=')) throw new Error('Simulated service outage');
+      if (!String(url).includes('ids=')) {
+        return { ok: true, json: async () => ({ allowed: true, offline: false }) };
+      }
+      const passages = {};
+      const sample = data.promises.find(p => p.book === 'John');
+      if (sample) passages[sample.id] = 'Local KJV sentence.';
+      return { ok: true, json: async () => ({ allowed: true, offline: false, passages }) };
+    }
     if (fail) throw new Error('Simulated service outage');
     return { ok: true, json: async () => ({ text: '  Synthetic test translation\n line.  ' }) };
   };
@@ -295,17 +305,24 @@ async function versions(directory, data) {
   load(context, 'js/bible-versions.js');
   const api = context.GodsPromisesVersions;
   assert.deepEqual(plain(api.VERSIONS.map(v => v.id)), ['web', 'kjv', 'asv', 'ylt', 'darby', 'dra']);
-  assert.equal(calls.length, 0, 'Translations must not fetch on load');
+  const translationCalls = () => calls.filter(url => url.includes('bible-api.com'));
+  assert.deepEqual(translationCalls(), [], 'Only the UK gate may run before a version is chosen');
   const ot = data.promises.find(p => p.book === 'Genesis');
   const nt = data.promises.find(p => p.book === 'John');
   assert.deepEqual(plain(await api.resolveText(ot, 'web')), { text: ot.text, source: 'web' });
-  assert.equal(calls.length, 0, 'WEB is offline and exact');
+  assert.deepEqual(translationCalls(), [], 'WEB is offline and exact');
   const yltOT = await api.resolveText(ot, 'ylt');
   assert.equal(yltOT.text, ot.text);
   assert.equal(yltOT.source, 'web');
   assert.match(yltOT.note, /New Testament only/);
-  assert.equal(calls.length, 0);
-  for (const id of ['kjv', 'asv', 'ylt', 'darby', 'dra']) {
+  assert.deepEqual(translationCalls(), [], 'YLT Old Testament stays on WEB without a request');
+  const kjv = await api.resolveText(nt, 'kjv');
+  assert.equal(kjv.source, 'kjv');
+  assert.equal(kjv.text, 'Local KJV sentence.');
+  assert.ok(calls.some(url => url.includes('/api/kjv')));
+  assert.equal(calls.some(url => url.includes('translation=kjv')), false);
+  assert.equal(calls.some(url => url.includes('kjv-spans')), false);
+  for (const id of ['asv', 'ylt', 'darby', 'dra']) {
     const before = calls.length;
     const one = api.resolveText(nt, id);
     const two = api.resolveText(nt, id);
@@ -319,9 +336,11 @@ async function versions(directory, data) {
   }
   const restored = runtime(directory, { localStorage, sessionStorage, fetch });
   load(restored, 'js/bible-versions.js');
-  const beforeSession = calls.length;
-  assert.equal((await restored.GodsPromisesVersions.resolveText(nt, 'kjv')).source, 'kjv');
-  assert.equal(calls.length, beforeSession, 'Session cache survives module reload');
+  const beforeKjv = calls.filter(url => url.includes('/api/kjv?ids=')).length;
+  const again = await restored.GodsPromisesVersions.resolveText(nt, 'kjv');
+  assert.equal(again.source, 'kjv');
+  assert.equal(again.text, 'Local KJV sentence.');
+  assert.equal(calls.filter(url => url.includes('/api/kjv?ids=')).length, beforeKjv + 1);
   const changes = [];
   const unsubscribe = api.onChange(id => changes.push(id));
   api.setCurrent('asv');
@@ -337,7 +356,13 @@ async function versions(directory, data) {
   assert.equal(failed.text, ot.text);
   assert.equal(failed.source, 'web');
   assert.match(failed.note, /Could not load DBY/);
-  return calls.map(url => new URL(url).searchParams.get('translation'));
+  return calls.map((url) => {
+    try {
+      return new URL(url, 'https://hispromisedaily.com').searchParams.get('translation');
+    } catch (err) {
+      return null;
+    }
+  }).filter(Boolean);
 }
 
 function analytics(directory) {
@@ -381,5 +406,5 @@ function analytics(directory) {
   feelingCoverage(directories[1], newData);
   assert.deepEqual(await versions(directories[1], newData), await versions(ROOT, oldData));
   for (const directory of directories) analytics(directory);
-  console.log('Non-browser functional regression: source and dist both pass Supabase auth/favorites lifecycle; 15 search queries plus clarification have identical full ranked IDs/scores; all 6 translation modes, on-demand requests/caches/fallbacks unchanged; analytics beforeSend rejects all new paths and strips allowed URL queries/hashes');
+  console.log('Non-browser functional regression: source and dist both pass Supabase auth/favorites lifecycle; 15 search queries plus clarification have identical full ranked IDs/scores; WEB stays offline, KJV is requested only from /api/kjv, and ASV/YLT/Darby/DRA still use bible-api; analytics beforeSend rejects all new paths and strips allowed URL queries/hashes');
 })().catch(error => { console.error(error); process.exitCode = 1; });

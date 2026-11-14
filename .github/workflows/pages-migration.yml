@@ -19,21 +19,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: python3 scripts/check_kjv_exposure.py --git
       - run: npm ci
       - name: Verify production and migration artifacts
         run: |
           python3 -m unittest discover -s tests -p 'test_*.py'
-          node tests/analytics.test.js
-          node tests/safe-next.test.js
-          node tests/feedback-api.test.js
-          node tests/feedback-widget.test.js
-          node tests/account-api.test.js
-          node tests/auth-cloud.test.js
           node tests/run-sql.js
-          node tests/behavior-regression.test.js
-          node tests/discovery.test.js
-          node tests/discovery-meanings.test.js
-          node tests/filter-presentation.test.js
+          sh scripts/run-js-tests.sh
       - name: Build migration artifact (never upload production dist)
         run: python3 scripts/build_site.py --target migration
       - uses: actions/upload-pages-artifact@v3

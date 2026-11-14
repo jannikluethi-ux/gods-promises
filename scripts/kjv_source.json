@@ -1,0 +1,10 @@
+{
+  "translation": "King James Version (1769)",
+  "canon": "Protestant, 66 books, no Apocrypha",
+  "source_url": "https://raw.githubusercontent.com/scrollmapper/bible_databases/e1b254cef86d0e65b1a5d1a94b8b112d0f296a2c/formats/json/KJV.json",
+  "source_repo": "https://github.com/scrollmapper/bible_databases",
+  "source_commit": "e1b254cef86d0e65b1a5d1a94b8b112d0f296a2c",
+  "source_sha256": "f0b09dc49dfb97bb84f03aae1fbf026485048c3cab31a7a41017e2d86ac1d11c",
+  "retrieved": "2026-11-13",
+  "note": "The upstream file is labeled King James Version (1769). Its verse text is prose, not Strong's numbers. The master is fetched at build time and is not stored in this repository. Rights in the Authorized Version in the United Kingdom are vested in the Crown. This record is not a grant of those rights and is not a legal determination."
+}

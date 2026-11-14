@@ -22,7 +22,8 @@
       id: "kjv",
       label: "King James Version (KJV)",
       short: "KJV",
-      api: "kjv",
+      api: null,
+      local: true,
     },
     {
       id: "asv",
@@ -118,14 +119,44 @@
     return "web";
   }
 
+  function signedIn() {
+    var auth = global.GodsPromisesAuth;
+    return !!(auth && typeof auth.getCurrentUser === "function" && auth.getCurrentUser());
+  }
+
   function persist(id) {
-    try {
-      localStorage.setItem(STORAGE_KEY, id);
-    } catch (e) {
-      /* ignore */
+    // A signed-in choice belongs on the profile, not in the shared device key.
+    // Otherwise the next account on this browser inherits it.
+    if (!signedIn()) {
+      try {
+        localStorage.setItem(STORAGE_KEY, id);
+      } catch (e) {
+        /* ignore */
+      }
     }
     var auth = global.GodsPromisesAuth;
-    if (auth && typeof auth.syncBibleVersion === "function") auth.syncBibleVersion(id);
+    if (signedIn() && auth && typeof auth.syncBibleVersion === "function") auth.syncBibleVersion(id);
+  }
+
+  function showWithoutSaving(id) {
+    var meta = getVersionMeta(id);
+    if (meta.id === currentId) {
+      notify();
+      return currentId;
+    }
+    currentId = meta.id;
+    notify();
+    return currentId;
+  }
+
+  function notify() {
+    for (var i = 0; i < listeners.length; i++) {
+      try {
+        listeners[i](currentId);
+      } catch (e) {
+        console.error(e);
+      }
+    }
   }
 
   function getCurrentId() {
@@ -138,16 +169,22 @@
 
   function setCurrent(id) {
     var meta = getVersionMeta(id);
+    if (meta.id === "kjv" && !kjvAvailable) {
+      persist("kjv");
+      kjvFallbackNote = true;
+      if (currentId !== "web") {
+        currentId = "web";
+        notify();
+      } else {
+        notify();
+      }
+      return currentId;
+    }
     if (meta.id === currentId) return currentId;
+    kjvFallbackNote = false;
     currentId = meta.id;
     persist(currentId);
-    for (var i = 0; i < listeners.length; i++) {
-      try {
-        listeners[i](currentId);
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    notify();
     return currentId;
   }
 
@@ -216,9 +253,104 @@
       .trim();
   }
 
+  var KJV_UNAVAILABLE = "KJV is not available in your region.";
+  var kjvMemory = {};
+  var kjvAvailable = false;
+  var kjvFallbackNote = false;
+
+  function rememberKjv(body) {
+    if (!kjvAvailable || !body || body.allowed !== true || !body.passages) return;
+    Object.keys(body.passages).forEach(function (id) {
+      if (typeof body.passages[id] === "string") kjvMemory[id] = body.passages[id];
+    });
+  }
+
+  function clearKjvMemory() {
+    kjvMemory = {};
+  }
+
+  function requestKjv(ids) {
+    var url = "/api/kjv";
+    if (ids && ids.length) url += "?ids=" + encodeURIComponent(ids.join(","));
+    var pending;
+    try {
+      pending = fetch(url, { credentials: "same-origin", cache: "no-store" });
+    } catch (err) {
+      return Promise.reject(err);
+    }
+    return pending.then(function (res) {
+      if (!res.ok) {
+        var httpError = new Error("kjv " + res.status);
+        httpError.http = true;
+        throw httpError;
+      }
+      return res.json();
+    });
+  }
+
+  function unavailable(webText) {
+    return { text: webText, source: "web", note: KJV_UNAVAILABLE };
+  }
+
+  function resolveKjv(p, webText) {
+    var id = p && p.id ? p.id : "";
+    if (id && kjvMemory[id]) return Promise.resolve({ text: kjvMemory[id], source: "kjv" });
+    return requestKjv(id ? [id] : []).then(function (body) {
+      if (!body || body.allowed !== true) return unavailable(webText);
+      rememberKjv(body);
+      var text = body.passages && id ? body.passages[id] : "";
+      if (text) return { text: text, source: "kjv" };
+      return { text: webText, source: "web", note: "Showing the World English Bible for this passage." };
+    }).catch(function () {
+      return unavailable(webText);
+    });
+  }
+
+  function savedChoice() {
+    var auth = global.GodsPromisesAuth;
+    if (signedIn() && auth.getCurrentUser()) {
+      var profileChoice = auth.getCurrentUser().preferredBibleVersion;
+      if (profileChoice && getVersionMeta(profileChoice).id === profileChoice) return profileChoice;
+    }
+    return loadStored();
+  }
+
+  function applyAccess(body) {
+    var allowed = !!(body && body.allowed === true);
+    kjvAvailable = allowed;
+    if (!allowed) clearKjvMemory();
+    var saved = savedChoice();
+    if (!allowed && (currentId === "kjv" || saved === "kjv")) {
+      kjvFallbackNote = true;
+      if (currentId !== "web") showWithoutSaving("web");
+      else notify();
+      return;
+    }
+    if (allowed && saved === "kjv" && currentId !== "kjv") {
+      kjvFallbackNote = false;
+      showWithoutSaving("kjv");
+      return;
+    }
+    kjvFallbackNote = false;
+    notify();
+  }
+
+  function refreshAccess() {
+    var pending;
+    try {
+      pending = requestKjv([]);
+    } catch (err) {
+      pending = Promise.reject(err);
+    }
+    return pending.then(applyAccess).catch(function () {
+      applyAccess(null);
+    });
+  }
+
   /**
    * Resolve scripture text for a promise in the selected (or given) version.
-   * Never invents text: WEB uses catalog; others come from bible-api.com.
+   * WEB uses the catalog. KJV comes only from /api/kjv. It never uses bible-api.com.
+   * ASV, YLT, Darby, and Douay-Rheims still come from bible-api.com.
    * @param {object} p
    * @param {string} [versionId]
    * @returns {Promise<{ text: string, source: string, note?: string, loading?: boolean }>}
@@ -227,6 +359,8 @@
     var vid = versionId || currentId;
     var meta = getVersionMeta(vid);
     var webText = p && p.text ? String(p.text) : "";
+
+    if (meta.id === "kjv") return resolveKjv(p, webText);
 
     if (!meta.api) {
       return Promise.resolve({ text: webText, source: "web" });
@@ -332,11 +466,16 @@
         block.insertAdjacentElement("afterend", noteEl);
       }
 
-      if (!meta.api) {
+      if (!meta.api && meta.id !== "kjv") {
         block.textContent = p.text || "";
         block.classList.remove("card-text--loading");
-        noteEl.hidden = true;
-        noteEl.textContent = "";
+        if (kjvFallbackNote) {
+          noteEl.hidden = false;
+          noteEl.textContent = KJV_UNAVAILABLE;
+        } else {
+          noteEl.hidden = true;
+          noteEl.textContent = "";
+        }
         return;
       }
 
@@ -368,7 +507,10 @@
 
   function fillSelect(select) {
     if (!select) return;
-    var html = VERSIONS.map(function (v) {
+    var choices = VERSIONS.filter(function (v) {
+      return v.id !== "kjv" || kjvAvailable === true;
+    });
+    var html = choices.map(function (v) {
       return (
         '<option value="' +
         escapeHtml(v.id) +
@@ -383,22 +525,40 @@
 
   function versionLabelForMeta() {
     var m = getCurrent();
-    return m.short + " · public domain";
+    if (m.id === "kjv") return "KJV · US public domain";
+    if (m.id === "web") return "WEB · public domain";
+    return m.short;
   }
 
-  // Init from storage
-  currentId = loadStored();
+  // A saved KJV choice stays saved, but the page shows WEB until the server
+  // says this request may receive King James text. The menu hides KJV until then.
+  var savedAtBoot = loadStored();
+  currentId = savedAtBoot === "kjv" ? "web" : savedAtBoot;
+  kjvFallbackNote = savedAtBoot === "kjv";
+  if (typeof fetch === "function") refreshAccess();
 
   global.GodsPromisesVersions = {
     VERSIONS: VERSIONS,
     getCurrentId: getCurrentId,
     getCurrent: getCurrent,
     setCurrent: setCurrent,
+    showWithoutSaving: showWithoutSaving,
     onChange: onChange,
     resolveText: resolveText,
     hydrateCards: hydrateCards,
     fillSelect: fillSelect,
     versionLabelForMeta: versionLabelForMeta,
     getVersionMeta: getVersionMeta,
+    refreshAccess: refreshAccess,
+    restoreAnonymous: function (id) {
+      var next = id || loadStored();
+      if (getVersionMeta(next).id !== next) next = "web";
+      if (next === currentId) {
+        persist(currentId);
+        notify();
+        return currentId;
+      }
+      return setCurrent(next);
+    },
   };
 })(typeof window !== "undefined" ? window : globalThis);

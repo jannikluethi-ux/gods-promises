@@ -75,7 +75,8 @@ function boot(storage, world, fetch) {
   world.confirmEmail('reader@example.invalid');
   const user = await auth.signIn({ email: 'reader@example.invalid', password: 'test-only-password' });
   await new Promise(resolve => setTimeout(resolve, 50));
-  assert.equal(auth.getCurrentUser().preferredBibleVersion, 'asv', 'The signed-in Bible version is saved to the profile');
+  assert.equal(auth.getCurrentUser().preferredBibleVersion, null, 'A new account does not inherit the device Bible version');
+  assert.equal(context.GodsPromisesVersions.getCurrentId(), 'web');
   context.GodsPromisesVersions.setCurrent('kjv');
   await new Promise(resolve => setTimeout(resolve, 400));
   assert.equal(auth.getCurrentUser().preferredBibleVersion, 'kjv');
