@@ -39,7 +39,8 @@ function storage(initial) {
   const context = vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/bible-versions.js'), 'utf8'), context);
   const versions = context.GodsPromisesVersions;
-  assert.equal(versions.getCurrentId(), 'kjv');
+  assert.equal(versions.getCurrentId(), 'web', 'a saved KJV choice displays WEB until the server allows it');
+  assert.equal(local.getItem('gods-promises-version'), 'kjv', 'the saved choice is kept');
 
   versions.setCurrent('asv');
   assert.equal(local.getItem('gods-promises-version'), 'asv');

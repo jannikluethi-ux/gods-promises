@@ -6,7 +6,7 @@
  */
 "use strict";
 
-var CACHE = "hpd-shell-v7";
+var CACHE = "hpd-shell-v8";
 var DAILY_CACHE = "hpd-daily-v1";
 var SHELL = [
   "/",
@@ -115,15 +115,6 @@ if (typeof self !== "undefined" && typeof self.addEventListener === "function" &
 
   self.addEventListener("message", function (event) {
     var data = event.data;
-    if (data && data.type === "kjv-offline") {
-      if (data.offline !== true || !data.passages || typeof data.passages !== "object") return;
-      event.waitUntil(caches.open(CACHE).then(function (cache) {
-        return cache.put("/__kjv-offline", new Response(JSON.stringify(data.passages), {
-          headers: { "content-type": "application/json", "cache-control": "private, no-store" },
-        }));
-      }));
-      return;
-    }
     if (!data || data.type !== "daily-verse" || !data.verse || !data.verse.id) return;
     var verse = data.verse;
     var body = JSON.stringify({

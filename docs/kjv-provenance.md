@@ -17,8 +17,8 @@ The master is the file labeled King James Version (1769) in [scrollmapper/bible_
 
 ## Where text is sent
 
-`api/_lib/kjv-access.js` is the only allow/deny rule. The default allowlist is US, CA, AU, and DE. GB, GG, JE, and IM are restricted. A missing, empty, unknown, or `XX` country receives no King James text. A read error returns no text.
+`api/_lib/kjv-access.js` is the only allow/deny rule. `KJV_GLOBAL_ENABLED` defaults off and `KJV_ALLOWED_COUNTRIES` defaults empty, so a deploy sends no King James text. GB, GG, JE, and IM are always restricted. `UK` and the nation codes `ENG`, `SCT`, `WLS`, and `NIR` are treated as GB. A missing, empty, unknown, malformed, or failed country receives no text.
 
-To enable a territory after written permission, set the server environment variable `KJV_ALLOWED_COUNTRIES` to a comma-separated list of ISO codes and redeploy. A restricted territory stays off unless `KJV_ENABLE_RESTRICTED=true` is also set. Neither variable is set by this repository. A deploy does not turn a restricted territory on.
+To send text at all, set `KJV_GLOBAL_ENABLED` to the string `true` and `KJV_ALLOWED_COUNTRIES` to an explicit comma-separated list, then redeploy. A restricted territory stays off unless `KJV_ENABLE_RESTRICTED=true` is also set after written Cambridge permission. None of these variables are set by this repository. See `docs/kjv-admin-gate.md`. A deploy does not turn the gate on.
 
 Responses use `Cache-Control: private, no-store`. The service worker stores King James passages only when the API response sets `offline` to true.

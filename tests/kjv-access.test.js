@@ -1,83 +1,163 @@
-/* Server gate: allowlist only, fail closed, and no verse text when KJV is refused. */
+/* Two-condition gate: global off and an empty allowlist deny everyone. */
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('os');
 const path = require('path');
-const { kjvDecision, DEFAULT_ALLOWED, RESTRICTED, UNAVAILABLE } = require('../api/_lib/kjv-access');
+const { kjvDecision, authorizeKjv, RESTRICTED, UNAVAILABLE } = require('../api/_lib/kjv-access');
 
 const SNIPPET = 'Be careful for nothing; gate test.';
 const spansPath = path.join(os.tmpdir(), 'hpd-kjv-gate-spans.json');
 fs.writeFileSync(spansPath, JSON.stringify({ passages: { 'php-4-6-7': SNIPPET } }));
 process.env.KJV_SPANS_PATH = spansPath;
+delete process.env.KJV_GLOBAL_ENABLED;
+delete process.env.KJV_ALLOWED_COUNTRIES;
+delete process.env.KJV_ENABLE_RESTRICTED;
+delete process.env.KJV_RESTRICTED_COUNTRIES;
 delete require.cache[require.resolve('../api/kjv')];
 const kjv = require('../api/kjv');
 
-function call(country, ids) {
+const ON = { KJV_GLOBAL_ENABLED: 'true', KJV_ALLOWED_COUNTRIES: 'US' };
+
+function call(headers, ids) {
   return new Promise((resolve) => {
-    const headers = {};
-    if (country !== undefined) headers['x-vercel-ip-country'] = country;
     const res = {
       statusCode: 0,
       headers: {},
       body: '',
-      setHeader(name, value) { this.headers[name] = value; },
+      setHeader(name, value) { this.headers[name.toLowerCase()] = value; },
       end(payload) { this.body = payload; resolve(this); },
     };
-    const url = '/api/kjv' + (ids ? '?ids=' + ids : '');
-    kjv({ headers, url }, res);
+    const url = '/api/kjv' + (ids ? '?ids=' + encodeURIComponent(ids) : '');
+    kjv({ headers: headers || {}, url: url }, res);
   });
 }
 
-(async function main() {
-  assert.deepEqual(DEFAULT_ALLOWED, ['US', 'CA', 'AU', 'DE']);
-  assert.deepEqual(RESTRICTED, ['GB', 'GG', 'JE', 'IM']);
-  for (const code of ['US', 'CA', 'AU', 'DE']) {
-    const decision = kjvDecision(code, {});
-    assert.equal(decision.allowed, true, code);
-    assert.equal(decision.offline, true, code);
-  }
-  for (const code of ['GB', 'gb', 'GG', 'JE', 'IM', '', 'XX', 'unknown', 'FR', null]) {
-    const decision = kjvDecision(code, {});
-    assert.equal(decision.allowed, false, String(code));
-    assert.equal(decision.offline, false, String(code));
-  }
-  const unlocked = kjvDecision('GB', { KJV_ENABLE_RESTRICTED: 'true', KJV_ALLOWED_COUNTRIES: 'GB' });
-  assert.equal(unlocked.allowed, true);
-  const stillBlocked = kjvDecision('GB', { KJV_ENABLE_RESTRICTED: 'true' });
-  assert.equal(stillBlocked.allowed, false, 'restricted stays off unless it is also allowlisted');
+function assertDenied(body, label) {
+  const parsed = JSON.parse(body);
+  assert.equal(parsed.allowed, false, label);
+  assert.equal(parsed.offline, false, label);
+  assert.equal(parsed.message, UNAVAILABLE, label);
+  assert.equal(parsed.passages, undefined, label);
+  assert.equal(body.includes(SNIPPET), false, label);
+  assert.equal(body.includes('KJV_GLOBAL'), false, label);
+  assert.equal(body.includes('allowlist'), false, label);
+  assert.deepEqual(Object.keys(parsed).sort(), ['allowed', 'message', 'offline'], label);
+}
 
-  for (const code of ['US', 'CA', 'AU', 'DE']) {
-    const res = await call(code, 'php-4-6-7');
-    const body = JSON.parse(res.body);
-    assert.equal(res.headers['cache-control'], 'private, no-store');
-    assert.equal(body.allowed, true, code);
-    assert.equal(body.offline, true, code);
-    assert.equal(body.passages['php-4-6-7'], SNIPPET);
+function assertPrivate(res) {
+  assert.equal(res.headers['cache-control'], 'private, no-store');
+  assert.equal(res.headers['cdn-cache-control'], 'no-store');
+  assert.equal(res.headers['vercel-cdn-cache-control'], 'no-store');
+  assert.equal(res.headers.vary, 'x-vercel-ip-country');
+}
+
+(async function main() {
+  assert.deepEqual(RESTRICTED, ['GB', 'GG', 'JE', 'IM']);
+
+  for (const code of ['US', 'CA', 'AU', 'DE', 'FR', 'GB', 'UK', 'ENG']) {
+    const decision = kjvDecision(code, {});
+    assert.equal(decision.allowed, false, 'global off ' + code);
+    assert.equal(decision.reason, 'global_off', code);
   }
-  for (const code of ['GB', 'GG', 'JE', 'IM', 'XX', 'unknown', 'FR']) {
-    const res = await call(code, 'php-4-6-7');
-    assert.equal(res.body.includes(SNIPPET), false, code);
-    assert.equal(res.body.includes('passages'), false, code);
-    assert.equal(JSON.parse(res.body).offline, false, code);
-    assert.equal(JSON.parse(res.body).message, UNAVAILABLE);
+
+  const openUs = kjvDecision('us', ON);
+  assert.equal(openUs.allowed, true);
+  assert.equal(openUs.offline, false);
+
+  for (const code of ['GB', 'gb', 'UK', 'uk', 'ENG', 'SCT', 'WLS', 'NIR', 'GG', 'JE', 'IM']) {
+    const decision = kjvDecision(code, Object.assign({}, ON, { KJV_ALLOWED_COUNTRIES: 'US,GB,GG,JE,IM,UK' }));
+    assert.equal(decision.allowed, false, code);
+    assert.equal(decision.reason, 'restricted', code);
   }
-  for (const missing of [undefined, '', '   ']) {
-    const res = await call(missing, 'php-4-6-7');
-    assert.equal(res.body.includes(SNIPPET), false, 'missing header');
-    assert.equal(JSON.parse(res.body).allowed, false);
+
+  const cambridgeOff = kjvDecision('GB', {
+    KJV_GLOBAL_ENABLED: 'false',
+    KJV_ENABLE_RESTRICTED: 'true',
+    KJV_ALLOWED_COUNTRIES: 'GB',
+  });
+  assert.equal(cambridgeOff.allowed, false);
+  assert.equal(cambridgeOff.reason, 'global_off');
+
+  const cambridgeOn = kjvDecision('GB', {
+    KJV_GLOBAL_ENABLED: 'true',
+    KJV_ENABLE_RESTRICTED: 'true',
+    KJV_ALLOWED_COUNTRIES: 'GB',
+  });
+  assert.equal(cambridgeOn.allowed, true, 'written-permission path still needs global on and the allowlist');
+
+  const restrictedNotListed = kjvDecision('GB', {
+    KJV_GLOBAL_ENABLED: 'true',
+    KJV_ENABLE_RESTRICTED: 'true',
+    KJV_ALLOWED_COUNTRIES: 'US',
+  });
+  assert.equal(restrictedNotListed.allowed, false);
+
+  for (const bad of ['', '   ', null, undefined, 'XX', 'xx', 'T1', 'UNKNOWN', 'GBR', 'G B', '??']) {
+    const decision = kjvDecision(bad, ON);
+    assert.equal(decision.allowed, false, String(bad));
+    assert.notEqual(decision.reason, 'allowlisted');
   }
-  const lookup = await call({ toString() { throw new Error('lookup'); } }, 'php-4-6-7');
-  assert.equal(lookup.body.includes(SNIPPET), false, 'lookup failure');
-  assert.equal(JSON.parse(lookup.body).allowed, false);
-  const status = await call('US');
+  assert.equal(kjvDecision({ toString() { throw new Error('lookup'); } }, ON).reason, 'lookup_error');
+
+  const forged = authorizeKjv({
+    headers: { 'x-country': 'US', 'cf-ipcountry': 'US' },
+    url: '/api/kjv?country=US&ids=php-4-6-7',
+  }, ON);
+  assert.equal(forged.allowed, false, 'client headers are not a country');
+  const vercelWins = authorizeKjv({
+    headers: { 'x-vercel-ip-country': 'GB', 'x-country': 'US', 'cf-ipcountry': 'US' },
+    url: '/api/kjv?country=US',
+  }, Object.assign({}, ON, { KJV_ALLOWED_COUNTRIES: 'US,GB' }));
+  assert.equal(vercelWins.allowed, false);
+  assert.equal(vercelWins.reason, 'restricted');
+
+  delete process.env.KJV_GLOBAL_ENABLED;
+  delete process.env.KJV_ALLOWED_COUNTRIES;
+  for (const code of ['US', 'GB', 'XX']) {
+    const res = await call({ 'x-vercel-ip-country': code }, 'php-4-6-7');
+    assertPrivate(res);
+    assertDenied(res.body, 'default ' + code);
+  }
+  const forgedHttp = await call({ 'x-country': 'US', 'cf-ipcountry': 'US' }, 'php-4-6-7');
+  assertDenied(forgedHttp.body, 'forged');
+
+  process.env.KJV_GLOBAL_ENABLED = 'true';
+  process.env.KJV_ALLOWED_COUNTRIES = 'US';
+  const allowed = await call({ 'x-vercel-ip-country': 'US' }, 'php-4-6-7');
+  assertPrivate(allowed);
+  const allowedBody = JSON.parse(allowed.body);
+  assert.equal(allowedBody.allowed, true);
+  assert.equal(allowedBody.offline, false);
+  assert.equal(allowedBody.passages['php-4-6-7'], SNIPPET);
+  const status = await call({ 'x-vercel-ip-country': 'US' });
   assert.equal(JSON.parse(status.body).passages, undefined);
+  assert.equal(JSON.parse(status.body).allowed, true);
+
+  for (const code of ['GB', 'JE', 'GG', 'IM', 'UK', 'ENG']) {
+    const res = await call({ 'x-vercel-ip-country': code }, 'php-4-6-7');
+    assertPrivate(res);
+    assertDenied(res.body, 'on but restricted ' + code);
+  }
+  const missing = await call({}, 'php-4-6-7');
+  assertDenied(missing.body, 'missing header');
+  const malformed = await call({ 'x-vercel-ip-country': 'GBR' }, 'php-4-6-7');
+  assertDenied(malformed.body, 'malformed');
+
+  process.env.KJV_GLOBAL_ENABLED = 'false';
+  const switchedOff = await call({ 'x-vercel-ip-country': 'US' }, 'php-4-6-7');
+  assertDenied(switchedOff.body, 'global off after an allow');
+
+  process.env.KJV_GLOBAL_ENABLED = 'true';
   process.env.KJV_SPANS_PATH = path.join(os.tmpdir(), 'missing-kjv-spans.json');
-  const broken = await call('US', 'php-4-6-7');
+  const broken = await call({ 'x-vercel-ip-country': 'US' }, 'php-4-6-7');
   assert.equal(broken.statusCode, 503);
-  assert.equal(broken.body.includes(SNIPPET), false);
-  assert.equal(JSON.parse(broken.body).allowed, false);
-  console.log('kjv-access: allowlist US/CA/AU/DE; GB/GG/JE/IM, unknown, XX, and a missing file return no KJV text');
+  assertDenied(broken.body, 'missing file');
+
+  delete process.env.KJV_GLOBAL_ENABLED;
+  delete process.env.KJV_ALLOWED_COUNTRIES;
+  delete process.env.KJV_ENABLE_RESTRICTED;
+  console.log('kjv-access: global off denies everyone; restricted territories stay blocked; forged headers are ignored');
 })().catch((err) => {
   console.error(err);
   process.exit(1);
