@@ -41,7 +41,15 @@ function catalog() {
 function boot(storage, session, calls) {
   const fetch = async url => {
     calls.push(String(url));
-    return { ok: true, json: async () => ({ text: '  Synthetic test translation\n line.  ', translation_id: 'synthetic' }) };
+    const parsed = new URL(String(url));
+    const translation = parsed.searchParams.get('translation');
+    const reference = decodeURIComponent(parsed.pathname.replace(/^\//, '')).replace(/\+/g, ' ');
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({ text: '  Synthetic test translation\n line.  ', translation_id: translation, reference }),
+    };
   };
   return load(runtime({ localStorage: storage, sessionStorage: session, fetch }));
 }
@@ -264,7 +272,7 @@ function append(parent, child) {
   const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   assert.match(readme, /Young's Literal Translation is not offered/);
   assert.equal(/ASV, YLT/.test(readme), false);
-  assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /hpd-shell-v7/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /hpd-shell-v8/);
 
   console.log('YLT unavailable: selector hides it; saved ylt stays stored, shows catalog WEB, and says YLT unavailable, showing WEB; choosing an offered version clears the notice; no ylt request');
 })().catch(error => { console.error(error); process.exitCode = 1; });
