@@ -54,8 +54,12 @@ No actual account, browser, external API or real credential is involved.
   requests for those three, coalesced requests, memory/session cache, selection, persistence,
   listeners, and API-failure WEB fallback. API text is synthetic. A saved or requested
   `ylt` id shows the catalog WEB text, is not requested, and carries the notice
-  `YLT unavailable, showing WEB.` `tests/kjv-removal.test.js` checks the removed version
-  is not offered or requested. `tests/ylt-unavailable.test.js` checks the YLT fallback.
+  `YLT unavailable, showing WEB.` A selected ASV, Darby, or Douay-Rheims passage is
+  not replaced with WEB text when the request fails or the returned translation does
+  not match. Douay-Rheims Psalms are withheld because their numbers differ.
+  `tests/kjv-removal.test.js` checks the removed version is not offered or requested.
+  `tests/ylt-unavailable.test.js` checks the YLT fallback.
+  `tests/translation-integrity.test.js` checks the failure and numbering guards.
 - Analytics: executes the actual queued `beforeSend` callback on allowed production hosts;
   every tested verse/browse path is dropped even with sensitive-looking synthetic query/hash
   values; allowed root strips those values. Preview/old-demo/localhost load no analytics script.

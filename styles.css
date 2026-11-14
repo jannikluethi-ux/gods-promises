@@ -2159,6 +2159,13 @@ a:hover {
   transition: opacity 0.15s ease;
 }
 
+.card-text--message {
+  font-family: Inter, sans-serif;
+  font-style: normal;
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
 .card-version-note {
   order: 2;
   margin: -0.85rem 0 1.2rem;

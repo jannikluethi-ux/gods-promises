@@ -289,7 +289,15 @@ async function versions(directory, data) {
   const fetch = async url => {
     calls.push(url);
     if (fail) throw new Error('Simulated service outage');
-    return { ok: true, json: async () => ({ text: '  Synthetic test translation\n line.  ' }) };
+    const parsed = new URL(url);
+    const translation = parsed.searchParams.get('translation');
+    const reference = decodeURIComponent(parsed.pathname.replace(/^\//, '')).replace(/\+/g, ' ');
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({ text: '  Synthetic test translation\n line.  ', translation_id: translation, reference }),
+    };
   };
   const context = runtime(directory, { localStorage, sessionStorage, fetch });
   load(context, 'js/bible-versions.js');
@@ -337,9 +345,11 @@ async function versions(directory, data) {
   assert.deepEqual(changes, ['asv', 'web']);
   fail = true;
   const failed = await api.resolveText(ot, 'darby');
-  assert.equal(failed.text, ot.text);
-  assert.equal(failed.source, 'web');
-  assert.match(failed.note, /Could not load DBY/);
+  assert.equal(failed.text, '');
+  assert.equal(failed.source, 'darby');
+  assert.equal(failed.error, true);
+  assert.match(failed.note, /DBY text couldn't load right now/);
+  assert.equal(failed.text === ot.text, false);
   return calls.map(url => new URL(url).searchParams.get('translation'));
 }
 
@@ -384,5 +394,5 @@ function analytics(directory) {
   feelingCoverage(directories[1], newData);
   assert.deepEqual(await versions(directories[1], newData), await versions(ROOT, oldData));
   for (const directory of directories) analytics(directory);
-  console.log('Non-browser functional regression: source and dist both pass Supabase auth/favorites lifecycle; 15 search queries plus clarification have identical full ranked IDs/scores; WEB plus ASV, Darby, and Douay-Rheims on-demand requests/caches/fallbacks unchanged; YLT is not requested and falls back to WEB; analytics beforeSend rejects all new paths and strips allowed URL queries/hashes');
+  console.log('Non-browser functional regression: source and dist both pass Supabase auth/favorites lifecycle; 15 search queries plus clarification have identical full ranked IDs/scores; WEB plus ASV, Darby, and Douay-Rheims requests stay on that translation when the response matches; a failed request does not substitute WEB text; YLT is not requested and shows WEB with a notice; analytics beforeSend rejects all new paths and strips allowed URL queries/hashes');
 })().catch(error => { console.error(error); process.exitCode = 1; });
