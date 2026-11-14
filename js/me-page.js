@@ -95,7 +95,13 @@
       el.dailyEmail.checked = !!user.dailyVerseEmail;
     }
     if (Versions && el.version && user.preferredBibleVersion && el.version.value !== user.preferredBibleVersion) {
-      el.version.value = user.preferredBibleVersion;
+      // A stored id that is not in the selector stays stored. The control keeps the displayed version.
+      const options = el.version.options || [];
+      let offered = false;
+      for (let i = 0; i < options.length; i++) {
+        if (options[i] && options[i].value === user.preferredBibleVersion) offered = true;
+      }
+      if (offered) el.version.value = user.preferredBibleVersion;
     }
   }
 

@@ -1,7 +1,8 @@
 /**
- * Public-domain Bible version selection + client-side fetch from bible-api.com.
- * WEB text is embedded in the catalog (offline-first). Other PD translations
- * load on demand and cache in memory + sessionStorage.
+ * Bible version selection. WEB text is embedded in the catalog (offline-first).
+ * ASV, YLT, Darby, and Douay-Rheims load on demand from bible-api.com and cache
+ * in memory + sessionStorage. A legacy stored id that is no longer offered
+ * displays WEB, is never requested, and is left untouched in storage.
  */
 (function (global) {
   "use strict";
@@ -17,12 +18,6 @@
       label: "World English Bible (WEB)",
       short: "WEB",
       api: null, // local catalog text
-    },
-    {
-      id: "kjv",
-      label: "King James Version (KJV)",
-      short: "KJV",
-      api: "kjv",
     },
     {
       id: "asv",
@@ -101,7 +96,22 @@
   /** @type {Array<function(string): void>} */
   var listeners = [];
 
+  /** Legacy id kept only so a saved preference can be recognized and not requested. */
+  var REMOVED_VERSION_ID = "kjv";
+
+  function isRemovedVersion(id) {
+    var token = String(id == null ? "" : id).trim().toLowerCase();
+    if (token === REMOVED_VERSION_ID) return true;
+    try {
+      token = decodeURIComponent(token.replace(/\+/g, " ")).trim().toLowerCase();
+    } catch (e) {
+      return false;
+    }
+    return token === REMOVED_VERSION_ID;
+  }
+
   function getVersionMeta(id) {
+    if (isRemovedVersion(id)) return VERSIONS[0];
     for (var i = 0; i < VERSIONS.length; i++) {
       if (VERSIONS[i].id === id) return VERSIONS[i];
     }
@@ -111,6 +121,8 @@
   function loadStored() {
     try {
       var stored = localStorage.getItem(STORAGE_KEY);
+      // Display WEB. Do not write storage: a saved legacy id must stay as stored.
+      if (isRemovedVersion(stored)) return "web";
       if (stored && getVersionMeta(stored).id === stored) return stored;
     } catch (e) {
       /* ignore */
@@ -137,6 +149,20 @@
   }
 
   function setCurrent(id) {
+    // A legacy or crafted id displays WEB and must not rewrite localStorage or the profile.
+    if (isRemovedVersion(id)) {
+      if (currentId !== "web") {
+        currentId = "web";
+        for (var j = 0; j < listeners.length; j++) {
+          try {
+            listeners[j](currentId);
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+      return "web";
+    }
     var meta = getVersionMeta(id);
     if (meta.id === currentId) return currentId;
     currentId = meta.id;
@@ -225,10 +251,13 @@
    */
   function resolveText(p, versionId) {
     var vid = versionId || currentId;
-    var meta = getVersionMeta(vid);
     var webText = p && p.text ? String(p.text) : "";
+    if (isRemovedVersion(vid)) {
+      return Promise.resolve({ text: webText, source: "web" });
+    }
+    var meta = getVersionMeta(vid);
 
-    if (!meta.api) {
+    if (!meta.api || isRemovedVersion(meta.id) || isRemovedVersion(meta.api)) {
       return Promise.resolve({ text: webText, source: "web" });
     }
 
@@ -264,7 +293,11 @@
       });
     }
 
-    var url = API_BASE + path + "?translation=" + encodeURIComponent(meta.api);
+    var translation = meta.api;
+    if (isRemovedVersion(translation)) {
+      return Promise.resolve({ text: webText, source: "web" });
+    }
+    var url = API_BASE + path + "?translation=" + encodeURIComponent(translation);
     var promise = fetch(url)
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -368,7 +401,9 @@
 
   function fillSelect(select) {
     if (!select) return;
-    var html = VERSIONS.map(function (v) {
+    var html = VERSIONS.filter(function (v) {
+      return !isRemovedVersion(v.id) && !isRemovedVersion(v.api);
+    }).map(function (v) {
       return (
         '<option value="' +
         escapeHtml(v.id) +
@@ -378,7 +413,7 @@
       );
     }).join("");
     select.innerHTML = html;
-    select.value = currentId;
+    select.value = isRemovedVersion(currentId) ? "web" : currentId;
   }
 
   function versionLabelForMeta() {
