@@ -34,7 +34,11 @@ function pngSize(buffer) {
   assert.equal(bypassRequest(new URL(origin + "/_vercel/insights/script.js"), "GET", origin), true);
   assert.equal(bypassRequest(new URL(origin + "/"), "GET", origin), false);
   assert.equal(bypassRequest(new URL(origin + "/promises-data.js"), "GET", origin), false);
-  assert.equal(CACHE, "hpd-shell-v6");
+  assert.equal(CACHE, "hpd-shell-v7");
+  assert.ok(SHELL.includes("/js/scripture-books.js"));
+  assert.ok(SHELL.includes("/js/translation-registry.js"));
+  assert.ok(SHELL.includes("/js/scripture-text.js"));
+  assert.ok(SHELL.includes("/js/bible-versions.js"));
   assert.ok(SHELL.includes("/js/discovery.js"));
   assert.ok(SHELL.includes("/js/discovery-data.js"));
   assert.ok(SHELL.includes("/js/filter-studies.js"));

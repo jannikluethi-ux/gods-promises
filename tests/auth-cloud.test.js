@@ -30,6 +30,9 @@ function boot(storage, world, fetch) {
   });
   load(context, 'js/config.js');
   load(context, 'js/subscription.js');
+  load(context, 'js/scripture-books.js');
+  load(context, 'js/translation-registry.js');
+  load(context, 'js/scripture-text.js');
   load(context, 'js/bible-versions.js');
   context.GodsPromisesConfig.supabaseUrl = 'https://ixxeidpdgktzvcbucosq.supabase.co';
   context.GodsPromisesConfig.supabaseAnonKey = 'sb_publishable_test_only_value';

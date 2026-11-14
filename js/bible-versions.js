@@ -1,15 +1,13 @@
 /**
- * Bible version selection. WEB text is embedded in the catalog (offline-first).
- * ASV, YLT, Darby, and Douay-Rheims load on demand from bible-api.com and cache
- * in memory + sessionStorage. A legacy stored id that is no longer offered
- * displays WEB, is never requested, and is left untouched in storage.
+ * Bible version selection. Text comes from js/scripture-text.js.
+ * WEB is the bundled catalog. ASV, YLT, Darby, and Douay-Rheims load on demand.
+ * A legacy stored id that is no longer offered displays WEB, is never requested,
+ * and is left untouched in storage.
  */
 (function (global) {
   "use strict";
 
   var STORAGE_KEY = "gods-promises-version";
-  var CACHE_PREFIX = "gods-promises-verse:";
-  var API_BASE = "https://bible-api.com/";
 
   /** @type {{ id: string, label: string, short: string, api: string|null, ntOnly?: boolean }[]} */
   var VERSIONS = [
@@ -46,52 +44,6 @@
     },
   ];
 
-  var OT_BOOKS = {
-    Genesis: 1,
-    Exodus: 1,
-    Leviticus: 1,
-    Numbers: 1,
-    Deuteronomy: 1,
-    Joshua: 1,
-    Judges: 1,
-    Ruth: 1,
-    "1 Samuel": 1,
-    "2 Samuel": 1,
-    "1 Kings": 1,
-    "2 Kings": 1,
-    "1 Chronicles": 1,
-    "2 Chronicles": 1,
-    Ezra: 1,
-    Nehemiah: 1,
-    Esther: 1,
-    Job: 1,
-    Psalms: 1,
-    Proverbs: 1,
-    Ecclesiastes: 1,
-    "Song of Solomon": 1,
-    Isaiah: 1,
-    Jeremiah: 1,
-    Lamentations: 1,
-    Ezekiel: 1,
-    Daniel: 1,
-    Hosea: 1,
-    Joel: 1,
-    Amos: 1,
-    Obadiah: 1,
-    Jonah: 1,
-    Micah: 1,
-    Nahum: 1,
-    Habakkuk: 1,
-    Zephaniah: 1,
-    Haggai: 1,
-    Zechariah: 1,
-    Malachi: 1,
-  };
-
-  /** @type {Map<string, string>} */
-  var memoryCache = new Map();
-  /** @type {Map<string, Promise<{ text: string, source: string, note?: string }>>} */
-  var inflight = new Map();
   var currentId = "web";
   /** @type {Array<function(string): void>} */
   var listeners = [];
@@ -186,144 +138,29 @@
     };
   }
 
-  function isOtBook(book) {
-    return !!OT_BOOKS[book];
-  }
-
-  function buildApiPath(p) {
-    var book = p.book || "";
-    var chapter = p.chapter;
-    var start = p.verseStart;
-    var end = p.verseEnd;
-    if (!book || chapter == null || start == null) return "";
-    var ref = book + " " + chapter + ":" + start;
-    if (end != null && end !== start) ref += "-" + end;
-    return encodeURIComponent(ref);
-  }
-
-  function cacheKey(versionId, p) {
-    return (
-      versionId +
-      "|" +
-      (p.id || "") +
-      "|" +
-      (p.book || "") +
-      "|" +
-      p.chapter +
-      ":" +
-      p.verseStart +
-      "-" +
-      (p.verseEnd != null ? p.verseEnd : p.verseStart)
-    );
-  }
-
-  function readSession(key) {
-    try {
-      return sessionStorage.getItem(CACHE_PREFIX + key);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function writeSession(key, text) {
-    try {
-      sessionStorage.setItem(CACHE_PREFIX + key, text);
-    } catch (e) {
-      /* quota — ignore */
-    }
-  }
-
-  function normalizeApiText(raw) {
-    return String(raw || "")
-      .replace(/\r\n/g, "\n")
-      .replace(/[ \t]+\n/g, "\n")
-      .replace(/\n+/g, " ")
-      .replace(/[ \t]{2,}/g, " ")
-      .trim();
+  function textApi() {
+    return global.GodsPromisesScriptureText || null;
   }
 
   /**
    * Resolve scripture text for a promise in the selected (or given) version.
-   * Never invents text: WEB uses catalog; others come from bible-api.com.
+   * A removed id never reaches the text provider. WEB and the other offered
+   * translations are resolved there.
    * @param {object} p
    * @param {string} [versionId]
    * @returns {Promise<{ text: string, source: string, note?: string, loading?: boolean }>}
    */
   function resolveText(p, versionId) {
     var vid = versionId || currentId;
-    var webText = p && p.text ? String(p.text) : "";
+    var api = textApi();
+    var webText = api && typeof api.catalogText === "function" ? api.catalogText(p) : (p && p.text ? String(p.text) : "");
     if (isRemovedVersion(vid)) {
       return Promise.resolve({ text: webText, source: "web" });
     }
-    var meta = getVersionMeta(vid);
-
-    if (!meta.api || isRemovedVersion(meta.id) || isRemovedVersion(meta.api)) {
+    if (!api || typeof api.resolve !== "function") {
       return Promise.resolve({ text: webText, source: "web" });
     }
-
-    if (meta.ntOnly && p && isOtBook(p.book)) {
-      return Promise.resolve({
-        text: webText,
-        source: "web",
-        note: meta.short + " covers the New Testament only — showing WEB.",
-      });
-    }
-
-    var key = cacheKey(meta.id, p);
-    if (memoryCache.has(key)) {
-      return Promise.resolve({
-        text: memoryCache.get(key),
-        source: meta.id,
-      });
-    }
-    var sessionHit = readSession(key);
-    if (sessionHit) {
-      memoryCache.set(key, sessionHit);
-      return Promise.resolve({ text: sessionHit, source: meta.id });
-    }
-
-    if (inflight.has(key)) return inflight.get(key);
-
-    var path = buildApiPath(p);
-    if (!path) {
-      return Promise.resolve({
-        text: webText,
-        source: "web",
-        note: "Could not load " + meta.short + " — showing WEB.",
-      });
-    }
-
-    var translation = meta.api;
-    if (isRemovedVersion(translation)) {
-      return Promise.resolve({ text: webText, source: "web" });
-    }
-    var url = API_BASE + path + "?translation=" + encodeURIComponent(translation);
-    var promise = fetch(url)
-      .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .then(function (data) {
-        if (!data || data.error) throw new Error(data && data.error ? data.error : "not found");
-        var text = normalizeApiText(data.text);
-        if (!text) throw new Error("empty");
-        memoryCache.set(key, text);
-        writeSession(key, text);
-        return { text: text, source: meta.id };
-      })
-      .catch(function () {
-        return {
-          text: webText,
-          source: "web",
-          note: "Could not load " + meta.short + " — showing WEB.",
-        };
-      })
-      .finally(function () {
-        inflight.delete(key);
-      });
-
-    inflight.set(key, promise);
-    return promise;
+    return api.resolve(p, vid);
   }
 
   function escapeHtml(str) {
@@ -365,8 +202,10 @@
         block.insertAdjacentElement("afterend", noteEl);
       }
 
-      if (!meta.api) {
-        block.textContent = p.text || "";
+      var api = textApi();
+      var networked = api && typeof api.usesNetwork === "function" ? api.usesNetwork(meta.id) : !!meta.api;
+      if (!networked) {
+        block.textContent = api && typeof api.catalogText === "function" ? api.catalogText(p) : (p.text || "");
         block.classList.remove("card-text--loading");
         noteEl.hidden = true;
         noteEl.textContent = "";
