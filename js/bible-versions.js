@@ -2,47 +2,23 @@
  * Bible version selection. Text comes from js/scripture-text.js.
  * WEB is the bundled catalog. ASV, YLT, Darby, and Douay-Rheims load on demand.
  * A legacy stored id that is no longer offered displays WEB, is never requested,
- * and is left untouched in storage.
+ * and is left untouched in storage. Offered ids come from the translation registry.
  */
 (function (global) {
   "use strict";
 
   var STORAGE_KEY = "gods-promises-version";
 
+  function registryApi() {
+    var registry = global.GodsPromisesTranslations;
+    if (!registry || typeof registry.legacyVersionList !== "function" || typeof registry.resolvePreference !== "function") {
+      throw new Error("Translation registry did not load.");
+    }
+    return registry;
+  }
+
   /** @type {{ id: string, label: string, short: string, api: string|null, ntOnly?: boolean }[]} */
-  var VERSIONS = [
-    {
-      id: "web",
-      label: "World English Bible (WEB)",
-      short: "WEB",
-      api: null, // local catalog text
-    },
-    {
-      id: "asv",
-      label: "American Standard Version (ASV)",
-      short: "ASV",
-      api: "asv",
-    },
-    {
-      id: "ylt",
-      label: "Young's Literal Translation (YLT)",
-      short: "YLT",
-      api: "ylt",
-      ntOnly: true,
-    },
-    {
-      id: "darby",
-      label: "Darby Translation (DBY)",
-      short: "DBY",
-      api: "darby",
-    },
-    {
-      id: "dra",
-      label: "Douay-Rheims (DRA)",
-      short: "DRA",
-      api: "dra",
-    },
-  ];
+  var VERSIONS = registryApi().legacyVersionList();
 
   var currentId = "web";
   /** @type {Array<function(string): void>} */
@@ -75,7 +51,7 @@
       var stored = localStorage.getItem(STORAGE_KEY);
       // Display WEB. Do not write storage: a saved legacy id must stay as stored.
       if (isRemovedVersion(stored)) return "web";
-      if (stored && getVersionMeta(stored).id === stored) return stored;
+      return registryApi().resolvePreference(stored);
     } catch (e) {
       /* ignore */
     }
@@ -115,9 +91,9 @@
       }
       return "web";
     }
-    var meta = getVersionMeta(id);
-    if (meta.id === currentId) return currentId;
-    currentId = meta.id;
+    var next = registryApi().resolvePreference(id);
+    if (next === currentId) return currentId;
+    currentId = next;
     persist(currentId);
     for (var i = 0; i < listeners.length; i++) {
       try {
