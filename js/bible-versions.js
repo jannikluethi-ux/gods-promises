@@ -11,33 +11,16 @@
   "use strict";
 
   var STORAGE_KEY = "gods-promises-version";
-  /** @type {{ id: string, label: string, short: string, api: string|null, ntOnly?: boolean }[]} */
-  var VERSIONS = [
-    {
-      id: "web",
-      label: "World English Bible (WEB)",
-      short: "WEB",
-      api: null, // local catalog text
-    },
-    {
-      id: "asv",
-      label: "American Standard Version (ASV)",
-      short: "ASV",
-      api: "asv",
-    },
-    {
-      id: "darby",
-      label: "Darby Translation (DBY)",
-      short: "DBY",
-      api: "darby",
-    },
-    {
-      id: "dra",
-      label: "Douay-Rheims (DRA)",
-      short: "DRA",
-      api: "dra",
-    },
-  ];
+  function registryApi() {
+    var registry = global.GodsPromisesTranslations;
+    if (!registry || typeof registry.legacyVersionList !== "function" || typeof registry.resolvePreference !== "function" || typeof registry.isEnabled !== "function") {
+      throw new Error("Translation registry did not load.");
+    }
+    return registry;
+  }
+
+  /** Offered versions. Enabled ids come from the translation registry. */
+  var VERSIONS = registryApi().legacyVersionList();
 
   /** Legacy id kept only so a saved preference can be recognized and not requested. */
   var REMOVED_VERSION_ID = "kjv";
@@ -86,7 +69,7 @@
         unavailableFallback = true;
         return "web";
       }
-      if (stored && getVersionMeta(stored).id === stored) return stored;
+      if (stored && registryApi().isEnabled(stored)) return stored;
     } catch (e) {
       /* ignore */
     }
@@ -177,12 +160,12 @@
       syncUnavailableUi();
       return "web";
     }
-    var meta = getVersionMeta(id);
-    if (meta.id === currentId && !unavailableFallback) return currentId;
-    var changed = meta.id !== currentId;
+    var next = registryApi().resolvePreference(id);
+    if (next === currentId && !unavailableFallback) return currentId;
+    var changed = next !== currentId;
     unavailableFallback = false;
     removedNotice = false;
-    currentId = meta.id;
+    currentId = next;
     persist(currentId);
     if (changed) notifyListeners();
     syncUnavailableUi();

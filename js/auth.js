@@ -29,6 +29,18 @@
     "subscription_status, subscription_expires_at, subscription_canceled_at, created_at, updated_at";
   var VERSIONS = { web: 1, kjv: 1, asv: 1, ylt: 1, darby: 1, dra: 1 };
 
+  // Enabled choices come from the translation registry. An id the registry does
+  // not list can still be stored when this historical profile allowlist names it.
+  // The database check constraint is unchanged. Display fallback is not decided here.
+  function versionAllowed(id) {
+    var registry = global.GodsPromisesTranslations;
+    if (registry && typeof registry.isEnabled === "function") {
+      if (registry.isEnabled(id)) return true;
+      if (typeof registry.get === "function" && registry.get(id)) return false;
+    }
+    return !!VERSIONS[id];
+  }
+
   /** @type {Set<function>} */
   var listeners = new Set();
   var client = null;
@@ -185,7 +197,7 @@
     }
     if (!user.preferredBibleVersion && Versions.getCurrentId) {
       var local = Versions.getCurrentId();
-      if (local && VERSIONS[local]) {
+      if (local && versionAllowed(local)) {
         updateProfile({ preferredBibleVersion: local }).catch(function () {});
       }
     }
@@ -378,7 +390,7 @@
     }
     if (patch && patch.preferredBibleVersion != null) {
       var version = String(patch.preferredBibleVersion);
-      if (!VERSIONS[version]) throw fail("Choose one of the available Bible versions.", "INVALID_VERSION");
+      if (!versionAllowed(version)) throw fail("Choose one of the available Bible versions.", "INVALID_VERSION");
       row.preferred_bible_version = version;
     }
     if (patch && patch.readingPrefs != null) {

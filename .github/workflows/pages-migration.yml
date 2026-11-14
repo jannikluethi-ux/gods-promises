@@ -36,6 +36,7 @@ jobs:
           node tests/translation-integrity.test.js
           node tests/translation-registry.test.js
           node tests/scripture-text.test.js
+          node tests/translation-preference.test.js
           node tests/discovery.test.js
           node tests/discovery-meanings.test.js
           node tests/filter-presentation.test.js
