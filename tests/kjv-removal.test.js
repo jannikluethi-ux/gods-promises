@@ -44,6 +44,9 @@ function bootVersions(storage, session, calls) {
     return { ok: true, json: async () => ({ text: '  Synthetic test translation\n line.  ' }) };
   };
   const context = runtime({ localStorage: storage, sessionStorage: session, fetch });
+  load(context, 'js/scripture-books.js');
+  load(context, 'js/translation-registry.js');
+  load(context, 'js/scripture-text.js');
   load(context, 'js/bible-versions.js');
   return context.GodsPromisesVersions;
 }
@@ -233,11 +236,11 @@ function assertSelectors(html, label) {
   }
   const home = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   assert.match(home, /<option value="web">World English Bible \(WEB\)<\/option>/);
-  assert.match(home, /js\/bible-versions\.js\?v=shell-6/);
-  assert.match(fs.readFileSync(path.join(ROOT, 'me.html'), 'utf8'), /js\/bible-versions\.js\?v=shell-6/);
+  assert.match(home, /js\/bible-versions\.js\?v=shell-7/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'me.html'), 'utf8'), /js\/bible-versions\.js\?v=shell-7/);
   assert.match(fs.readFileSync(path.join(ROOT, 'js/me-page.js'), 'utf8'), /if \(offered\) el\.version\.value = user\.preferredBibleVersion/);
-  assert.equal(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').includes('hpd-shell-v5'), false);
-  assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /hpd-shell-v6/);
+  assert.equal(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').includes('hpd-shell-v6'), false);
+  assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /hpd-shell-v7/);
   const migration = fs.readFileSync(path.join(ROOT, 'supabase/migrations/20261110153000_profiles_favorites_auth.sql'), 'utf8');
   assert.match(migration, /preferred_bible_version in \('web', 'kjv', 'asv', 'ylt', 'darby', 'dra'\)/);
 
@@ -256,7 +259,7 @@ function assertSelectors(html, label) {
     scanForRetrieval(file, text);
     if (file.endsWith('.html')) assertSelectors(text, path.relative(ROOT, file));
   }
-  assert.match(fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'), /hpd-shell-v6/);
+  assert.match(fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'), /hpd-shell-v7/);
   assert.equal(/translation=kjv|King James|Authorized Version/i.test(built.map(file => fs.readFileSync(file, 'utf8')).join('\n')), false);
 
   const world = createWorld({ confirmEmail: false });
@@ -274,6 +277,9 @@ function assertSelectors(html, label) {
   });
   load(profileContext, 'js/config.js');
   load(profileContext, 'js/subscription.js');
+  load(profileContext, 'js/scripture-books.js');
+  load(profileContext, 'js/translation-registry.js');
+  load(profileContext, 'js/scripture-text.js');
   load(profileContext, 'js/bible-versions.js');
   profileContext.GodsPromisesConfig.supabaseUrl = 'https://ixxeidpdgktzvcbucosq.supabase.co';
   profileContext.GodsPromisesConfig.supabaseAnonKey = 'sb_publishable_test_only_value';
@@ -313,6 +319,9 @@ function assertSelectors(html, label) {
   });
   load(saved, 'js/config.js');
   load(saved, 'js/subscription.js');
+  load(saved, 'js/scripture-books.js');
+  load(saved, 'js/translation-registry.js');
+  load(saved, 'js/scripture-text.js');
   load(saved, 'js/bible-versions.js');
   saved.GodsPromisesConfig.supabaseUrl = 'https://ixxeidpdgktzvcbucosq.supabase.co';
   saved.GodsPromisesConfig.supabaseAnonKey = 'sb_publishable_test_only_value';

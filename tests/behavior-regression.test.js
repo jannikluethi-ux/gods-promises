@@ -292,6 +292,9 @@ async function versions(directory, data) {
     return { ok: true, json: async () => ({ text: '  Synthetic test translation\n line.  ' }) };
   };
   const context = runtime(directory, { localStorage, sessionStorage, fetch });
+  load(context, 'js/scripture-books.js');
+  load(context, 'js/translation-registry.js');
+  load(context, 'js/scripture-text.js');
   load(context, 'js/bible-versions.js');
   const api = context.GodsPromisesVersions;
   assert.deepEqual(plain(api.VERSIONS.map(v => v.id)), ['web', 'asv', 'ylt', 'darby', 'dra']);
@@ -318,6 +321,9 @@ async function versions(directory, data) {
     assert.equal(calls.length, before + 1, 'Memory cache avoids repeated requests');
   }
   const restored = runtime(directory, { localStorage, sessionStorage, fetch });
+  load(restored, 'js/scripture-books.js');
+  load(restored, 'js/translation-registry.js');
+  load(restored, 'js/scripture-text.js');
   load(restored, 'js/bible-versions.js');
   const beforeSession = calls.length;
   assert.equal((await restored.GodsPromisesVersions.resolveText(nt, 'asv')).source, 'asv');

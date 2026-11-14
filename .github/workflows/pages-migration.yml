@@ -33,6 +33,7 @@ jobs:
           node tests/behavior-regression.test.js
           node tests/kjv-removal.test.js
           node tests/translation-registry.test.js
+          node tests/scripture-text.test.js
           node tests/discovery.test.js
           node tests/discovery-meanings.test.js
           node tests/filter-presentation.test.js
