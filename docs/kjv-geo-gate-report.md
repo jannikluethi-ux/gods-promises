@@ -77,7 +77,7 @@ The new preview that Vercel builds from the push of this branch was not observed
 
 ## 8. Scanner
 
-`python3 scripts/check_kjv_exposure.py --git` passed for 205 tracked files. `--root dist --public` passed for 1,498 files. The scanner script and its thresholds were not edited.
+`python3 scripts/check_kjv_exposure.py --git` passed for 205 tracked files before this report was added, and for 206 once this report was the newest tracked file. Those two numbers are the same tree plus this document. `--root dist --public` passed for 1,498 files. The scanner script and its thresholds were not edited. The count at the later hardening head is in `docs/kjv-final-hardening.md`.
 
 ## 9. Remaining weaknesses
 

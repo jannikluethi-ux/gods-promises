@@ -6,12 +6,14 @@ This page describes how an administrator changes the gate. It is not a legal det
 
 The running site reads four server environment variables. They are not in git, and a public request cannot set them.
 
-| Variable | Default | Effect |
+| Variable | Accepted values | Effect |
 | --- | --- | --- |
-| `KJV_GLOBAL_ENABLED` | unset, treated as off | Must be the string `true` before any King James text is sent |
-| `KJV_ALLOWED_COUNTRIES` | empty | Explicit ISO codes. A country that is not listed is denied |
-| `KJV_RESTRICTED_COUNTRIES` | `GB`, `GG`, `JE`, `IM` are always included | Extra codes can be added. The four built-in codes cannot be removed |
-| `KJV_ENABLE_RESTRICTED` | unset, treated as off | After written Cambridge permission, `true` lets a restricted code through only when the global switch is on and that code is also on the allowlist |
+| `KJV_GLOBAL_ENABLED` | Unset, empty, or exactly `false` is off. Exactly `true` is on. Any other value, including `TRUE`, ` true `, `1`, or `yes`, is a broken setting and the gate stays off | Must be exactly `true` before any King James text is sent |
+| `KJV_ALLOWED_COUNTRIES` | Unset or empty means nobody. Otherwise a comma-separated list of ISO 3166-1 alpha-2 codes. Spaces around commas are allowed. Letters may be upper or lower case and are read as upper case. `UK`, `ENG`, `SCT`, `WLS`, and `NIR` are read as `GB`. A token that is not two letters rejects the whole list | A country that is not on a valid list is denied. A broken list denies everyone |
+| `KJV_RESTRICTED_COUNTRIES` | Same list format. Unset or empty adds nothing. `GB`, `GG`, `JE`, and `IM` are always restricted even if this variable omits them | Extra codes can be added. A broken list denies everyone |
+| `KJV_ENABLE_RESTRICTED` | Same exact `true` / `false` / unset rule as the global switch | After written Cambridge permission, exactly `true` lets a restricted code through only when the global switch is exactly `true` and that code is also on a valid allowlist |
+
+A broken value is not shown to visitors. The server logs `KJV config invalid:` and the variable name only, and the decision reason is `config_invalid`. The public body stays “KJV is not available in your region.”
 
 `UK`, `ENG`, `SCT`, `WLS`, and `NIR` are read as `GB`. Vercel reports England, Wales, Scotland, and Northern Ireland as `GB`.
 
@@ -21,4 +23,4 @@ Vercel records who changed an environment variable, the time, and the project. T
 
 ## Future table
 
-`supabase/migrations/20261114103000_kjv_access_audit.sql` is a design for an append-only log and a config row, readable and writable only by `service_role`. It is not applied to project `ixxeidpdgktzvcbucosq` and it is not wired to the API. Do not apply it as part of turning the gate on. The gate stays on the environment variables above until that table has its own reviewed change.
+`supabase/migrations/20261114103000_kjv_access_audit.sql` is still not applied to project `ixxeidpdgktzvcbucosq` and is not wired to the API. It was edited in place because it had never been applied. Row security is enabled and forced on both tables. `anon` and `authenticated` have no privileges. `service_role` can read and change the single config row. A before-insert/update trigger, security definer with an empty search path, writes the audit row (previous JSON, new JSON, `changed_by`, reason, `auth.uid()`, session user, current user, and the time). A missing name or reason is rejected. `service_role` cannot insert, update, delete, or truncate the audit table; triggers reject those mutations. There is no sequence. The table owner and superusers, including `postgres` and `supabase_admin`, can still disable triggers or delete rows. The Supabase SQL editor runs as a privileged role. This is not absolute immutability. Do not apply the file as part of turning the gate on.

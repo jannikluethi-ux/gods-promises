@@ -2,8 +2,9 @@
  * Server-side King James authorization.
  *
  * This is an operational control, not a legal determination.
- * KJV text is sent only when KJV_GLOBAL_ENABLED is the string "true"
+ * KJV text is sent only when KJV_GLOBAL_ENABLED is exactly "true"
  * and the country is on KJV_ALLOWED_COUNTRIES. Both default off / empty.
+ * Any other flag value is a broken configuration and denies everyone.
  * GB, GG, JE, and IM stay blocked unless KJV_ENABLE_RESTRICTED is also
  * "true" after written Cambridge permission. A deploy does not set any
  * of these. Ordinary requests cannot change them.
@@ -25,25 +26,48 @@ const UK_ALIASES = {
 };
 const UNAVAILABLE = "KJV is not available in your region.";
 
-function parseList(value) {
-  if (value == null || String(value).trim() === "") return [];
-  return String(value)
-    .split(",")
-    .map(function (part) { return part.trim().toUpperCase(); })
-    .filter(Boolean)
-    .map(function (code) { return UK_ALIASES[code] || code; });
+function parseFlag(name, value) {
+  if (value == null || value === "" || value === "false") return { ok: true, enabled: false };
+  if (value === "true") return { ok: true, enabled: true };
+  return { ok: false, name: name };
 }
 
-function globalEnabled(env) {
-  return String((env || {}).KJV_GLOBAL_ENABLED || "").trim().toLowerCase() === "true";
+function parseCountryList(name, value) {
+  if (value == null || value === "") return { ok: true, codes: [] };
+  if (typeof value !== "string") return { ok: false, name: name };
+  const parts = value.split(",");
+  const codes = [];
+  for (let i = 0; i < parts.length; i++) {
+    const token = parts[i].trim();
+    if (!/^[A-Za-z]{2}$/.test(token)) return { ok: false, name: name };
+    const upper = token.toUpperCase();
+    codes.push(UK_ALIASES[upper] || upper);
+  }
+  return { ok: true, codes: codes };
 }
 
-function restrictedSet(env) {
-  return new Set(RESTRICTED.concat(parseList((env || {}).KJV_RESTRICTED_COUNTRIES)));
-}
-
-function allowSet(env) {
-  return new Set(parseList((env || {}).KJV_ALLOWED_COUNTRIES));
+function readConfig(env) {
+  const settings = env || {};
+  const fields = [];
+  const globalFlag = parseFlag("KJV_GLOBAL_ENABLED", settings.KJV_GLOBAL_ENABLED);
+  if (!globalFlag.ok) fields.push(globalFlag.name);
+  const restrictedFlag = parseFlag("KJV_ENABLE_RESTRICTED", settings.KJV_ENABLE_RESTRICTED);
+  if (!restrictedFlag.ok) fields.push(restrictedFlag.name);
+  const allowed = parseCountryList("KJV_ALLOWED_COUNTRIES", settings.KJV_ALLOWED_COUNTRIES);
+  if (!allowed.ok) fields.push(allowed.name);
+  const extraRestricted = parseCountryList("KJV_RESTRICTED_COUNTRIES", settings.KJV_RESTRICTED_COUNTRIES);
+  if (!extraRestricted.ok) fields.push(extraRestricted.name);
+  if (fields.length) {
+    console.error("KJV config invalid: " + fields.join(","));
+    return { ok: false, fields: fields };
+  }
+  return {
+    ok: true,
+    globalEnabled: globalFlag.enabled,
+    enableRestricted: restrictedFlag.enabled,
+    allowed: new Set(allowed.codes),
+    restricted: new Set(RESTRICTED.concat(extraRestricted.codes)),
+  };
 }
 
 function normalizeCountry(country) {
@@ -66,14 +90,13 @@ function deny(reason) {
 }
 
 function kjvDecision(country, env) {
-  const settings = env || {};
+  const config = readConfig(env);
   const parsed = normalizeCountry(country);
   if (!parsed.ok) return deny(parsed.reason);
-  if (!globalEnabled(settings)) return deny("global_off");
-  const restricted = restrictedSet(settings);
-  const enableRestricted = String(settings.KJV_ENABLE_RESTRICTED || "").trim().toLowerCase() === "true";
-  if (restricted.has(parsed.code) && !enableRestricted) return deny("restricted");
-  if (!allowSet(settings).has(parsed.code)) return deny("not_allowlisted");
+  if (!config.ok) return deny("config_invalid");
+  if (!config.globalEnabled) return deny("global_off");
+  if (config.restricted.has(parsed.code) && !config.enableRestricted) return deny("restricted");
+  if (!config.allowed.has(parsed.code)) return deny("not_allowlisted");
   return { allowed: true, offline: false, reason: "allowlisted", message: "" };
 }
 
@@ -94,5 +117,5 @@ module.exports = {
   kjvDecision,
   authorizeKjv,
   countryFrom,
-  globalEnabled,
+  readConfig,
 };

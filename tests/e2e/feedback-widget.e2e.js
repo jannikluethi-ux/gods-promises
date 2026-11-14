@@ -1,4 +1,8 @@
-/* Browser check + screenshots for the explanation feedback widget (not run in CI).
+/* Browser check + screenshots for the explanation feedback widget.
+ * CI runs the anonymous verse, card, and error flows against two local
+ * servers and an in-memory fake. The signed-in association is skipped
+ * when sign-in is not configured, which is the case in CI. No production
+ * or Supabase network.
  *
  *   python3 scripts/build_site.py --target production
  *   node scripts/dev_feedback_server.js 18790 &                      # working storage

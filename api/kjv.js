@@ -10,6 +10,16 @@ const path = require("path");
 const { authorizeKjv, UNAVAILABLE } = require("./_lib/kjv-access");
 
 const ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+){1,8}$/;
+const MAX_IDS = 24;
+const MAX_IDS_BYTES = 1024;
+
+function cacheHeaders(res) {
+  res.setHeader("cache-control", "private, no-store");
+  res.setHeader("cdn-cache-control", "no-store");
+  res.setHeader("vercel-cdn-cache-control", "no-store");
+  res.setHeader("pragma", "no-cache");
+  res.setHeader("vary", "x-vercel-ip-country");
+}
 
 function spansPath() {
   return process.env.KJV_SPANS_PATH || path.join(__dirname, "_lib", "kjv-spans.generated.json");
@@ -27,11 +37,6 @@ function readSpans() {
 function send(res, status, body) {
   res.statusCode = status;
   res.setHeader("content-type", "application/json; charset=utf-8");
-  res.setHeader("cache-control", "private, no-store");
-  res.setHeader("cdn-cache-control", "no-store");
-  res.setHeader("vercel-cdn-cache-control", "no-store");
-  res.setHeader("pragma", "no-cache");
-  res.setHeader("vary", "x-vercel-ip-country");
   res.end(JSON.stringify(body));
 }
 
@@ -39,13 +44,42 @@ function deny(res, status) {
   send(res, status || 200, { allowed: false, offline: false, message: UNAVAILABLE });
 }
 
-function idsFrom(req) {
-  const url = new URL(req.url || "/", "https://hispromisedaily.com");
-  const raw = url.searchParams.get("ids") || "";
-  return raw.split(",").map(function (id) { return id.trim(); }).filter(Boolean).slice(0, 24);
+function requestUrl(req) {
+  return new URL(req.url || "/", "https://hispromisedaily.com");
+}
+
+function idsFrom(url) {
+  const raw = url.searchParams.get("ids");
+  if (raw == null || raw === "") return [];
+  if (Buffer.byteLength(raw, "utf8") > MAX_IDS_BYTES) {
+    const err = new Error("ids");
+    err.code = "ids";
+    throw err;
+  }
+  const ids = raw.split(",").map(function (id) { return id.trim(); });
+  if (!ids.length || ids.length > MAX_IDS || ids.some(function (id) { return !ID_RE.test(id); })) {
+    const err = new Error("ids");
+    err.code = "ids";
+    throw err;
+  }
+  return ids;
 }
 
 module.exports = function kjv(req, res) {
+  try {
+    cacheHeaders(res);
+  } catch (err) {
+    return;
+  }
+  try {
+    handle(req, res);
+  } catch (err) {
+    deny(res, 400);
+  }
+};
+
+function handle(req, res) {
+  const url = requestUrl(req);
   let decision;
   try {
     decision = authorizeKjv(req, process.env);
@@ -57,13 +91,9 @@ module.exports = function kjv(req, res) {
     deny(res, 200);
     return;
   }
-  const ids = idsFrom(req);
+  const ids = idsFrom(url);
   if (!ids.length) {
     send(res, 200, { allowed: true, offline: false });
-    return;
-  }
-  if (ids.some(function (id) { return !ID_RE.test(id); })) {
-    deny(res, 400);
     return;
   }
   let passages;

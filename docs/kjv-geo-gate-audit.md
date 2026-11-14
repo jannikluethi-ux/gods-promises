@@ -1,6 +1,8 @@
 # King James geo gate audit
 
-Inspected at `ee68b0d5cb1822c732c57e387add4d3be3a10c2a`, before the gate change in the following commits. This is an operational review. It is not a legal determination and it does not grant rights in the Authorized Version.
+Superseded as a description of the current defaults. This note is the inspection of `ee68b0d5cb1822c732c57e387add4d3be3a10c2a`, when an unset allowlist still authorized US, CA, AU, and DE. The current gate defaults the global switch off and the allowlist empty. See `docs/kjv-admin-gate.md`.
+
+Inspected before the gate change in the following commits. This is an operational review. It is not a legal determination and it does not grant rights in the Authorized Version.
 
 ## What decides access today
 

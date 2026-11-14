@@ -62,7 +62,9 @@ Results:
 
 ## 4. Geo controls
 
-`api/_lib/kjv-access.js` is the only allow/deny module. Default allowlist: US, CA, AU, DE. Restricted, and denied unless both `KJV_ENABLE_RESTRICTED=true` and an allowlist entry exist: GB, GG, JE, IM. England, Wales, Scotland, and Northern Ireland all arrive as GB. Missing, blank, `XX`, `T1`, and `UNKNOWN` are denied. A thrown country lookup and a missing span file return no text (`503` for the missing file). Nothing in the repository sets the enable flag. **VERIFIED** by `tests/kjv-access.test.js`.
+Superseded. The paragraph below describes commit `ee68b0d`, when an unset allowlist still meant US, CA, AU, and DE. That default is gone. Current behavior is in `docs/kjv-admin-gate.md` and `docs/kjv-geo-gate-report.md`: the global switch defaults off, the allowlist defaults empty, and GB, GG, JE, and IM stay restricted.
+
+`api/_lib/kjv-access.js` is the only allow/deny module. At `ee68b0d` the default allowlist was US, CA, AU, DE. Restricted, and denied unless both `KJV_ENABLE_RESTRICTED=true` and an allowlist entry exist: GB, GG, JE, IM. England, Wales, Scotland, and Northern Ireland all arrive as GB. Missing, blank, `XX`, `T1`, and `UNKNOWN` are denied. A thrown country lookup and a missing span file return no text (`503` for the missing file). Nothing in the repository sets the enable flag. **VERIFIED** at that commit by `tests/kjv-access.test.js`.
 
 `Cache-Control: private, no-store` and `Vary: x-vercel-ip-country` are set on every API response. **VERIFIED** in the unit test and on the preview.
 
