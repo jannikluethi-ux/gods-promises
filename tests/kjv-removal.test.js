@@ -127,13 +127,12 @@ function assertSelectors(html, label) {
     'Thou shalt not show this legacy text'
   );
   const api = bootVersions(storage, session, calls);
-  assert.deepEqual(plain(api.VERSIONS.map(v => v.id)), ['web', 'asv', 'ylt', 'darby', 'dra']);
+  assert.deepEqual(plain(api.VERSIONS.map(v => v.id)), ['web', 'asv', 'darby', 'dra']);
   assert.deepEqual(plain(api.VERSIONS.map(v => ({
     id: v.id, api: v.api, label: v.label, short: v.short, ntOnly: !!v.ntOnly,
   }))), [
     { id: 'web', api: null, label: 'World English Bible (WEB)', short: 'WEB', ntOnly: false },
     { id: 'asv', api: 'asv', label: 'American Standard Version (ASV)', short: 'ASV', ntOnly: false },
-    { id: 'ylt', api: 'ylt', label: "Young's Literal Translation (YLT)", short: 'YLT', ntOnly: true },
     { id: 'darby', api: 'darby', label: 'Darby Translation (DBY)', short: 'DBY', ntOnly: false },
     { id: 'dra', api: 'dra', label: 'Douay-Rheims (DRA)', short: 'DRA', ntOnly: false },
   ]);
@@ -182,13 +181,15 @@ function assertSelectors(html, label) {
   assert.equal(storage.getItem(STORAGE_KEY), REMOVED, 'Choosing the version already on screen must not clear the saved id');
   assert.equal((await api.resolveText(ot, 'web')).text, ot.text);
 
-  const yltOt = await api.resolveText(ot, 'ylt');
-  assert.equal(yltOt.text, ot.text);
-  assert.equal(yltOt.source, 'web');
-  assert.match(yltOt.note, /New Testament only/);
+  for (const book of [ot, nt]) {
+    const ylt = await api.resolveText(book, 'ylt');
+    assert.equal(ylt.text, book.text);
+    assert.equal(ylt.source, 'web');
+    assert.match(ylt.note, /YLT unavailable, showing WEB/);
+  }
   assert.equal(calls.length, 0);
 
-  for (const id of ['asv', 'ylt', 'darby', 'dra']) {
+  for (const id of ['asv', 'darby', 'dra']) {
     const before = calls.length;
     const result = await api.resolveText(nt, id);
     assert.equal(result.source, id);
@@ -221,7 +222,7 @@ function assertSelectors(html, label) {
   api.fillSelect(select);
   assert.match(select.innerHTML, /value="web"/);
   assert.match(select.innerHTML, /American Standard Version \(ASV\)/);
-  assert.match(select.innerHTML, /Young's Literal Translation \(YLT\)/);
+  assert.equal(/ylt|Young's Literal Translation/i.test(select.innerHTML), false);
   assert.match(select.innerHTML, /Darby Translation \(DBY\)/);
   assert.match(select.innerHTML, /Douay-Rheims \(DRA\)/);
   assert.equal(/kjv|king james|authorized version/i.test(select.innerHTML), false);
@@ -233,11 +234,11 @@ function assertSelectors(html, label) {
   }
   const home = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   assert.match(home, /<option value="web">World English Bible \(WEB\)<\/option>/);
-  assert.match(home, /js\/bible-versions\.js\?v=shell-6/);
-  assert.match(fs.readFileSync(path.join(ROOT, 'me.html'), 'utf8'), /js\/bible-versions\.js\?v=shell-6/);
+  assert.match(home, /js\/bible-versions\.js\?v=shell-7/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'me.html'), 'utf8'), /js\/bible-versions\.js\?v=shell-7/);
   assert.match(fs.readFileSync(path.join(ROOT, 'js/me-page.js'), 'utf8'), /if \(offered\) el\.version\.value = user\.preferredBibleVersion/);
-  assert.equal(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').includes('hpd-shell-v5'), false);
-  assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /hpd-shell-v6/);
+  assert.equal(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').includes('hpd-shell-v6'), false);
+  assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /hpd-shell-v7/);
   const migration = fs.readFileSync(path.join(ROOT, 'supabase/migrations/20261110153000_profiles_favorites_auth.sql'), 'utf8');
   assert.match(migration, /preferred_bible_version in \('web', 'kjv', 'asv', 'ylt', 'darby', 'dra'\)/);
 
@@ -256,7 +257,7 @@ function assertSelectors(html, label) {
     scanForRetrieval(file, text);
     if (file.endsWith('.html')) assertSelectors(text, path.relative(ROOT, file));
   }
-  assert.match(fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'), /hpd-shell-v6/);
+  assert.match(fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'), /hpd-shell-v7/);
   assert.equal(/translation=kjv|King James|Authorized Version/i.test(built.map(file => fs.readFileSync(file, 'utf8')).join('\n')), false);
 
   const world = createWorld({ confirmEmail: false });
@@ -329,5 +330,5 @@ function assertSelectors(html, label) {
   assert.equal(savedCalls.length, 0);
   assertNoRemovedRequest(savedCalls);
 
-  console.log('KJV removal: selector and requests exclude the removed id; saved preference stays stored and displays WEB; WEB and ASV/YLT/Darby/Douay-Rheims still resolve; ' + built.length + ' built files scanned');
+  console.log('KJV removal: selector and requests exclude the removed id; saved preference stays stored and displays WEB; WEB and ASV/Darby/Douay-Rheims still resolve; ' + built.length + ' built files scanned');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -2172,6 +2172,19 @@ a:hover {
   display: none;
 }
 
+.version-unavailable-note {
+  display: block;
+  flex-basis: 100%;
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+
+.version-unavailable-note[hidden] {
+  display: none;
+}
+
 .me-version-label {
   display: inline-flex;
   align-items: center;
