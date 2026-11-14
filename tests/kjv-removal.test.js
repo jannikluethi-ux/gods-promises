@@ -236,8 +236,8 @@ function assertSelectors(html, label) {
   }
   const home = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   assert.match(home, /<option value="web">World English Bible \(WEB\)<\/option>/);
-  assert.match(home, /js\/bible-versions\.js\?v=shell-7/);
-  assert.match(fs.readFileSync(path.join(ROOT, 'me.html'), 'utf8'), /js\/bible-versions\.js\?v=shell-7/);
+  assert.match(home, /js\/bible-versions\.js\?v=shell-8/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'me.html'), 'utf8'), /js\/bible-versions\.js\?v=shell-8/);
   assert.match(fs.readFileSync(path.join(ROOT, 'js/me-page.js'), 'utf8'), /if \(offered\) el\.version\.value = user\.preferredBibleVersion/);
   assert.equal(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').includes('hpd-shell-v6'), false);
   assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /hpd-shell-v7/);
