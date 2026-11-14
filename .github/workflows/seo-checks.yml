@@ -27,6 +27,7 @@ jobs:
       - run: node tests/run-sql.js
       - run: node tests/behavior-regression.test.js
       - run: node tests/kjv-removal.test.js
+      - run: node tests/translation-registry.test.js
       - run: node tests/discovery.test.js
       - run: node tests/discovery-meanings.test.js
       - run: node tests/filter-presentation.test.js
