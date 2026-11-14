@@ -76,9 +76,9 @@ function boot(storage, world, fetch) {
   const user = await auth.signIn({ email: 'reader@example.invalid', password: 'test-only-password' });
   await new Promise(resolve => setTimeout(resolve, 50));
   assert.equal(auth.getCurrentUser().preferredBibleVersion, 'asv', 'The signed-in Bible version is saved to the profile');
-  context.GodsPromisesVersions.setCurrent('kjv');
+  context.GodsPromisesVersions.setCurrent('darby');
   await new Promise(resolve => setTimeout(resolve, 400));
-  assert.equal(auth.getCurrentUser().preferredBibleVersion, 'kjv');
+  assert.equal(auth.getCurrentUser().preferredBibleVersion, 'darby');
   const renamed = await auth.updateProfile({ displayName: '  Quiet Reader  ' });
   assert.equal(renamed.displayName, 'Quiet Reader');
   world.serverSetSubscription(user.id, 'canceled', new Date(Date.now() + 86400000).toISOString());
