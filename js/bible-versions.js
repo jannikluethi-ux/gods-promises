@@ -630,6 +630,9 @@
       }
 
       if (!meta.api) {
+        // Drop the in-flight token so a late ASV/Darby/DRA response cannot
+        // replace catalog text after the reader has returned to WEB.
+        block.removeAttribute("data-hydrate-token");
         var fallback = activeFallbackNote();
         block.textContent = p.text || "";
         block.classList.remove("card-text--loading");
@@ -652,6 +655,8 @@
       }
       function apply(result) {
         if (!current()) return;
+        if (getCurrentId() !== meta.id) return;
+        if (!result || (result.source && result.source !== meta.id)) return;
         block.classList.remove("card-text--loading");
         block.removeAttribute("aria-busy");
         if (result.error || result.withheld) {
