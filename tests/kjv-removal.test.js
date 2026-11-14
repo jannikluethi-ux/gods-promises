@@ -242,11 +242,12 @@ function assertSelectors(html, label) {
   }
   const home = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   assert.match(home, /<option value="web">World English Bible \(WEB\)<\/option>/);
-  assert.match(home, /js\/bible-versions\.js\?v=shell-8/);
-  assert.match(fs.readFileSync(path.join(ROOT, 'me.html'), 'utf8'), /js\/bible-versions\.js\?v=shell-8/);
+  assert.match(home, /js\/bible-versions\.js\?v=shell-9/);
+  assert.match(home, /app\.js\?v=shell-9/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'me.html'), 'utf8'), /js\/bible-versions\.js\?v=shell-9/);
   assert.match(fs.readFileSync(path.join(ROOT, 'js/me-page.js'), 'utf8'), /if \(offered\) el\.version\.value = user\.preferredBibleVersion/);
-  assert.equal(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').includes('hpd-shell-v7'), false);
-  assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /hpd-shell-v8/);
+  assert.equal(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').includes('hpd-shell-v8'), false);
+  assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /hpd-shell-v9/);
   const migration = fs.readFileSync(path.join(ROOT, 'supabase/migrations/20261110153000_profiles_favorites_auth.sql'), 'utf8');
   assert.match(migration, /preferred_bible_version in \('web', 'kjv', 'asv', 'ylt', 'darby', 'dra'\)/);
 
@@ -265,7 +266,7 @@ function assertSelectors(html, label) {
     scanForRetrieval(file, text);
     if (file.endsWith('.html')) assertSelectors(text, path.relative(ROOT, file));
   }
-  assert.match(fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'), /hpd-shell-v8/);
+  assert.match(fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'), /hpd-shell-v9/);
   assert.equal(/translation=kjv|King James|Authorized Version/i.test(built.map(file => fs.readFileSync(file, 'utf8')).join('\n')), false);
 
   const world = createWorld({ confirmEmail: false });

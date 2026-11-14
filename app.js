@@ -1343,20 +1343,31 @@
       setTestament(btn.dataset.testament || "");
     });
   }
+  // Discovery results and the comfort fallback call deck.reset(), so the deck
+  // count is 0 and a version change used to update only the header label.
+  // Refill those cards in place. The reading deck still repaints its card.
+  function refreshTranslationOutsideDeck() {
+    if (deck && deck.getCount()) return;
+    if (isLanding()) {
+      render({ preserveIndex: true });
+      return;
+    }
+    hydrateVisibleCards(lastFiltered);
+  }
+
+  if (Versions && Versions.onChange) {
+    Versions.onChange(refreshTranslationOutsideDeck);
+  }
+
   if (el.version) {
     el.version.addEventListener("change", () => {
       if (Versions && Versions.setCurrent) {
         Versions.setCurrent(el.version.value);
+      } else {
+        refreshTranslationOutsideDeck();
       }
       updateVersionMeta();
-      // Re-render the current card in place: same deck, same position.
-      if (deck && deck.getCount()) {
-        deck.refresh();
-      } else if (isLanding()) {
-        render({ preserveIndex: true });
-      } else if (el.results && el.results.querySelector("[data-fallback]")) {
-        hydrateVisibleCards(lastFiltered);
-      }
+      if (deck && deck.getCount()) deck.refresh();
     });
   }
   el.book.addEventListener("change", render);
